@@ -3,157 +3,80 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#111111">
+<meta name="theme-color" content="#070707">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon.svg">
-<title>M-P-A</title>
+<link rel="apple-touch-icon" href="logo.png">
+<title>MICKY M-P-A</title>
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f4f5f7;color:#171717}
-header{background:#111;color:#ffd21a;padding:16px 16px 12px;position:sticky;top:0;z-index:5;box-shadow:0 2px 10px #0002}
-.brand{font-size:22px;font-weight:900;letter-spacing:.5px}.sub{color:#fff9;font-size:12px;margin-top:2px}
-nav{display:flex;gap:6px;overflow:auto;padding:9px 0 0}nav button{white-space:nowrap;border:0;border-radius:18px;padding:9px 12px;background:#252525;color:#fff;font-weight:700}
-nav button.active{background:#ffd21a;color:#111}
-main{max-width:1100px;margin:auto;padding:16px}.view{display:none}.view.active{display:block}
-.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.card{background:#fff;border-radius:14px;padding:14px;box-shadow:0 2px 10px #0000000d}.label{font-size:12px;color:#777}.value{font-size:21px;font-weight:900;margin-top:5px}
-.green{color:#079447}.red{color:#d92d20}.gold{color:#a87500}
-h2{margin:6px 0 14px}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{flex:1}
-input,select{width:100%;padding:11px;border:1px solid #ddd;border-radius:10px;background:#fff;font-size:15px}
-button{cursor:pointer}.primary{background:#ffd21a;color:#111;border:0;padding:11px 14px;border-radius:10px;font-weight:900}.dark{background:#111;color:#fff;border:0;padding:11px 14px;border-radius:10px;font-weight:800}.danger{background:#fee4e2;color:#b42318;border:0;padding:8px 10px;border-radius:8px;font-weight:700}
-table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden}.scroll{overflow:auto}th,td{text-align:left;padding:10px;border-bottom:1px solid #eee;font-size:13px}th{background:#fafafa}
-.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}.product{background:#fff;border-radius:13px;padding:12px;border:1px solid #eee}.product strong{display:block}.product small{color:#777}
-.total{font-size:23px;font-weight:900;text-align:right;padding:14px 0}
-.modal{position:fixed;inset:0;background:#0008;display:none;align-items:flex-end;justify-content:center;z-index:20}.modal.open{display:flex}.sheet{background:#fff;width:min(600px,100%);border-radius:20px 20px 0 0;padding:18px;max-height:90vh;overflow:auto}
-.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:11px 16px;border-radius:22px;display:none;z-index:50}
-.empty{text-align:center;color:#777;padding:30px}.receipt{font-family:monospace;background:#fff;padding:18px;max-width:420px;margin:auto}.receipt h3{text-align:center;margin:0}.receipt hr{border:0;border-top:1px dashed #999}
-@media(min-width:750px){.cards{grid-template-columns:repeat(4,1fr)}}
+:root{--gold:#ffd21a;--gold2:#ffb900;--bg:#080808;--panel:#141414;--muted:#a9a9a9;--line:#2a2a2a;--blue:#087cff;--green:#00bd63;--pink:#ed1263;--purple:#6d20ff}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#050505,#171717 55%,#080808);color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
+button,input,select{font:inherit}button{border:0;cursor:pointer}.hidden{display:none!important}
+.login{min-height:100vh;display:grid;place-items:center;padding:18px;background:radial-gradient(circle at 50% 20%,#3b2a00 0,#0b0b0b 35%,#030303 75%)}
+.loginbox{width:min(460px,100%);background:#101010;border:1px solid #5b4700;border-radius:30px;padding:22px 18px 25px;box-shadow:0 0 45px #000}
+.logoBig{width:180px;height:180px;object-fit:contain;display:block;margin:0 auto 8px;filter:drop-shadow(0 0 12px #ffd21a66)}
+.login h1{text-align:center;color:var(--gold);font-size:29px;margin:4px 0}.login p{text-align:center;color:#ddd;margin:4px 0 20px}.tabs{display:flex;background:#262626;border-radius:18px;padding:4px;margin-bottom:15px}.tabs button{flex:1;background:transparent;color:#aaa;padding:11px;border-radius:14px;font-weight:800}.tabs button.active{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#111}
+.field{margin:11px 0}.field label{display:block;font-size:14px;font-weight:800;margin-bottom:6px;color:#ddd}.field input,.field select{width:100%;padding:14px 14px;border-radius:14px;border:1px solid #3b3b3b;background:#f4f4f4;color:#111}
+.goldbtn{width:100%;padding:15px;border-radius:14px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#111;font-weight:950;font-size:17px;margin-top:7px}
+.hint{text-align:center;color:#888;font-size:12px;margin-top:14px}.loginphoto{width:100%;height:150px;object-fit:cover;border-radius:18px;margin-top:18px;border:1px solid #3c3100}
+
+.app{min-height:100vh;padding-bottom:78px}.top{position:sticky;top:0;z-index:20;background:#070707ee;backdrop-filter:blur(16px);border-bottom:1px solid #3b2d00;padding:10px 13px 9px}.toprow{display:flex;align-items:center;gap:10px}.brandlogo{width:48px;height:48px;object-fit:contain}.brandtext{flex:1}.brandtext b{color:var(--gold);font-size:18px}.brandtext small{display:block;color:#999;font-size:11px;margin-top:2px}.iconbtn{width:40px;height:40px;border-radius:13px;background:#202020;color:#fff;font-size:19px}
+.navtop{display:flex;gap:7px;overflow:auto;margin-top:9px}.navtop button{white-space:nowrap;background:#202020;color:#ddd;border-radius:18px;padding:8px 12px;font-size:12px;font-weight:800}.navtop button.active{background:var(--gold);color:#111}
+main{max-width:720px;margin:auto;padding:15px 12px}.hello{display:flex;align-items:center;gap:12px;margin:5px 0 14px}.avatar{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#fff);display:grid;place-items:center;color:#111;font-weight:900}.hello h2{font-size:18px;margin:0}.hello p{font-size:12px;color:#999;margin:3px 0}
+.date{background:#fff;color:#222;border-radius:14px;padding:11px 13px;font-size:12px;margin-bottom:12px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:9px}.stat{border-radius:17px;padding:14px;min-height:88px;border:1px solid #333;box-shadow:inset 0 0 20px #0005}.stat small{color:#eee;font-size:11px}.stat strong{display:block;font-size:21px;margin-top:7px}.s-green{background:linear-gradient(135deg,#003e26,#00a85a)}.s-blue{background:linear-gradient(135deg,#00377d,#0088ff)}.s-purple{background:linear-gradient(135deg,#2a075f,#7429ff)}.s-orange{background:linear-gradient(135deg,#573000,#d47a00)}
+.sectiontitle{display:flex;justify-content:space-between;align-items:center;margin:20px 2px 10px}.sectiontitle h3{margin:0;font-size:16px}.sectiontitle span{font-size:11px;color:#aaa}
+.quick{display:grid;grid-template-columns:1fr 1fr;gap:9px}.quick button{border-radius:16px;padding:15px 12px;color:#fff;font-weight:900;text-align:left;min-height:65px}.q-yellow{background:linear-gradient(135deg,#ffe11c,#ff9800);color:#111!important}.q-blue{background:linear-gradient(135deg,#006be6,#003da8)}.q-green{background:linear-gradient(135deg,#00b867,#007b4b)}.q-pink{background:linear-gradient(135deg,#f5136c,#b60052)}.q-purple{background:linear-gradient(135deg,#7429ff,#3c08b8)}.q-dark{background:linear-gradient(135deg,#303030,#111)}
+.productstrip{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.prodcard{background:#171717;border:1px solid #303030;border-radius:14px;padding:7px}.prodcard img{width:100%;height:65px;object-fit:cover;border-radius:9px;background:#222}.prodcard b{display:block;font-size:10px;margin-top:5px}.prodcard small{font-size:9px;color:#999}
+.card{background:#111;border:1px solid #292929;border-radius:18px;padding:15px}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.tablewrap{overflow:auto}.table{width:100%;border-collapse:collapse;font-size:12px}.table th,.table td{padding:10px 7px;border-bottom:1px solid #282828;text-align:left;white-space:nowrap}.table th{color:var(--gold)}
+.list{display:flex;flex-direction:column;gap:7px}.row{display:flex;align-items:center;gap:10px;padding:10px;background:#151515;border-bottom:1px solid #292929}.row .thumb{width:42px;height:42px;border-radius:9px;object-fit:cover;background:#222}.row .grow{flex:1}.row b{font-size:13px}.row small{display:block;color:#999;font-size:10px;margin-top:3px}.price{font-weight:900;color:#fff;font-size:12px}
+.empty{text-align:center;padding:55px 15px;color:#999}.empty .face{font-size:44px;margin-bottom:12px}.empty button{background:#086cff;color:#fff;border-radius:22px;padding:12px 20px;font-weight:900}
+.bottom{position:fixed;bottom:0;left:0;right:0;background:#101010f2;backdrop-filter:blur(16px);border-top:1px solid #333;display:grid;grid-template-columns:repeat(5,1fr);padding:7px 5px calc(7px + env(safe-area-inset-bottom));z-index:30}.bottom button{background:none;color:#888;font-size:10px;font-weight:800}.bottom button span{display:block;font-size:20px;margin-bottom:3px}.bottom button.active{color:var(--gold)}
+@media(min-width:650px){.stats{grid-template-columns:repeat(4,1fr)}.quick{grid-template-columns:repeat(4,1fr)}.productstrip{grid-template-columns:repeat(6,1fr)}}
 </style>
 </head>
 <body>
-<header>
-  <div class="brand">MICKY M-P-A</div>
-  <div class="sub">Phone Accessories & Home Decoration · 0767203506 / 0773203506</div>
-  <nav id="nav"></nav>
-</header>
-<main>
-<section id="dashboard" class="view active">
-<h2>Dashboard</h2>
-<div class="cards">
-<div class="card"><div class="label">Mauzo Leo</div><div class="value green" id="dSales">TZS 0</div></div>
-<div class="card"><div class="label">Faida Leo</div><div class="value gold" id="dProfit">TZS 0</div></div>
-<div class="card"><div class="label">Bidhaa</div><div class="value" id="dProducts">0</div></div>
-<div class="card"><div class="label">Stock Units</div><div class="value" id="dStock">0</div></div>
+<div id="login" class="login">
+<div class="loginbox">
+<img src="logo.png" class="logoBig" alt="Micky logo">
+<h1>MICKY M-P-A</h1><p>Phone Accessories & Home Decoration</p>
+<div class="tabs"><button id="adminTab" class="active" onclick="role='admin';setRole()">Admin</button><button onclick="role='user';setRole()">User</button></div>
+<div class="field"><label>Jina la mtumiaji</label><input id="u" placeholder="Username"></div>
+<div class="field"><label>Nenosiri</label><input id="p" type="password" placeholder="Password"></div>
+<button class="goldbtn" onclick="login()">INGIA</button>
+<div class="hint">Admin: admin / 1234 &nbsp; • &nbsp; User: user / 1234</div>
+</div></div>
+
+<div id="app" class="app hidden">
+<header class="top"><div class="toprow"><img src="logo.png" class="brandlogo"><div class="brandtext"><b>MICKY M-P-A</b><small>PHONE ACCESSORIES & HOME DECORATION</small></div><button class="iconbtn" onclick="render('settings')">⚙</button></div>
+<div id="topnav" class="navtop"></div></header>
+<main id="content"></main>
+<nav class="bottom" id="bottom"></nav>
 </div>
-<div class="card" style="margin-top:12px"><h3>Karibu, Micky 👋</h3><p>Huu ni mfumo wako wa mauzo. Anza kwa kuongeza bidhaa kwenye <b>Stock</b>, kisha fanya mauzo.</p></div>
-</section>
-
-<section id="sales" class="view">
-<h2>Mauzo</h2>
-<div class="card">
-<div class="row"><input id="saleSearch" placeholder="Tafuta bidhaa..."><select id="salePayment"><option>Cash</option><option>M-Pesa</option><option>Airtel Money</option><option>Mixx by Yas</option><option>Halotel Money</option></select></div>
-<div id="saleProducts" class="products" style="margin-top:12px"></div>
-<div id="cart"></div><div class="total" id="cartTotal">TZS 0</div>
-<div class="row"><input id="customerName" placeholder="Jina la mteja (hiari)"><button class="primary" onclick="checkout()">KAMILISHA MAUZO</button></div>
-</div>
-</section>
-
-<section id="stock" class="view">
-<h2>Stock / Bidhaa</h2>
-<div class="card">
-<div class="row"><input id="pName" placeholder="Jina la bidhaa"><input id="pBuy" type="number" placeholder="Bei ya kununua"><input id="pSell" type="number" placeholder="Bei ya kuuza"><input id="pQty" type="number" placeholder="Quantity"></div>
-<div class="row" style="margin-top:8px"><input id="pCat" placeholder="Category, mfano Accessories"><button class="primary" onclick="addProduct()">+ Ongeza Bidhaa</button></div>
-</div>
-<div class="scroll" style="margin-top:12px"><table><thead><tr><th>Bidhaa</th><th>Bei</th><th>Stock</th><th>Faida/unit</th><th></th></tr></thead><tbody id="stockTable"></tbody></table></div>
-</section>
-
-<section id="customers" class="view">
-<h2>Wateja</h2>
-<div class="card"><div class="row"><input id="cName" placeholder="Jina"><input id="cPhone" placeholder="Simu"><button class="primary" onclick="addCustomer()">+ Ongeza</button></div></div>
-<div class="scroll" style="margin-top:12px"><table><thead><tr><th>Jina</th><th>Simu</th><th>Idadi ya manunuzi</th></tr></thead><tbody id="customerTable"></tbody></table></div>
-</section>
-
-<section id="reports" class="view">
-<h2>Ripoti</h2>
-<div class="cards">
-<div class="card"><div class="label">Mauzo yote</div><div class="value green" id="rSales">TZS 0</div></div>
-<div class="card"><div class="label">Faida yote</div><div class="value gold" id="rProfit">TZS 0</div></div>
-<div class="card"><div class="label">Transactions</div><div class="value" id="rTx">0</div></div>
-</div>
-<div class="scroll" style="margin-top:12px"><table><thead><tr><th>Tarehe</th><th>Mteja</th><th>Malipo</th><th>Jumla</th><th></th></tr></thead><tbody id="reportTable"></tbody></table></div>
-</section>
-
-<section id="settings" class="view">
-<h2>Mipangilio</h2>
-<div class="card">
-<p><b>Jina la biashara:</b> MICKY M-P-A</p>
-<p><b>Simu:</b> 0767203506 / 0773203506</p>
-<p><b>Huduma:</b> Phone Accessories & Home Decoration</p>
-<button class="dark" onclick="exportData()">Backup Data</button>
-<button class="danger" onclick="resetData()" style="margin-left:6px">Futa Data</button>
-</div>
-</section>
-</main>
-
-<div class="modal" id="receiptModal"><div class="sheet"><div id="receipt"></div><div class="row" style="margin-top:12px"><button class="dark" onclick="window.print()">Print</button><button class="primary" onclick="closeModal()">Funga</button></div></div></div>
-<div class="toast" id="toast"></div>
 
 <script>
-const KEY='micky_mpa_v1';
-let db=JSON.parse(localStorage.getItem(KEY)||'null')||{
- products:[
-  {id:1,name:'Fast Charger',buy:15000,sell:25000,qty:20,cat:'Accessories'},
-  {id:2,name:'Earphones',buy:12000,sell:20000,qty:15,cat:'Accessories'},
-  {id:3,name:'iPhone Cover',buy:8000,sell:15000,qty:25,cat:'Kava'},
-  {id:4,name:'LED Light',buy:10000,sell:18000,qty:12,cat:'Umeme'}
- ],customers:[],sales:[]
-};
-function save(){localStorage.setItem(KEY,JSON.stringify(db));render()}
-function money(n){return 'TZS '+Number(n||0).toLocaleString('en-TZ')}
-function today(){return new Date().toISOString().slice(0,10)}
-function toast(s){let t=document.getElementById('toast');t.textContent=s;t.style.display='block';setTimeout(()=>t.style.display='none',1800)}
-const navItems=[['dashboard','Nyumbani'],['sales','Mauzo'],['stock','Stock'],['customers','Wateja'],['reports','Ripoti'],['settings','Mipangilio']];
-document.getElementById('nav').innerHTML=navItems.map(([id,n],i)=>`<button class="${i===0?'active':''}" onclick="show('${id}',this)">${n}</button>`).join('');
-function show(id,btn){document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));btn.classList.add('active');render()}
-function addProduct(){
- let name=pName.value.trim(), buy=+pBuy.value, sell=+pSell.value, qty=+pQty.value||0, cat=pCat.value.trim()||'General';
- if(!name||!sell){toast('Jaza jina na bei ya kuuza');return}
- db.products.push({id:Date.now(),name,buy,sell,qty,cat});['pName','pBuy','pSell','pQty','pCat'].forEach(x=>document.getElementById(x).value='');save();toast('Bidhaa imeongezwa');
-}
-function delProduct(id){if(confirm('Futa bidhaa hii?')){db.products=db.products.filter(p=>p.id!==id);save()}}
-function addCustomer(){let name=cName.value.trim(),phone=cPhone.value.trim();if(!name){toast('Weka jina');return}db.customers.push({id:Date.now(),name,phone});cName.value='';cPhone.value='';save();toast('Mteja ameongezwa')}
-let cart=[];
-function addCart(id){let p=db.products.find(x=>x.id===id);if(!p||p.qty<1){toast('Stock imekwisha');return}let c=cart.find(x=>x.id===id);if(c){if(c.qty<p.qty)c.qty++;else toast('Stock haitoshi')}else cart.push({id,qty:1});renderCart()}
-function changeCart(id,d){let c=cart.find(x=>x.id===id);let p=db.products.find(x=>x.id===id);if(!c)return;c.qty+=d;if(c.qty<=0)cart=cart.filter(x=>x.id!==id);if(c&&c.qty>p.qty)c.qty=p.qty;renderCart()}
-function renderCart(){let el=document.getElementById('cart');if(!cart.length){el.innerHTML='<div class="empty">Hakuna bidhaa kwenye mauzo.</div>';document.getElementById('cartTotal').textContent=money(0);return}
-let total=0;el.innerHTML=cart.map(c=>{let p=db.products.find(x=>x.id===c.id),t=p.sell*c.qty;total+=t;return `<div class="row" style="padding:8px 0;border-bottom:1px solid #eee"><div><b>${p.name}</b><br><small>${money(p.sell)} × ${c.qty}</small></div><button class="danger" onclick="changeCart(${p.id},-1)">−</button><button class="primary" onclick="changeCart(${p.id},1)">+</button><b>${money(t)}</b></div>`}).join('');document.getElementById('cartTotal').textContent=money(total)}
-function checkout(){
- if(!cart.length){toast('Chagua bidhaa kwanza');return}
- let total=0,profit=0,items=[];
- for(let c of cart){let p=db.products.find(x=>x.id===c.id);if(c.qty>p.qty){toast('Stock haitoshi: '+p.name);return}total+=p.sell*c.qty;profit+=(p.sell-p.buy)*c.qty;items.push({id:p.id,name:p.name,qty:c.qty,sell:p.sell,buy:p.buy});p.qty-=c.qty}
- let sale={id:Date.now(),date:new Date().toISOString(),customer:customerName.value.trim()||'Mteja wa kawaida',payment:salePayment.value,total,profit,items};
- db.sales.push(sale);
- let cn=db.customers.find(c=>c.name.toLowerCase()===sale.customer.toLowerCase());if(cn)cn.purchases=(cn.purchases||0)+1;
- cart=[];customerName.value='';save();showReceipt(sale);toast('Mauzo yamehifadhiwa');
-}
-function showReceipt(s){document.getElementById('receipt').innerHTML=`<div class="receipt"><h3>MICKY M-P-A</h3><div style="text-align:center">Phone Accessories & Home Decoration</div><div style="text-align:center">0767203506 / 0773203506</div><hr><div>Tarehe: ${new Date(s.date).toLocaleString('sw-TZ')}</div><div>Mteja: ${s.customer}</div><div>Malipo: ${s.payment}</div><hr>${s.items.map(i=>`<div>${i.name}<br>${i.qty} × ${money(i.sell)} = ${money(i.qty*i.sell)}</div>`).join('<hr>')}<hr><b>JUMLA: ${money(s.total)}</b><br>Asante kwa kununua MICKY M-P-A!</div>`;document.getElementById('receiptModal').classList.add('open')}
-function closeModal(){document.getElementById('receiptModal').classList.remove('open')}
-function exportData(){let blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='micky-mpa-backup.json';a.click()}
-function resetData(){if(confirm('Hii itafuta mauzo, stock na wateja wote. Una uhakika?')){localStorage.removeItem(KEY);location.reload()}}
-function render(){
- let day=db.sales.filter(s=>s.date.slice(0,10)===today()), ds=day.reduce((a,s)=>a+s.total,0),dp=day.reduce((a,s)=>a+s.profit,0);
- dSales.textContent=money(ds);dProfit.textContent=money(dp);dProducts.textContent=db.products.length;dStock.textContent=db.products.reduce((a,p)=>a+p.qty,0);
- stockTable.innerHTML=db.products.map(p=>`<tr><td><b>${p.name}</b><br><small>${p.cat}</small></td><td>${money(p.sell)}</td><td>${p.qty}</td><td>${money(p.sell-p.buy)}</td><td><button class="danger" onclick="delProduct(${p.id})">Futa</button></td></tr>`).join('');
- customerTable.innerHTML=db.customers.length?db.customers.map(c=>`<tr><td>${c.name}</td><td>${c.phone||'-'}</td><td>${c.purchases||0}</td></tr>`).join(''):'<tr><td colspan="3" class="empty">Hakuna wateja</td></tr>';
- let total=db.sales.reduce((a,s)=>a+s.total,0), profit=db.sales.reduce((a,s)=>a+s.profit,0);rSales.textContent=money(total);rProfit.textContent=money(profit);rTx.textContent=db.sales.length;
- reportTable.innerHTML=db.sales.slice().reverse().map(s=>`<tr><td>${new Date(s.date).toLocaleString('sw-TZ')}</td><td>${s.customer}</td><td>${s.payment}</td><td>${money(s.total)}</td><td><button class="primary" onclick='showReceipt(${JSON.stringify(s)})'>Risiti</button></td></tr>`).join('')||'<tr><td colspan="5" class="empty">Hakuna mauzo</td></tr>';
- renderSaleProducts();renderCart();
-}
-function renderSaleProducts(){
- let q=(document.getElementById('saleSearch')?.value||'').toLowerCase();
- let arr=db.products.filter(p=>p.qty>0&&p.name.toLowerCase().includes(q));
- saleProducts.innerHTML=arr.map(p=>`<div class="product"><strong>${p.name}</strong><small>${p.cat} · Stock ${p.qty}</small><div style="margin:8px 0;font-weight:900">${money(p.sell)}</div><button class="primary" style="width:100%" onclick="addCart(${p.id})">+ Ongeza</button></div>`).join('')||'<div class="empty">Hakuna bidhaa.</div>';
-}
-document.getElementById('saleSearch').addEventListener('input',renderSaleProducts);
-render();
+const KEY='mpa-premium-v3'; let role='admin';
+let d=JSON.parse(localStorage.getItem(KEY)||'null')||{user:null,products:[
+{id:1,n:'Adapter ndogo',p:10000,q:4},{id:2,n:'Adapter ya TV',p:20000,q:2},{id:3,n:'Aroma diffuser',p:20000,q:1},{id:4,n:'Aux wire',p:2000,q:16},{id:5,n:'AV wire',p:2000,q:11},{id:6,n:'Azam LNB',p:10000,q:3},{id:7,n:'Battery ya simu',p:12000,q:2}],sales:[],expenses:[]};
+function save(){localStorage.setItem(KEY,JSON.stringify(d))}
+function money(n){return 'TZS '+Number(n||0).toLocaleString()}
+function setRole(){document.querySelectorAll('.tabs button').forEach((x,i)=>x.classList.toggle('active',(i===0&&role==='admin')||(i===1&&role==='user')))}
+function login(){let u=document.getElementById('u').value.trim(),p=document.getElementById('p').value;if((u==='admin'||u==='user')&&p==='1234'){d.user={u,role};save();show();render('home')}else alert('Tumia admin/1234 au user/1234')}
+function show(){document.getElementById('login').classList.add('hidden');document.getElementById('app').classList.remove('hidden')}
+function logout(){d.user=null;save();location.reload()}
+const pages=[['home','⌂','Home'],['products','▣','Bidhaa'],['sales','🛒','Mauzo'],['expenses','▣','Matumizi'],['more','☷','Zaidi']];
+function nav(page){document.getElementById('topnav').innerHTML=pages.map(x=>`<button class="${x[0]===page?'active':''}" onclick="render('${x[0]}')">${x[2]}</button>`).join('');document.getElementById('bottom').innerHTML=pages.map(x=>`<button class="${x[0]===page?'active':''}" onclick="render('${x[0]}')"><span>${x[1]}</span>${x[2]}</button>`).join('')}
+function render(page){nav(page);let c=document.getElementById('content');({home:home,products:products,sales:sales,expenses:expenses,more:more,stock:stock,reports:reports,settings:settings}[page]||home)();c.innerHTML=({home:home,products:products,sales:sales,expenses:expenses,more:more,stock:stock,reports:reports,settings:settings}[page]())}
+function home(){let sale=d.sales.reduce((a,x)=>a+x.total,0),exp=d.expenses.reduce((a,x)=>a+x.a,0),stock=d.products.reduce((a,x)=>a+x.q,0);return `<div class="hello"><div class="avatar">${(d.user?.u||'M').slice(0,1).toUpperCase()}</div><div><h2>Karibu ${d.user?.u||'Micky'} 👋</h2><p>Biashara yako, mafanikio yetu!</p></div></div><div class="date">▣ &nbsp; Leo &nbsp; • &nbsp; ${new Date().toLocaleDateString('sw-TZ')}</div><div class="stats"><div class="stat s-green"><small>Mauzo ya Leo</small><strong>${money(sale)}</strong></div><div class="stat s-blue"><small>Stock</small><strong>Bidhaa ${stock}</strong></div><div class="stat s-purple"><small>Faida ya Leo</small><strong>${money(sale-exp)}</strong></div><div class="stat s-orange"><small>Wateja</small><strong>${d.sales.length}</strong></div></div><div class="sectiontitle"><h3>Vitendo vya Haraka</h3><span>⚡</span></div><div class="quick"><button class="q-yellow" onclick="render('sales')">🛒 Fanya Mauzo</button><button class="q-blue" onclick="render('products')">▣ Bidhaa / Stock</button><button class="q-green" onclick="render('more')">👤 Wateja</button><button class="q-pink" onclick="render('expenses')">▣ Matumizi</button><button class="q-purple" onclick="render('reports')">▤ Ripoti</button><button class="q-dark" onclick="render('settings')">⚙ Mipangilio</button></div><div class="sectiontitle"><h3>Vikundi vya Bidhaa</h3></div><div class="productstrip">${['Simu & Vifaa','Vifaa vya Nyumbani','Mapambo ya Nyumbani','SIM & Vocha'].map((x,i)=>`<div class="prodcard"><div style="height:65px;border-radius:9px;background:linear-gradient(135deg,#111,#333);display:grid;place-items:center;font-size:22px">${['📱','🏠','🛋️','💳'][i]}</div><b>${x}</b><small>Fungua</small></div>`).join('')}</div>`}
+function products(){return `<h2>Bidhaa / Stock</h2><div class="card"><div class="formgrid"><div class="field"><label>Tafuta bidhaa</label><input id="pn" placeholder="Jina la bidhaa"></div><div class="field"><label>Ongeza bidhaa</label><button class="goldbtn" onclick="addProduct()">+ Bidhaa Mpya</button></div></div></div><div class="sectiontitle"><h3>Bidhaa ${d.products.length}</h3><span>Stock</span></div><div class="list">${d.products.map(x=>`<div class="row"><div class="thumb">📦</div><div class="grow"><b>${x.n}</b><small>${x.q} in stock</small></div><div class="price">${money(x.p)}</div></div>`).join('')}</div>`}
+function addProduct(){let n=prompt('Jina la bidhaa?'),p=+prompt('Bei ya kuuza (TZS)?'),q=+prompt('Idadi ya stock?');if(n&&p>=0&&q>=0){d.products.push({id:Date.now(),n,p,q});save();render('products')}}
+function sales(){return `<h2>Mauzo</h2><div class="card"><div class="field"><label>Bidhaa</label><select id="si">${d.products.map(x=>`<option value="${x.id}">${x.n} — ${money(x.p)}</option>`).join('')}</select></div><div class="formgrid"><div class="field"><label>Punguzo (Discount)</label><input id="sd" type="number" value="0"></div><div class="field"><label>Idadi</label><input id="sq" type="number" value="1"></div></div><div class="formgrid"><div class="field"><label>Bei ya kawaida</label><input id="sp" readonly></div><div class="field"><label>Jumla</label><input id="st" readonly></div></div><button class="goldbtn" onclick="sell()">+ Rekodi Mauzo</button></div><div class="sectiontitle"><h3>Mauzo ya Leo</h3></div><div class="list">${d.sales.slice().reverse().map(x=>`<div class="row"><div class="thumb">🛒</div><div class="grow"><b>${x.n}</b><small>Qty ${x.q} · Discount ${money(x.dis)}</small></div><div class="price">${money(x.total)}</div></div>`).join('')}</div>`}
+function sell(){let x=d.products.find(a=>a.id==si.value),q=+sq.value,dis=+sd.value;if(!x||q<1||q>x.q)return alert('Stock haitoshi');let total=Math.max(0,x.p*q-dis);x.q-=q;d.sales.push({n:x.n,q,dis,total,date:Date.now()});save();alert('Mauzo yamehifadhiwa');render('sales')}
+function expenses(){return `<h2>Matumizi</h2><div class="card"><div class="formgrid"><div class="field"><label>Maelezo</label><input id="en" placeholder="Mfano: Usafiri"></div><div class="field"><label>Kiasi</label><input id="ea" type="number"></div></div><button class="goldbtn" onclick="addExp()">+ Rekodi Matumizi</button></div><div class="empty">${d.expenses.length?'':'😐'}${d.expenses.length?'':`<p>Hakuna matumizi leo</p>`}</div>${d.expenses.map(x=>`<div class="row"><div class="grow"><b>${x.n}</b><small>${new Date(x.date).toLocaleString('sw-TZ')}</small></div><b>${money(x.a)}</b></div>`).join('')}`}
+function addExp(){if(!en.value||+ea.value<=0)return;d.expenses.push({n:en.value,a:+ea.value,date:Date.now()});save();render('expenses')}
+function stock(){return `<h2>Stock</h2><div class="stats">${d.products.map(x=>`<div class="stat ${x.q<3?'s-orange':'s-blue'}"><small>${x.n}</small><strong>${x.q}</strong></div>`).join('')}</div>`}
+function reports(){let s=d.sales.reduce((a,x)=>a+x.total,0),e=d.expenses.reduce((a,x)=>a+x.a,0);return `<h2>Ripoti</h2><div class="stats"><div class="stat s-green"><small>Mauzo</small><strong>${money(s)}</strong></div><div class="stat s-orange"><small>Matumizi</small><strong>${money(e)}</strong></div><div class="stat s-purple"><small>Balance</small><strong>${money(s-e)}</strong></div><div class="stat s-blue"><small>Mauzo</small><strong>${d.sales.length}</strong></div></div>`}
+function more(){return `<h2>Zaidi</h2><div class="card">${['Wateja','Vikundi vya Bidhaa','Makundi ya Matumizi','Oda','Ripoti','Risiti','Mipangilio','Hifadhi Data','Badilisha Akaunti'].map(x=>`<div class="row"><div class="grow"><b>${x}</b></div><span>›</span></div>`).join('')}<div class="row" onclick="logout()"><div class="grow"><b>Toka (Log Out)</b></div></div></div>`}
+function settings(){return `<h2>Mipangilio</h2><div class="card"><p>Account: <b>${d.user?.u||''}</b></p><button class="goldbtn" onclick="logout()">Toka</button></div>`}
+if(d.user){show();render('home')}
 </script>
-<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("./service-worker.js").catch(()=>{});}</script></body>
-</html>
+</body></html>
