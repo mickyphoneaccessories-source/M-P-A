@@ -1,82 +1,1011 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="sw">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#070707">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#080808">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="logo.png">
 <title>MICKY M-P-A</title>
-<style>
-:root{--gold:#ffd21a;--gold2:#ffb900;--bg:#080808;--panel:#141414;--muted:#a9a9a9;--line:#2a2a2a;--blue:#087cff;--green:#00bd63;--pink:#ed1263;--purple:#6d20ff}
-*{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#050505,#171717 55%,#080808);color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;min-height:100vh}
-button,input,select{font:inherit}button{border:0;cursor:pointer}.hidden{display:none!important}
-.login{min-height:100vh;display:grid;place-items:center;padding:18px;background:radial-gradient(circle at 50% 20%,#3b2a00 0,#0b0b0b 35%,#030303 75%)}
-.loginbox{width:min(460px,100%);background:#101010;border:1px solid #5b4700;border-radius:30px;padding:22px 18px 25px;box-shadow:0 0 45px #000}
-.logoBig{width:180px;height:180px;object-fit:contain;display:block;margin:0 auto 8px;filter:drop-shadow(0 0 12px #ffd21a66)}
-.login h1{text-align:center;color:var(--gold);font-size:29px;margin:4px 0}.login p{text-align:center;color:#ddd;margin:4px 0 20px}.tabs{display:flex;background:#262626;border-radius:18px;padding:4px;margin-bottom:15px}.tabs button{flex:1;background:transparent;color:#aaa;padding:11px;border-radius:14px;font-weight:800}.tabs button.active{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#111}
-.field{margin:11px 0}.field label{display:block;font-size:14px;font-weight:800;margin-bottom:6px;color:#ddd}.field input,.field select{width:100%;padding:14px 14px;border-radius:14px;border:1px solid #3b3b3b;background:#f4f4f4;color:#111}
-.goldbtn{width:100%;padding:15px;border-radius:14px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#111;font-weight:950;font-size:17px;margin-top:7px}
-.hint{text-align:center;color:#888;font-size:12px;margin-top:14px}.loginphoto{width:100%;height:150px;object-fit:cover;border-radius:18px;margin-top:18px;border:1px solid #3c3100}
 
-.app{min-height:100vh;padding-bottom:78px}.top{position:sticky;top:0;z-index:20;background:#070707ee;backdrop-filter:blur(16px);border-bottom:1px solid #3b2d00;padding:10px 13px 9px}.toprow{display:flex;align-items:center;gap:10px}.brandlogo{width:48px;height:48px;object-fit:contain}.brandtext{flex:1}.brandtext b{color:var(--gold);font-size:18px}.brandtext small{display:block;color:#999;font-size:11px;margin-top:2px}.iconbtn{width:40px;height:40px;border-radius:13px;background:#202020;color:#fff;font-size:19px}
-.navtop{display:flex;gap:7px;overflow:auto;margin-top:9px}.navtop button{white-space:nowrap;background:#202020;color:#ddd;border-radius:18px;padding:8px 12px;font-size:12px;font-weight:800}.navtop button.active{background:var(--gold);color:#111}
-main{max-width:720px;margin:auto;padding:15px 12px}.hello{display:flex;align-items:center;gap:12px;margin:5px 0 14px}.avatar{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#fff);display:grid;place-items:center;color:#111;font-weight:900}.hello h2{font-size:18px;margin:0}.hello p{font-size:12px;color:#999;margin:3px 0}
-.date{background:#fff;color:#222;border-radius:14px;padding:11px 13px;font-size:12px;margin-bottom:12px}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:9px}.stat{border-radius:17px;padding:14px;min-height:88px;border:1px solid #333;box-shadow:inset 0 0 20px #0005}.stat small{color:#eee;font-size:11px}.stat strong{display:block;font-size:21px;margin-top:7px}.s-green{background:linear-gradient(135deg,#003e26,#00a85a)}.s-blue{background:linear-gradient(135deg,#00377d,#0088ff)}.s-purple{background:linear-gradient(135deg,#2a075f,#7429ff)}.s-orange{background:linear-gradient(135deg,#573000,#d47a00)}
-.sectiontitle{display:flex;justify-content:space-between;align-items:center;margin:20px 2px 10px}.sectiontitle h3{margin:0;font-size:16px}.sectiontitle span{font-size:11px;color:#aaa}
-.quick{display:grid;grid-template-columns:1fr 1fr;gap:9px}.quick button{border-radius:16px;padding:15px 12px;color:#fff;font-weight:900;text-align:left;min-height:65px}.q-yellow{background:linear-gradient(135deg,#ffe11c,#ff9800);color:#111!important}.q-blue{background:linear-gradient(135deg,#006be6,#003da8)}.q-green{background:linear-gradient(135deg,#00b867,#007b4b)}.q-pink{background:linear-gradient(135deg,#f5136c,#b60052)}.q-purple{background:linear-gradient(135deg,#7429ff,#3c08b8)}.q-dark{background:linear-gradient(135deg,#303030,#111)}
-.productstrip{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.prodcard{background:#171717;border:1px solid #303030;border-radius:14px;padding:7px}.prodcard img{width:100%;height:65px;object-fit:cover;border-radius:9px;background:#222}.prodcard b{display:block;font-size:10px;margin-top:5px}.prodcard small{font-size:9px;color:#999}
-.card{background:#111;border:1px solid #292929;border-radius:18px;padding:15px}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.tablewrap{overflow:auto}.table{width:100%;border-collapse:collapse;font-size:12px}.table th,.table td{padding:10px 7px;border-bottom:1px solid #282828;text-align:left;white-space:nowrap}.table th{color:var(--gold)}
-.list{display:flex;flex-direction:column;gap:7px}.row{display:flex;align-items:center;gap:10px;padding:10px;background:#151515;border-bottom:1px solid #292929}.row .thumb{width:42px;height:42px;border-radius:9px;object-fit:cover;background:#222}.row .grow{flex:1}.row b{font-size:13px}.row small{display:block;color:#999;font-size:10px;margin-top:3px}.price{font-weight:900;color:#fff;font-size:12px}
-.empty{text-align:center;padding:55px 15px;color:#999}.empty .face{font-size:44px;margin-bottom:12px}.empty button{background:#086cff;color:#fff;border-radius:22px;padding:12px 20px;font-weight:900}
-.bottom{position:fixed;bottom:0;left:0;right:0;background:#101010f2;backdrop-filter:blur(16px);border-top:1px solid #333;display:grid;grid-template-columns:repeat(5,1fr);padding:7px 5px calc(7px + env(safe-area-inset-bottom));z-index:30}.bottom button{background:none;color:#888;font-size:10px;font-weight:800}.bottom button span{display:block;font-size:20px;margin-bottom:3px}.bottom button.active{color:var(--gold)}
-@media(min-width:650px){.stats{grid-template-columns:repeat(4,1fr)}.quick{grid-template-columns:repeat(4,1fr)}.productstrip{grid-template-columns:repeat(6,1fr)}}
+<style>
+*{box-sizing:border-box}
+:root{
+  --gold:#ffd21a;
+  --gold2:#ffb400;
+  --bg:#080808;
+  --card:#151515;
+  --white:#fff;
+  --muted:#aaa;
+  --green:#16c784;
+  --blue:#2188ff;
+  --red:#ef3150;
+}
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  background:#f4f5f7;
+  color:#151515;
+}
+button,input,select{font:inherit}
+button{cursor:pointer;border:0}
+
+.login{
+  min-height:100vh;
+  background:
+    radial-gradient(circle at 50% 0,#3b3000 0,#080808 38%,#000 100%);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+.loginbox{
+  width:min(460px,100%);
+  background:#111;
+  border:1px solid #6d5600;
+  border-radius:30px;
+  padding:28px 22px;
+  box-shadow:0 0 45px #000;
+  color:white;
+}
+.logoBig{
+  width:170px;
+  height:170px;
+  object-fit:contain;
+  display:block;
+  margin:auto;
+  border-radius:50%;
+}
+.login h1{
+  text-align:center;
+  color:var(--gold);
+  margin:10px 0 3px;
+  font-size:30px;
+}
+.sub{
+  text-align:center;
+  color:#aaa;
+  margin-bottom:22px;
+}
+.tabs{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  background:#292929;
+  border-radius:25px;
+  padding:4px;
+  margin-bottom:22px;
+}
+.tabs button{
+  padding:13px;
+  border-radius:22px;
+  background:transparent;
+  color:#aaa;
+  font-weight:700;
+}
+.tabs button.active{
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  color:#111;
+}
+.field{margin:13px 0}
+.field label{
+  display:block;
+  margin-bottom:7px;
+  font-weight:700;
+}
+.field input,.field select{
+  width:100%;
+  padding:15px;
+  border-radius:13px;
+  border:1px solid #ccc;
+  outline:none;
+}
+.goldbtn{
+  width:100%;
+  padding:15px;
+  border-radius:14px;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  color:#111;
+  font-weight:800;
+  font-size:17px;
+  margin-top:8px;
+}
+.hint{
+  text-align:center;
+  color:#777;
+  font-size:12px;
+  margin-top:18px;
+}
+
+/* APP */
+.app{display:none;min-height:100vh;padding-bottom:85px}
+
+.header{
+  background:#090909;
+  color:white;
+  padding:16px 15px 10px;
+  position:sticky;
+  top:0;
+  z-index:20;
+  box-shadow:0 3px 15px #000;
+}
+.brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.brand img{
+  width:48px;
+  height:48px;
+  object-fit:contain;
+}
+.brand h2{
+  color:var(--gold);
+  margin:0;
+  font-size:20px;
+}
+.brand small{color:#aaa}
+.logout{
+  margin-left:auto;
+  background:#292929;
+  color:#fff;
+  padding:9px 12px;
+  border-radius:10px;
+}
+.topnav{
+  display:flex;
+  gap:7px;
+  overflow-x:auto;
+  margin-top:12px;
+  padding-bottom:2px;
+}
+.topnav button{
+  white-space:nowrap;
+  background:#292929;
+  color:#ddd;
+  padding:10px 15px;
+  border-radius:20px;
+  font-weight:700;
+}
+.topnav button.active{
+  background:var(--gold);
+  color:#111;
+}
+
+main{
+  max-width:900px;
+  margin:auto;
+  padding:18px 14px;
+}
+.page{display:none}
+.page.active{display:block}
+.page h1{margin:5px 0 18px;font-size:32px}
+
+.welcome{
+  background:#111;
+  color:white;
+  border-radius:20px;
+  padding:20px;
+  margin-bottom:18px;
+}
+.welcome b{color:var(--gold)}
+
+.stats{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:12px;
+}
+.stat{
+  background:white;
+  padding:18px;
+  border-radius:20px;
+  box-shadow:0 3px 12px #ddd;
+}
+.stat small{color:#777}
+.stat strong{
+  display:block;
+  font-size:25px;
+  margin-top:6px;
+}
+.green{color:#159653}
+.gold{color:#b07c00}
+.blue{color:#0875dd}
+
+.actions{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:10px;
+  margin-top:18px;
+}
+.action{
+  padding:18px;
+  border-radius:16px;
+  color:white;
+  font-weight:800;
+  text-align:left;
+}
+.action:nth-child(1){background:#0aaf70}
+.action:nth-child(2){background:#147ce5}
+.action:nth-child(3){background:#8b25ed}
+.action:nth-child(4){background:#ef8b00}
+.action:nth-child(5){background:#e31b50}
+.action:nth-child(6){background:#555}
+
+.card{
+  background:white;
+  border-radius:20px;
+  padding:18px;
+  margin-bottom:15px;
+  box-shadow:0 2px 10px #ddd;
+}
+.card h3{margin-top:0}
+
+.formgrid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:12px;
+}
+.formgrid .full{grid-column:1/-1}
+.formgrid label{
+  display:block;
+  font-weight:700;
+  margin-bottom:5px;
+}
+.formgrid input,.formgrid select{
+  width:100%;
+  padding:12px;
+  border:1px solid #ddd;
+  border-radius:10px;
+}
+.primary{
+  background:#111;
+  color:white;
+  padding:12px 18px;
+  border-radius:10px;
+  font-weight:700;
+}
+.gold{
+  background:var(--gold);
+  color:#111;
+}
+
+.list{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:12px;
+  border-bottom:1px solid #eee;
+}
+.item:last-child{border-bottom:0}
+.item .info{flex:1}
+.item strong{display:block}
+.item small{color:#777}
+.badge{
+  background:#e9f8ef;
+  color:#11834a;
+  padding:5px 8px;
+  border-radius:8px;
+  font-size:12px;
+}
+.danger{
+  background:#ffe7eb;
+  color:#c8203e;
+  padding:7px 9px;
+  border-radius:8px;
+}
+
+.saleTotal{
+  background:#111;
+  color:white;
+  padding:18px;
+  border-radius:15px;
+  margin-top:15px;
+}
+.saleTotal strong{
+  color:var(--gold);
+  font-size:25px;
+}
+
+.empty{
+  text-align:center;
+  padding:35px 10px;
+  color:#888;
+}
+
+.bottom{
+  position:fixed;
+  bottom:0;
+  left:0;
+  right:0;
+  background:white;
+  border-top:1px solid #ddd;
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  z-index:30;
+  padding:7px 4px;
+}
+.bottom button{
+  background:white;
+  color:#777;
+  font-size:11px;
+  padding:5px 2px;
+}
+.bottom button span{
+  display:block;
+  font-size:20px;
+}
+.bottom button.active{
+  color:#111;
+  font-weight:800;
+}
+
+.toast{
+  position:fixed;
+  left:50%;
+  bottom:90px;
+  transform:translateX(-50%);
+  background:#111;
+  color:white;
+  padding:12px 18px;
+  border-radius:12px;
+  display:none;
+  z-index:100;
+}
+
+@media(max-width:600px){
+  .brand h2{font-size:18px}
+  .stats{grid-template-columns:1fr 1fr}
+  .formgrid{grid-template-columns:1fr}
+  .formgrid .full{grid-column:auto}
+  .page h1{font-size:28px}
+}
 </style>
 </head>
-<body>
-<div id="login" class="login">
-<div class="loginbox">
-<img src="logo.png" class="logoBig" alt="Micky logo">
-<h1>MICKY M-P-A</h1><p>Phone Accessories & Home Decoration</p>
-<div class="tabs"><button id="adminTab" class="active" onclick="role='admin';setRole()">Admin</button><button onclick="role='user';setRole()">User</button></div>
-<div class="field"><label>Jina la mtumiaji</label><input id="u" placeholder="Username"></div>
-<div class="field"><label>Nenosiri</label><input id="p" type="password" placeholder="Password"></div>
-<button class="goldbtn" onclick="login()">INGIA</button>
-<div class="hint">Admin: admin / 1234 &nbsp; • &nbsp; User: user / 1234</div>
-</div></div>
 
-<div id="app" class="app hidden">
-<header class="top"><div class="toprow"><img src="logo.png" class="brandlogo"><div class="brandtext"><b>MICKY M-P-A</b><small>PHONE ACCESSORIES & HOME DECORATION</small></div><button class="iconbtn" onclick="render('settings')">⚙</button></div>
-<div id="topnav" class="navtop"></div></header>
-<main id="content"></main>
-<nav class="bottom" id="bottom"></nav>
-</div>
+<body>
+
+<!-- LOGIN -->
+<section class="login" id="login">
+  <div class="loginbox">
+    <img src="logo.png" class="logoBig" alt="Micky M-P-A">
+    <h1>MICKY M-P-A</h1>
+    <div class="sub">Phone Accessories & Home Decoration</div>
+
+    <div class="tabs">
+      <button id="adminTab" class="active" onclick="setLogin('admin')">Admin</button>
+      <button id="userTab" onclick="setLogin('user')">User</button>
+    </div>
+
+    <div class="field">
+      <label>Jina la mtumiaji</label>
+      <input id="username" placeholder="Username">
+    </div>
+
+    <div class="field">
+      <label>Nenosiri</label>
+      <input id="password" type="password" placeholder="Password">
+    </div>
+
+    <button class="goldbtn" onclick="login()">INGIA</button>
+
+    <div class="hint">
+      Admin: admin / 1234 &nbsp; • &nbsp; User: user / 1234
+    </div>
+  </div>
+</section>
+
+<!-- APP -->
+<section class="app" id="app">
+
+<header class="header">
+  <div class="brand">
+    <img src="logo.png" alt="logo">
+    <div>
+      <h2>MICKY M-P-A</h2>
+      <small>Phone Accessories & Home Decoration</small>
+    </div>
+    <button class="logout" onclick="logout()">Toka</button>
+  </div>
+
+  <nav class="topnav">
+    <button class="active" onclick="showPage('home',this)">Nyumbani</button>
+    <button onclick="showPage('sales',this)">Mauzo</button>
+    <button onclick="showPage('stock',this)">Stock</button>
+    <button onclick="showPage('customers',this)">Wateja</button>
+    <button onclick="showPage('reports',this)">Ripoti</button>
+    <button onclick="showPage('expenses',this)">Matumizi</button>
+    <button onclick="showPage('settings',this)">Mipangilio</button>
+  </nav>
+</header>
+
+<main>
+
+<!-- HOME -->
+<section class="page active" id="home">
+  <h1>Dashboard</h1>
+
+  <div class="welcome">
+    <h2>Karibu, <b id="welcomeName">Micky</b> 👋</h2>
+    <p>Huu ni mfumo wako wa mauzo. Anza kwa kuongeza bidhaa kwenye <b>Stock</b>, kisha fanya mauzo.</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <small>Mauzo Leo</small>
+      <strong class="green" id="todaySales">TZS 0</strong>
+    </div>
+    <div class="stat">
+      <small>Faida Leo</small>
+      <strong class="gold" id="todayProfit">TZS 0</strong>
+    </div>
+    <div class="stat">
+      <small>Bidhaa</small>
+      <strong id="productCount">0</strong>
+    </div>
+    <div class="stat">
+      <small>Stock Units</small>
+      <strong id="stockUnits">0</strong>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="action" onclick="showPage('sales')">🛒 Fanya Mauzo</button>
+    <button class="action" onclick="showPage('stock')">📦 Bidhaa / Stock</button>
+    <button class="action" onclick="showPage('customers')">👥 Wateja</button>
+    <button class="action" onclick="showPage('expenses')">💳 Matumizi</button>
+    <button class="action" onclick="showPage('reports')">📊 Ripoti</button>
+    <button class="action" onclick="showPage('settings')">⚙️ Mipangilio</button>
+  </div>
+</section>
+
+<!-- STOCK -->
+<section class="page" id="stock">
+  <h1>Bidhaa / Stock</h1>
+
+  <div class="card">
+    <h3>Ongeza Bidhaa Mpya</h3>
+    <div class="formgrid">
+      <div>
+        <label>Jina la bidhaa</label>
+        <input id="pName" placeholder="Mf. Charger Fast">
+      </div>
+      <div>
+        <label>Kundi</label>
+        <select id="pCategory">
+          <option>Simu & Accessories</option>
+          <option>Home Decoration</option>
+          <option>TV & Electronics</option>
+          <option>Sound & Speakers</option>
+          <option>Power & Batteries</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div>
+        <label>Bei ya kununua</label>
+        <input id="pBuy" type="number" placeholder="10000">
+      </div>
+      <div>
+        <label>Bei ya kuuza</label>
+        <input id="pPrice" type="number" placeholder="15000">
+      </div>
+      <div>
+        <label>Idadi</label>
+        <input id="pQty" type="number" placeholder="1">
+      </div>
+      <div>
+        <label>&nbsp;</label>
+        <button class="primary gold" onclick="addProduct()">+ Ongeza Bidhaa</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Bidhaa Zilizopo</h3>
+    <div id="stockList" class="list"></div>
+  </div>
+</section>
+
+<!-- SALES -->
+<section class="page" id="sales">
+  <h1>Mauzo</h1>
+
+  <div class="card">
+    <h3>Fanya Mauzo</h3>
+
+    <div class="formgrid">
+      <div class="full">
+        <label>Chagua Bidhaa</label>
+        <select id="saleProduct" onchange="updateSalePrice()"></select>
+      </div>
+
+      <div>
+        <label>Idadi</label>
+        <input id="saleQty" type="number" value="1" min="1" oninput="calculateSale()">
+      </div>
+
+      <div>
+        <label>Bei ya Kawaida</label>
+        <input id="salePrice" type="number" readonly>
+      </div>
+
+      <div>
+        <label>Punguzo (Discount)</label>
+        <input id="discount" type="number" value="0" min="0" oninput="calculateSale()">
+      </div>
+
+      <div>
+        <label>Jina la Mteja</label>
+        <input id="saleCustomer" placeholder="Hiari">
+      </div>
+    </div>
+
+    <div class="saleTotal">
+      Jumla ya kulipa:
+      <strong id="saleTotal">TZS 0</strong>
+    </div>
+
+    <br>
+    <button class="primary gold" onclick="makeSale()">✓ Hifadhi Mauzo</button>
+  </div>
+
+  <div class="card">
+    <h3>Mauzo ya Karibuni</h3>
+    <div id="salesList" class="list"></div>
+  </div>
+</section>
+
+<!-- CUSTOMERS -->
+<section class="page" id="customers">
+  <h1>Wateja</h1>
+
+  <div class="card">
+    <h3>Ongeza Mteja</h3>
+    <div class="formgrid">
+      <div>
+        <label>Jina</label>
+        <input id="cName" placeholder="Jina la mteja">
+      </div>
+      <div>
+        <label>Simu</label>
+        <input id="cPhone" placeholder="07xxxxxxxx">
+      </div>
+    </div>
+    <br>
+    <button class="primary gold" onclick="addCustomer()">+ Hifadhi Mteja</button>
+  </div>
+
+  <div class="card">
+    <h3>Orodha ya Wateja</h3>
+    <div id="customerList" class="list"></div>
+  </div>
+</section>
+
+<!-- EXPENSES -->
+<section class="page" id="expenses">
+  <h1>Matumizi</h1>
+
+  <div class="card">
+    <h3>Ongeza Matumizi</h3>
+    <div class="formgrid">
+      <div>
+        <label>Maelezo</label>
+        <input id="eName" placeholder="Mf. Usafiri">
+      </div>
+      <div>
+        <label>Kiasi</label>
+        <input id="eAmount" type="number" placeholder="5000">
+      </div>
+    </div>
+    <br>
+    <button class="primary gold" onclick="addExpense()">+ Hifadhi Matumizi</button>
+  </div>
+
+  <div class="card">
+    <h3>Matumizi Yaliyorekodiwa</h3>
+    <div id="expenseList" class="list"></div>
+  </div>
+</section>
+
+<!-- REPORTS -->
+<section class="page" id="reports">
+  <h1>Ripoti</h1>
+
+  <div class="stats">
+    <div class="stat">
+      <small>Mauzo Yote</small>
+      <strong id="allSales">TZS 0</strong>
+    </div>
+    <div class="stat">
+      <small>Faida</small>
+      <strong class="green" id="allProfit">TZS 0</strong>
+    </div>
+    <div class="stat">
+      <small>Matumizi</small>
+      <strong class="gold" id="allExpenses">TZS 0</strong>
+    </div>
+    <div class="stat">
+      <small>Net</small>
+      <strong id="netProfit">TZS 0</strong>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:15px">
+    <h3>Muhtasari wa Mfumo</h3>
+    <p>Bidhaa: <b id="rProducts">0</b></p>
+    <p>Stock units: <b id="rUnits">0</b></p>
+    <p>Wateja: <b id="rCustomers">0</b></p>
+    <p>Mauzo: <b id="rSales">0</b></p>
+  </div>
+</section>
+
+<!-- SETTINGS -->
+<section class="page" id="settings">
+  <h1>Mipangilio</h1>
+
+  <div class="card">
+    <h3>Akaunti</h3>
+    <p>Unaingia kama: <b id="roleText">Admin</b></p>
+    <p>Username: <b id="userText">admin</b></p>
+  </div>
+
+  <div class="card">
+    <h3>Micky M-P-A</h3>
+    <p>Phone Accessories & Home Decoration</p>
+    <p>📞 0767203506 / 0773203506</p>
+  </div>
+
+  <div class="card">
+    <h3>Data</h3>
+    <button class="primary" onclick="clearData()">⚠️ Futa Data Zote</button>
+  </div>
+</section>
+
+</main>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom">
+  <button class="active" onclick="showPage('home',this)"><span>⌂</span>Home</button>
+  <button onclick="showPage('stock',this)"><span>▣</span>Bidhaa</button>
+  <button onclick="showPage('sales',this)"><span>🛒</span>Mauzo</button>
+  <button onclick="showPage('expenses',this)"><span>▣</span>Matumizi</button>
+  <button onclick="showPage('settings',this)"><span>☷</span>Zaidi</button>
+</nav>
+
+<div class="toast" id="toast"></div>
 
 <script>
-const KEY='mpa-premium-v3'; let role='admin';
-let d=JSON.parse(localStorage.getItem(KEY)||'null')||{user:null,products:[
-{id:1,n:'Adapter ndogo',p:10000,q:4},{id:2,n:'Adapter ya TV',p:20000,q:2},{id:3,n:'Aroma diffuser',p:20000,q:1},{id:4,n:'Aux wire',p:2000,q:16},{id:5,n:'AV wire',p:2000,q:11},{id:6,n:'Azam LNB',p:10000,q:3},{id:7,n:'Battery ya simu',p:12000,q:2}],sales:[],expenses:[]};
-function save(){localStorage.setItem(KEY,JSON.stringify(d))}
-function money(n){return 'TZS '+Number(n||0).toLocaleString()}
-function setRole(){document.querySelectorAll('.tabs button').forEach((x,i)=>x.classList.toggle('active',(i===0&&role==='admin')||(i===1&&role==='user')))}
-function login(){let u=document.getElementById('u').value.trim(),p=document.getElementById('p').value;if((u==='admin'||u==='user')&&p==='1234'){d.user={u,role};save();show();render('home')}else alert('Tumia admin/1234 au user/1234')}
-function show(){document.getElementById('login').classList.add('hidden');document.getElementById('app').classList.remove('hidden')}
-function logout(){d.user=null;save();location.reload()}
-const pages=[['home','⌂','Home'],['products','▣','Bidhaa'],['sales','🛒','Mauzo'],['expenses','▣','Matumizi'],['more','☷','Zaidi']];
-function nav(page){document.getElementById('topnav').innerHTML=pages.map(x=>`<button class="${x[0]===page?'active':''}" onclick="render('${x[0]}')">${x[2]}</button>`).join('');document.getElementById('bottom').innerHTML=pages.map(x=>`<button class="${x[0]===page?'active':''}" onclick="render('${x[0]}')"><span>${x[1]}</span>${x[2]}</button>`).join('')}
-function render(page){nav(page);let c=document.getElementById('content');({home:home,products:products,sales:sales,expenses:expenses,more:more,stock:stock,reports:reports,settings:settings}[page]||home)();c.innerHTML=({home:home,products:products,sales:sales,expenses:expenses,more:more,stock:stock,reports:reports,settings:settings}[page]())}
-function home(){let sale=d.sales.reduce((a,x)=>a+x.total,0),exp=d.expenses.reduce((a,x)=>a+x.a,0),stock=d.products.reduce((a,x)=>a+x.q,0);return `<div class="hello"><div class="avatar">${(d.user?.u||'M').slice(0,1).toUpperCase()}</div><div><h2>Karibu ${d.user?.u||'Micky'} 👋</h2><p>Biashara yako, mafanikio yetu!</p></div></div><div class="date">▣ &nbsp; Leo &nbsp; • &nbsp; ${new Date().toLocaleDateString('sw-TZ')}</div><div class="stats"><div class="stat s-green"><small>Mauzo ya Leo</small><strong>${money(sale)}</strong></div><div class="stat s-blue"><small>Stock</small><strong>Bidhaa ${stock}</strong></div><div class="stat s-purple"><small>Faida ya Leo</small><strong>${money(sale-exp)}</strong></div><div class="stat s-orange"><small>Wateja</small><strong>${d.sales.length}</strong></div></div><div class="sectiontitle"><h3>Vitendo vya Haraka</h3><span>⚡</span></div><div class="quick"><button class="q-yellow" onclick="render('sales')">🛒 Fanya Mauzo</button><button class="q-blue" onclick="render('products')">▣ Bidhaa / Stock</button><button class="q-green" onclick="render('more')">👤 Wateja</button><button class="q-pink" onclick="render('expenses')">▣ Matumizi</button><button class="q-purple" onclick="render('reports')">▤ Ripoti</button><button class="q-dark" onclick="render('settings')">⚙ Mipangilio</button></div><div class="sectiontitle"><h3>Vikundi vya Bidhaa</h3></div><div class="productstrip">${['Simu & Vifaa','Vifaa vya Nyumbani','Mapambo ya Nyumbani','SIM & Vocha'].map((x,i)=>`<div class="prodcard"><div style="height:65px;border-radius:9px;background:linear-gradient(135deg,#111,#333);display:grid;place-items:center;font-size:22px">${['📱','🏠','🛋️','💳'][i]}</div><b>${x}</b><small>Fungua</small></div>`).join('')}</div>`}
-function products(){return `<h2>Bidhaa / Stock</h2><div class="card"><div class="formgrid"><div class="field"><label>Tafuta bidhaa</label><input id="pn" placeholder="Jina la bidhaa"></div><div class="field"><label>Ongeza bidhaa</label><button class="goldbtn" onclick="addProduct()">+ Bidhaa Mpya</button></div></div></div><div class="sectiontitle"><h3>Bidhaa ${d.products.length}</h3><span>Stock</span></div><div class="list">${d.products.map(x=>`<div class="row"><div class="thumb">📦</div><div class="grow"><b>${x.n}</b><small>${x.q} in stock</small></div><div class="price">${money(x.p)}</div></div>`).join('')}</div>`}
-function addProduct(){let n=prompt('Jina la bidhaa?'),p=+prompt('Bei ya kuuza (TZS)?'),q=+prompt('Idadi ya stock?');if(n&&p>=0&&q>=0){d.products.push({id:Date.now(),n,p,q});save();render('products')}}
-function sales(){return `<h2>Mauzo</h2><div class="card"><div class="field"><label>Bidhaa</label><select id="si">${d.products.map(x=>`<option value="${x.id}">${x.n} — ${money(x.p)}</option>`).join('')}</select></div><div class="formgrid"><div class="field"><label>Punguzo (Discount)</label><input id="sd" type="number" value="0"></div><div class="field"><label>Idadi</label><input id="sq" type="number" value="1"></div></div><div class="formgrid"><div class="field"><label>Bei ya kawaida</label><input id="sp" readonly></div><div class="field"><label>Jumla</label><input id="st" readonly></div></div><button class="goldbtn" onclick="sell()">+ Rekodi Mauzo</button></div><div class="sectiontitle"><h3>Mauzo ya Leo</h3></div><div class="list">${d.sales.slice().reverse().map(x=>`<div class="row"><div class="thumb">🛒</div><div class="grow"><b>${x.n}</b><small>Qty ${x.q} · Discount ${money(x.dis)}</small></div><div class="price">${money(x.total)}</div></div>`).join('')}</div>`}
-function sell(){let x=d.products.find(a=>a.id==si.value),q=+sq.value,dis=+sd.value;if(!x||q<1||q>x.q)return alert('Stock haitoshi');let total=Math.max(0,x.p*q-dis);x.q-=q;d.sales.push({n:x.n,q,dis,total,date:Date.now()});save();alert('Mauzo yamehifadhiwa');render('sales')}
-function expenses(){return `<h2>Matumizi</h2><div class="card"><div class="formgrid"><div class="field"><label>Maelezo</label><input id="en" placeholder="Mfano: Usafiri"></div><div class="field"><label>Kiasi</label><input id="ea" type="number"></div></div><button class="goldbtn" onclick="addExp()">+ Rekodi Matumizi</button></div><div class="empty">${d.expenses.length?'':'😐'}${d.expenses.length?'':`<p>Hakuna matumizi leo</p>`}</div>${d.expenses.map(x=>`<div class="row"><div class="grow"><b>${x.n}</b><small>${new Date(x.date).toLocaleString('sw-TZ')}</small></div><b>${money(x.a)}</b></div>`).join('')}`}
-function addExp(){if(!en.value||+ea.value<=0)return;d.expenses.push({n:en.value,a:+ea.value,date:Date.now()});save();render('expenses')}
-function stock(){return `<h2>Stock</h2><div class="stats">${d.products.map(x=>`<div class="stat ${x.q<3?'s-orange':'s-blue'}"><small>${x.n}</small><strong>${x.q}</strong></div>`).join('')}</div>`}
-function reports(){let s=d.sales.reduce((a,x)=>a+x.total,0),e=d.expenses.reduce((a,x)=>a+x.a,0);return `<h2>Ripoti</h2><div class="stats"><div class="stat s-green"><small>Mauzo</small><strong>${money(s)}</strong></div><div class="stat s-orange"><small>Matumizi</small><strong>${money(e)}</strong></div><div class="stat s-purple"><small>Balance</small><strong>${money(s-e)}</strong></div><div class="stat s-blue"><small>Mauzo</small><strong>${d.sales.length}</strong></div></div>`}
-function more(){return `<h2>Zaidi</h2><div class="card">${['Wateja','Vikundi vya Bidhaa','Makundi ya Matumizi','Oda','Ripoti','Risiti','Mipangilio','Hifadhi Data','Badilisha Akaunti'].map(x=>`<div class="row"><div class="grow"><b>${x}</b></div><span>›</span></div>`).join('')}<div class="row" onclick="logout()"><div class="grow"><b>Toka (Log Out)</b></div></div></div>`}
-function settings(){return `<h2>Mipangilio</h2><div class="card"><p>Account: <b>${d.user?.u||''}</b></p><button class="goldbtn" onclick="logout()">Toka</button></div>`}
-if(d.user){show();render('home')}
+let loginRole="admin";
+let products=JSON.parse(localStorage.getItem("mpa_products")||"[]");
+let sales=JSON.parse(localStorage.getItem("mpa_sales")||"[]");
+let customers=JSON.parse(localStorage.getItem("mpa_customers")||"[]");
+let expenses=JSON.parse(localStorage.getItem("mpa_expenses")||"[]");
+
+const money=n=>"TZS "+Number(n||0).toLocaleString();
+
+function save(){
+  localStorage.setItem("mpa_products",JSON.stringify(products));
+  localStorage.setItem("mpa_sales",JSON.stringify(sales));
+  localStorage.setItem("mpa_customers",JSON.stringify(customers));
+  localStorage.setItem("mpa_expenses",JSON.stringify(expenses));
+  render();
+}
+
+function toast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg;
+  t.style.display="block";
+  setTimeout(()=>t.style.display="none",2200);
+}
+
+function setLogin(role){
+  loginRole=role;
+  document.getElementById("adminTab").classList.toggle("active",role==="admin");
+  document.getElementById("userTab").classList.toggle("active",role==="user");
+}
+
+function login(){
+  const u=document.getElementById("username").value.trim();
+  const p=document.getElementById("password").value;
+
+  const ok=(loginRole==="admin" && u==="admin" && p==="1234") ||
+           (loginRole==="user" && u==="user" && p==="1234");
+
+  if(!ok){
+    alert("Username au password si sahihi.");
+    return;
+  }
+
+  localStorage.setItem("mpa_user",u);
+  localStorage.setItem("mpa_role",loginRole);
+
+  document.getElementById("login").style.display="none";
+  document.getElementById("app").style.display="block";
+
+  document.getElementById("welcomeName").textContent=u;
+  document.getElementById("roleText").textContent=loginRole==="admin"?"Admin":"User";
+  document.getElementById("userText").textContent=u;
+
+  render();
+}
+
+function logout(){
+  localStorage.removeItem("mpa_user");
+  location.reload();
+}
+
+function showPage(id,btn){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+
+  document.querySelectorAll(".topnav button,.bottom button")
+    .forEach(b=>b.classList.remove("active"));
+
+  if(btn) btn.classList.add("active");
+  window.scrollTo(0,0);
+  render();
+}
+
+function addProduct(){
+  const name=document.getElementById("pName").value.trim();
+  const category=document.getElementById("pCategory").value;
+  const buy=Number(document.getElementById("pBuy").value);
+  const price=Number(document.getElementById("pPrice").value);
+  const qty=Number(document.getElementById("pQty").value);
+
+  if(!name || !price || !qty){
+    alert("Jaza jina, bei ya kuuza na idadi.");
+    return;
+  }
+
+  products.push({
+    id:Date.now(),name,category,buy,price,qty
+  });
+
+  document.getElementById("pName").value="";
+  document.getElementById("pBuy").value="";
+  document.getElementById("pPrice").value="";
+  document.getElementById("pQty").value="";
+
+  save();
+  toast("Bidhaa imeongezwa ✓");
+}
+
+function deleteProduct(id){
+  products=products.filter(p=>p.id!==id);
+  save();
+}
+
+function addCustomer(){
+  const name=document.getElementById("cName").value.trim();
+  const phone=document.getElementById("cPhone").value.trim();
+
+  if(!name){alert("Andika jina la mteja.");return}
+
+  customers.push({id:Date.now(),name,phone});
+  document.getElementById("cName").value="";
+  document.getElementById("cPhone").value="";
+  save();
+  toast("Mteja ameongezwa ✓");
+}
+
+function deleteCustomer(id){
+  customers=customers.filter(c=>c.id!==id);
+  save();
+}
+
+function addExpense(){
+  const name=document.getElementById("eName").value.trim();
+  const amount=Number(document.getElementById("eAmount").value);
+
+  if(!name || !amount){
+    alert("Jaza maelezo na kiasi.");
+    return;
+  }
+
+  expenses.push({
+    id:Date.now(),name,amount,date:new Date().toLocaleDateString("sw-TZ")
+  });
+
+  document.getElementById("eName").value="";
+  document.getElementById("eAmount").value="";
+  save();
+  toast("Matumizi yamehifadhiwa ✓");
+}
+
+function deleteExpense(id){
+  expenses=expenses.filter(e=>e.id!==id);
+  save();
+}
+
+function updateSaleProducts(){
+  const s=document.getElementById("saleProduct");
+  if(!s)return;
+
+  s.innerHTML='<option value="">-- Chagua bidhaa --</option>';
+
+  products.filter(p=>p.qty>0).forEach(p=>{
+    s.innerHTML+=`<option value="${p.id}">
+      ${p.name} — ${money(p.price)} — stock ${p.qty}
+    </option>`;
+  });
+}
+
+function updateSalePrice(){
+  const id=Number(document.getElementById("saleProduct").value);
+  const p=products.find(x=>x.id===id);
+  document.getElementById("salePrice").value=p?p.price:0;
+  calculateSale();
+}
+
+function calculateSale(){
+  const price=Number(document.getElementById("salePrice").value);
+  const qty=Number(document.getElementById("saleQty").value)||0;
+  const discount=Number(document.getElementById("discount").value)||0;
+  const total=Math.max(0,(price*qty)-discount);
+  document.getElementById("saleTotal").textContent=money(total);
+}
+
+function makeSale(){
+  const id=Number(document.getElementById("saleProduct").value);
+  const qty=Number(document.getElementById("saleQty").value);
+  const discount=Number(document.getElementById("discount").value)||0;
+  const customer=document.getElementById("saleCustomer").value||"Mteja";
+
+  const p=products.find(x=>x.id===id);
+
+  if(!p){alert("Chagua bidhaa.");return}
+  if(!qty || qty<1){alert("Weka idadi.");return}
+  if(qty>p.qty){alert("Stock haitoshi.");return}
+
+  const total=Math.max(0,(p.price*qty)-discount);
+  const profit=(p.price-p.buy)*qty-discount;
+
+  p.qty-=qty;
+
+  sales.unshift({
+    id:Date.now(),
+    product:p.name,
+    qty,
+    price:p.price,
+    discount,
+    total,
+    profit,
+    customer,
+    date:new Date().toLocaleDateString("sw-TZ"),
+    time:new Date().toLocaleTimeString("sw-TZ")
+  });
+
+  document.getElementById("saleQty").value=1;
+  document.getElementById("discount").value=0;
+  document.getElementById("saleCustomer").value="";
+
+  save();
+  toast("Mauzo yamehifadhiwa ✓");
+}
+
+function render(){
+  /* STOCK */
+  const sl=document.getElementById("stockList");
+  if(sl){
+    sl.innerHTML=products.length?products.map(p=>`
+      <div class="item">
+        <div class="info">
+          <strong>${p.name}</strong>
+          <small>${p.category} • Bei ${money(p.price)} • Nunua ${money(p.buy)}</small>
+        </div>
+        <span class="badge">${p.qty} stock</span>
+        <button class="danger" onclick="deleteProduct(${p.id})">Futa</button>
+      </div>
+    `).join(""):`<div class="empty">Hakuna bidhaa bado.<br>Bonyeza + Ongeza Bidhaa.</div>`;
+  }
+
+  /* SALES */
+  updateSaleProducts();
+
+  const sal=document.getElementById("salesList");
+  if(sal){
+    sal.innerHTML=sales.length?sales.slice(0,20).map(s=>`
+      <div class="item">
+        <div class="info">
+          <strong>${s.product} × ${s.qty}</strong>
+          <small>${s.customer} • ${s.date} ${s.time}</small>
+          ${s.discount>0?`<small>Punguzo: ${money(s.discount)}</small>`:""}
+        </div>
+        <strong>${money(s.total)}</strong>
+      </div>
+    `).join(""):`<div class="empty">Hakuna mauzo bado.</div>`;
+  }
+
+  /* CUSTOMERS */
+  const cl=document.getElementById("customerList");
+  if(cl){
+    cl.innerHTML=customers.length?customers.map(c=>`
+      <div class="item">
+        <div class="info">
+          <strong>${c.name}</strong>
+          <small>${c.phone||"Hakuna namba"}</small>
+        </div>
+        <button class="danger" onclick="deleteCustomer(${c.id})">Futa</button>
+      </div>
+    `).join(""):`<div class="empty">Hakuna wateja bado.</div>`;
+  }
+
+  /* EXPENSES */
+  const el=document.getElementById("expenseList");
+  if(el){
+    el.innerHTML=expenses.length?expenses.slice().reverse().map(e=>`
+      <div class="item">
+        <div class="info">
+          <strong>${e.name}</strong>
+          <small>${e.date}</small>
+        </div>
+        <strong>${money(e.amount)}</strong>
+        <button class="danger" onclick="deleteExpense(${e.id})">Futa</button>
+      </div>
+    `).join(""):`<div class="empty">Hakuna matumizi bado.</div>`;
+  }
+
+  const today=new Date().toLocaleDateString("sw-TZ");
+  const todaysales=sales.filter(s=>s.date===today);
+  const salesToday=todaysales.reduce((a,b)=>a+b.total,0);
+  const profitToday=todaysales.reduce((a,b)=>a+b.profit,0);
+
+  const all=sales.reduce((a,b)=>a+b.total,0);
+  const profit=sales.reduce((a,b)=>a+b.profit,0);
+  const ex=expenses.reduce((a,b)=>a+b.amount,0);
+  const units=products.reduce((a,b)=>a+b.qty,0);
+
+  setText("todaySales",money(salesToday));
+  setText("todayProfit",money(profitToday));
+  setText("productCount",products.length);
+  setText("stockUnits",units);
+
+  setText("allSales",money(all));
+  setText("allProfit",money(profit));
+  setText("allExpenses",money(ex));
+  setText("netProfit",money(profit-ex));
+
+  setText("rProducts",products.length);
+  setText("rUnits",units);
+  setText("rCustomers",customers.length);
+  setText("rSales",sales.length);
+}
+
+function setText(id,value){
+  const el=document.getElementById(id);
+  if(el)el.textContent=value;
+}
+
+function clearData(){
+  if(confirm("Una uhakika unataka kufuta data zote?")){
+    products=[];
+    sales=[];
+    customers=[];
+    expenses=[];
+    save();
+    toast("Data zote zimefutwa.");
+  }
+}
+
+/* login remembered */
+window.addEventListener("load",()=>{
+  const u=localStorage.getItem("mpa_user");
+  const r=localStorage.getItem("mpa_role");
+
+  if(u){
+    document.getElementById("login").style.display="none";
+    document.getElementById("app").style.display="block";
+    document.getElementById("welcomeName").textContent=u;
+    document.getElementById("roleText").textContent=r==="admin"?"Admin":"User";
+    document.getElementById("userText").textContent=u;
+    render();
+  }
+});
 </script>
-</body></html>
+
+</body>
+</html>
