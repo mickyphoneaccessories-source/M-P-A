@@ -251,7 +251,7 @@ main{max-width:900px;margin:auto;padding:16px}.page{display:none}.page.active{di
       <div class="card"><b>Ukubwa wa maandishi</b><p class="muted">Ongeza au punguza ukubwa wa maandishi kwenye mfumo mzima.</p><div class="font-controls"><button class="btn" onclick="changeFontSize(-1)">A−</button><div><b id="fontSizeLabel">100%</b><input id="fontSizeRange" type="range" min="85" max="120" step="5" value="100" oninput="setFontSize(this.value)"></div><button class="btn" onclick="changeFontSize(1)">A＋</button></div></div>
       <div class="card"><b>Account & Security</b><p class="muted">Umeingia kama <span id="settingsUser"></span>.</p><div class="two"><button class="btn" onclick="openPinModal()">🔐 Change PIN</button><button class="btn" onclick="enableBiometric()">👆 Face ID / Fingerprint</button></div><button class="btn" style="width:100%;margin-top:10px" onclick="requestBrowserNotifications()">🔔 Ruhusu notifications</button></div>
       <div class="card"><b>Lugha / Language</b><p class="muted">Chagua lugha ya mfumo.</p><div class="langgrid"><button id="langSw" class="btn langbtn active" onclick="setLanguage('sw')">🇹🇿 Kiswahili</button><button id="langEn" class="btn langbtn" onclick="setLanguage('en')">🇬🇧 English</button></div></div>
-      <div class="card"><b>Store & Branches</b><div class="field"><label>Jina la Store</label><input id="storeNameInput" placeholder="Micky Phone Accessories"></div><button class="btn blue" onclick="saveStore()">Hifadhi Store</button><div class="sectiontitle" style="font-size:16px">Branches</div><div class="two"><input id="branchName" class="field" style="margin:0" placeholder="Jina la branch"><button class="btn" onclick="addBranch()">＋ Add Branch</button></div><div id="branchList"></div></div>
+      <div class="card"><b>Store & Branches</b><div class="field"><label>Jina la Store</label><input id="storeNameInput" placeholder="Micky Phone Accessories"></div><button class="btn blue" onclick="saveStore()">Hifadhi Store</button><div class="sectiontitle" style="font-size:16px">Branches</div><div class="two"><input id="branchName" class="field" style="margin:0" placeholder="Jina la branch"><button class="btn" onclick="addBranch()">＋ Add Branch</button></div><div id="branchList"></div><div class="field" style="margin-top:12px"><label>Branch inayotumika</label><select id="activeBranchSelect" onchange="setActiveBranch(this.value)"><option value="">Main Store</option></select></div></div>
       <div class="card"><b>Help / Maelezo zaidi</b><p class="muted">Kwa msaada wa mfumo piga:</p><a class="btn blue" style="display:block;text-align:center;text-decoration:none" href="tel:0767203506">📞 0767203506</a></div>
       <div class="card dangerzone"><b>Data</b><p class="muted">Mfumo huhifadhi data kwenye kifaa hiki na unaweza kufanya kazi offline.</p><button class="btn red" onclick="clearData()">Futa data zote</button></div>
       <div class="card"><button class="btn blue" style="width:100%" onclick="logout()">Toka</button></div>
@@ -363,12 +363,16 @@ let movements=JSON.parse(localStorage.getItem("mpa_movements")||"[]");
 let notifications=JSON.parse(localStorage.getItem("mpa_notifications")||"[]");
 let goalTarget=Number(localStorage.getItem("mpa_goal")||10000000);
 let branches=JSON.parse(localStorage.getItem("mpa_branches")||"[]");
+let activeBranch=localStorage.getItem("mpa_active_branch")||"";
 let storeName=localStorage.getItem("mpa_store")||"Micky Phone Accessories";
 let language=localStorage.getItem("mpa_lang")||"sw";
 let users=JSON.parse(localStorage.getItem("mpa_users")||"null")||[
- {id:1,username:"admin",password:"1234",role:"admin",permissions:["all"]},
- {id:2,username:"user",password:"1234",role:"user",permissions:["view_products","sell","add_stock","remove_stock","view_sales","view_reports"]}
+ {id:1,username:"admin",password:"1234",role:"admin",permissions:["all"],active:true},
+ {id:2,username:"user",password:"1234",role:"user",permissions:["view_products","sell","add_stock","remove_stock","view_sales","view_reports"],active:true}
 ];
+
+users=users.map(u=>({...u,active:u.active!==false,permissions:Array.isArray(u.permissions)?u.permissions:[]}));
+if(!users.some(u=>u.username==="admin")){users.unshift({id:1,username:"admin",password:"1234",role:"admin",permissions:["all"],active:true})}
 
 const perms=[
  ["view_products","Kuona bidhaa"],["sell","Kuuza bidhaa"],["add_stock","Kuongeza stock"],["remove_stock","Kupunguza stock"],
@@ -383,7 +387,7 @@ function saveAll(){
  localStorage.setItem("mpa_products",JSON.stringify(products));localStorage.setItem("mpa_sales",JSON.stringify(sales));
  localStorage.setItem("mpa_customers",JSON.stringify(customers));localStorage.setItem("mpa_expenses",JSON.stringify(expenses));
  localStorage.setItem("mpa_movements",JSON.stringify(movements));localStorage.setItem("mpa_notifications",JSON.stringify(notifications));
- localStorage.setItem("mpa_users",JSON.stringify(users));localStorage.setItem("mpa_goal",String(goalTarget));localStorage.setItem("mpa_branches",JSON.stringify(branches));localStorage.setItem("mpa_store",storeName);localStorage.setItem("mpa_lang",language);render();
+ localStorage.setItem("mpa_users",JSON.stringify(users));localStorage.setItem("mpa_goal",String(goalTarget));localStorage.setItem("mpa_branches",JSON.stringify(branches));localStorage.setItem("mpa_store",storeName);localStorage.setItem("mpa_lang",language);localStorage.setItem("mpa_active_branch",activeBranch);render();
 }
 function toast(msg){const n=document.getElementById("notice");n.textContent=msg;n.style.display="block";setTimeout(()=>n.style.display="none",2400)}
 function notify(title,detail){
@@ -403,11 +407,14 @@ function login(){
  const u=document.getElementById("username").value.trim(),p=document.getElementById("password").value;
  const user=users.find(x=>x.username===u&&x.password===p);
  if(!user || user.role!==loginRole){alert("Username/password au aina ya account si sahihi.");return}
+ if(user.active===false){alert("Account hii imezimwa na Admin.");return}
  localStorage.setItem("mpa_user",u);localStorage.setItem("mpa_role",user.role);
  document.getElementById("login").style.display="none";document.getElementById("app").style.display="block";render();toast("Karibu "+u+" ✓");
 }
 function logout(){localStorage.removeItem("mpa_user");localStorage.removeItem("mpa_role");location.reload()}
 function showPage(id,btn){
+ const gates={products:"view_products",sales:"view_sales",expenses:"view_expenses",reports:"view_reports",analyticsSales:"view_reports",analyticsProfit:"view_reports",analyticsProducts:"view_reports",analyticsExpenses:"view_reports",analyticsCustomers:"view_reports",purchases:"view_products",deleted:"delete_sales",stockTools:"view_products"};
+ if(gates[id]&&!can(gates[id])){toast("Huna ruhusa ya kufungua sehemu hii.");return}
  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));document.getElementById(id)?.classList.add("active");
  document.querySelectorAll(".bottom button").forEach(b=>b.classList.remove("active"));
  if(btn)btn.classList.add("active");
@@ -547,7 +554,7 @@ function makeSale(){
  let profit=items.reduce((a,x)=>a+(x.price-x.buy)*x.qty,0)-discount;
  items.forEach(x=>{const p=products.find(y=>y.id===x.productId);p.qty-=x.qty;movements.unshift({id:Date.now()+Math.random(),productId:p.id,type:"sale",qty:x.qty,user:currentUser(),note:"Mauzo",date:new Date(saleDate+"T12:00:00").toISOString()})});
  const order={id:Date.now(),items,productId:items[0].productId,product:items[0].product,qty:items[0].qty,price:items[0].price,discount,total,subtotal,profit,customer,date:new Date(saleDate+"T12:00:00").toISOString(),user:currentUser(),paid:salePaid,note};
- sales.unshift(order);saveAll();notify(salePaid?"Mauzo yamelipwa":"Mauzo yamewekwa deni",customer+" • "+money(total));closeSaleEntry();render();
+ order.branchId=activeBranch||""; sales.unshift(order);saveAll();notify(salePaid?"Mauzo yamelipwa":"Mauzo yamewekwa deni",customer+" • "+money(total));closeSaleEntry();render();
 }
 function setSalesTab(tab){salesTab=tab;document.querySelectorAll('.sales-tabs button').forEach(x=>x.classList.remove('active'));document.getElementById(tab==='all'?'salesTabAll':tab==='paid'?'salesTabPaid':'salesTabDebt').classList.add('active');renderSalesHistory()}
 function saleItemsCount(s){return s.items?s.items.reduce((a,x)=>a+Number(x.qty||0),0):Number(s.qty||0)}
@@ -621,9 +628,14 @@ function renderNotifications(){document.getElementById("notificationList").inner
 function markNotificationsRead(){notifications.forEach(n=>n.read=true);saveAll();updateNotifDot()}
 function renderMovements(){document.getElementById("movementList").innerHTML=movements.length?movements.slice(0,50).map(m=>{const p=products.find(x=>x.id===m.productId);return `<div class="tableitem"><div><b>${m.type==="add"?"＋":m.type==="remove"?"−":"🛒"} ${esc(p?.name||"Bidhaa")}</b><div class="muted">${m.note||""} • ${m.user}</div></div><span>${m.type==="add"?"+":"-"}${m.qty}</span></div>`}).join(""):"<div class='empty'>Hakuna movement.</div>"}
 function openUserModal(){if(!can("manage_users")){toast("Admin pekee.");return}document.getElementById("newUserName").value="";document.getElementById("newUserPass").value="1234";document.getElementById("permForm").innerHTML=perms.map(([k,l])=>`<label class="perm"><input type="checkbox" data-perm="${k}" checked> ${l}</label>`).join("");document.getElementById("userModal").classList.add("show")}
-function saveUser(){const username=document.getElementById("newUserName").value.trim(),password=document.getElementById("newUserPass").value||"1234";if(!username){toast("Weka username.");return}if(users.some(u=>u.username===username)){toast("Username tayari ipo.");return}const permissions=[...document.querySelectorAll("[data-perm]:checked")].map(x=>x.dataset.perm);users.push({id:Date.now(),username,password,role:"user",permissions});closeModal("userModal");saveAll();notify("User mpya ameongezwa",username)}
-function renderUsers(){const el=document.getElementById("userList");el.innerHTML=users.map(u=>`<div class="card"><div class="row"><div><b>${esc(u.username)}</b><div class="muted">${u.role}</div></div>${u.username!=="admin"?`<button class="btn small" onclick="editUser(${u.id})">Ruhusa</button>`:"<span class='badge green'>Admin</span>"}</div><div class="permgrid" style="margin-top:10px">${perms.map(([k,l])=>`<label class="perm"><input type="checkbox" ${u.role==="admin"||u.permissions.includes("all")||u.permissions.includes(k)?"checked":""} onchange="toggleUserPerm(${u.id},'${k}',this.checked)" ${u.role==="admin"?"disabled":""}>${l}</label>`).join("")}</div></div>`).join("")}
+function saveUser(){const username=document.getElementById("newUserName").value.trim(),password=document.getElementById("newUserPass").value||"1234";if(!username){toast("Weka username.");return}if(users.some(u=>u.username===username)){toast("Username tayari ipo.");return}const permissions=[...document.querySelectorAll("[data-perm]:checked")].map(x=>x.dataset.perm);users.push({id:Date.now(),username,password,role:"user",permissions,active:true});closeModal("userModal");saveAll();notify("User mpya ameongezwa",username)}
+function renderUsers(){
+ const el=document.getElementById("userList");
+ el.innerHTML=users.map(u=>{const isAdmin=u.role==="admin";return `<div class="card"><div class="row"><div><b>${esc(u.username)}</b><div class="muted">${u.role} • ${u.active===false?"Inactive":"Active"}</div></div>${isAdmin?"<span class='badge green'>Admin</span>":`<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn small" onclick="editUser(${u.id})">Ruhusa</button><button class="btn small ${u.active===false?'blue':'red'}" onclick="toggleUserStatus(${u.id})">${u.active===false?'Washa':'Zima'}</button><button class="btn small red" onclick="deleteUser(${u.id})">Futa</button></div>`}</div><div class="permgrid" style="margin-top:10px">${perms.map(([k,l])=>`<label class="perm"><input type="checkbox" ${isAdmin||u.permissions.includes("all")||u.permissions.includes(k)?"checked":""} onchange="toggleUserPerm(${u.id},'${k}',this.checked)" ${isAdmin?"disabled":u.active===false?"disabled":""}>${l}</label>`).join("")}</div></div>`}).join("");
+}
 function editUser(id){document.getElementById("users").scrollIntoView();toast("Washa/zima ruhusa za "+(users.find(u=>u.id===id)?.username||"user")+" hapo chini.")}
+function toggleUserStatus(id){if(!can("manage_users"))return;const u=users.find(x=>x.id===id);if(!u||u.role==="admin")return;u.active=u.active===false;saveAll();notify(u.active?"User amewashwa":"User amezimwa",u.username)}
+function deleteUser(id){if(!can("manage_users"))return;const u=users.find(x=>x.id===id);if(!u||u.role==="admin")return;if(!confirm("Futa user "+u.username+"?"))return;users=users.filter(x=>x.id!==id);saveAll();notify("User amefutwa",u.username)}
 function toggleUserPerm(id,key,on){if(!can("manage_users"))return;const u=users.find(x=>x.id===id);if(!u||u.role==="admin")return;u.permissions=u.permissions||[];u.permissions=u.permissions.filter(x=>x!==key);if(on)u.permissions.push(key);saveAll();notify("Ruhusa imebadilishwa",u.username+" • "+key+(on?" ON":" OFF"))}
 function monthName(i){return ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][i]}
 function availableYears(){const ys=new Set([now().getFullYear()]);sales.forEach(s=>ys.add(new Date(s.date).getFullYear()));return [...ys].sort((a,b)=>b-a)}
@@ -657,7 +669,8 @@ function applyFontSize(){setFontSize(Number(localStorage.getItem("mpa_font_size"
 function setLanguage(lang){language=lang;localStorage.setItem("mpa_lang",lang);document.documentElement.lang=lang;document.getElementById("langSw")?.classList.toggle("active",lang==='sw');document.getElementById("langEn")?.classList.toggle("active",lang==='en');toast(lang==='sw'?"Kiswahili kimechaguliwa ✓":"English selected ✓")}
 function saveStore(){if(!can("manage_settings")){toast("Admin/ruhusa inahitajika.");return}storeName=document.getElementById("storeNameInput").value.trim()||"Micky Phone Accessories";localStorage.setItem("mpa_store",storeName);document.querySelector('.brandtext b').textContent=storeName;toast("Store imehifadhiwa ✓")}
 function addBranch(){if(!can("manage_branches")){toast("Huna ruhusa ya kuongeza branch.");return}const n=document.getElementById("branchName").value.trim();if(!n){toast("Andika jina la branch.");return}branches.push({id:Date.now(),name:n});document.getElementById("branchName").value="";saveAll();notify("Branch imeongezwa",n)}
-function renderBranches(){const el=document.getElementById("branchList");if(!el)return;el.innerHTML=branches.length?branches.map(b=>`<div class="branchitem row"><b>🏪 ${esc(b.name)}</b><button class="btn small red" onclick="deleteBranch(${b.id})">Futa</button></div>`).join(""):"<div class='muted' style='margin-top:8px'>Hakuna branch bado.</div>"}
+function renderBranches(){const el=document.getElementById("branchList");if(!el)return;el.innerHTML=branches.length?branches.map(b=>`<div class="branchitem row"><b>🏪 ${esc(b.name)}</b><button class="btn small red" onclick="deleteBranch(${b.id})">Futa</button></div>`).join(""):"<div class='muted' style='margin-top:8px'>Hakuna branch bado.</div>";const s=document.getElementById("activeBranchSelect");if(s){s.innerHTML='<option value="">Main Store</option>'+branches.map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join("");s.value=activeBranch}}
+function setActiveBranch(id){activeBranch=String(id||"");localStorage.setItem("mpa_active_branch",activeBranch);toast(activeBranch?"Branch imechaguliwa ✓":"Main Store imechaguliwa ✓")}
 function deleteBranch(id){if(!can("manage_branches"))return;branches=branches.filter(b=>b.id!==id);saveAll();toast("Branch imefutwa") }
 
 function applyLanguage(){
