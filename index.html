@@ -454,66 +454,77 @@ async function changePassword(){
  document.getElementById("newPassword").value="";document.getElementById("newPassword2").value="";
  alert("Password mpya imehifadhiwa kikamilifu. Sasa ingia kwa email yako na password mpya.");
 }
+const KNOWN_LOGIN_ROLES={
+ "mickyphoneaccessories@gmail.com":"admin",
+ "mickywidambe@gmail.com":"user"
+};
+const DEFAULT_USER_PERMISSIONS=["view_products","sell","add_stock","remove_stock","view_sales","view_reports"];
+
 async function login(){
  const u=document.getElementById("username").value.trim(),p=document.getElementById("password").value;
  if(!u||!p){alert("Weka username/email na password.");return}
- // Hakikisha session ya zamani haibaki nyuma ya login mpya.
  document.getElementById("login").style.display="block";
  document.getElementById("app").style.display="none";
  authProfile=null;
  if(!sbClient){alert("Supabase haijaunganishwa. Login imesitishwa.");return}
+
+ // 1) Supabase Auth pekee ndiyo inathibitisha email/password.
+ try{await sbClient.auth.signOut()}catch(e){}
+ const email=u.includes("@")?u:(u+"@mpa.local");
+ let data,error;
  try{
-   // Ondoa session yoyote ya zamani kabla ya kujaribu credentials mpya.
-   await sbClient.auth.signOut();
-   const email=u.includes("@")?u:(u+"@mpa.local");
-   const {data,error}=await sbClient.auth.signInWithPassword({email,password:p});
-   if(error||!data?.user){
-     await sbClient.auth.signOut();
-     document.getElementById("login").style.display="block";
-     document.getElementById("app").style.display="none";
-     alert("Username/email au password si sahihi.");
-     return;
-   }
-   // M-P-A LOGIN FIX:
-   // Tumia Supabase Auth kuthibitisha password, kisha tumia email ya account
-   // kuamua aina ya login inayoruhusiwa. Hii inalinda Admin/User hata
-   // kama kusoma profiles kunazuiwa na RLS.
-   const knownRoles={
-     "mickyphoneaccessories@gmail.com":"admin",
-     "mickywidambe@gmail.com":"user"
-   };
-   const normalizedEmail=(data.user.email||email||"").trim().toLowerCase();
-   const expectedRole=knownRoles[normalizedEmail]||null;
-   const {data:prof}=await sbClient.from("profiles").select("*").eq("id",data.user.id).maybeSingle();
-   const defaultUserPermissions=["view_products","sell","add_stock","remove_stock","view_sales","view_reports"];
-   const fallbackRole=expectedRole||"user";
-   authProfile={
-     ...(prof||{}),
-     id:data.user.id,
-     username:prof?.username||data.user.email?.split("@")[0]||u,
-     role:expectedRole||prof?.role||fallbackRole,
-     permissions:prof?.permissions ?? (fallbackRole==="admin"?["all"]:defaultUserPermissions),
-     active:prof?.active!==false
-   };
-   if(authProfile.active===false){await sbClient.auth.signOut();authProfile=null;alert("Account hii imezimwa na Admin.");return}
-   if(loginRole!==authProfile.role){
-     await sbClient.auth.signOut();
-     authProfile=null;
-     alert(loginRole==="admin"?"Chagua User kwenye login kwa account hii.":"Chagua Admin kwenye login kwa account hii.");
-     return;
-   }
-   localStorage.setItem("mpa_user",authProfile.username||u);localStorage.setItem("mpa_role",authProfile.role||loginRole);
-   document.getElementById("login").style.display="none";
-   document.getElementById("app").style.display="block";
-   render();toast("Karibu "+currentUser()+" ✓");
+   const result=await sbClient.auth.signInWithPassword({email,password:p});
+   data=result.data; error=result.error;
  }catch(e){
-   console.warn("Supabase login failed",e);
-   try{await sbClient.auth.signOut()}catch(_){}
-   authProfile=null;
-   document.getElementById("login").style.display="block";
-   document.getElementById("app").style.display="none";
-   alert("Username/email au password si sahihi.");
+   console.warn("Supabase sign-in error",e);
+   alert("Login haikufanikiwa. Angalia email na password yako.");
+   return;
  }
+ if(error||!data?.user){
+   try{await sbClient.auth.signOut()}catch(e){}
+   alert("Username/email au password si sahihi.");
+   return;
+ }
+
+ // 2) Auth imefanikiwa. Soma profile; kama RLS haijaruhusu kusoma,
+ //    tumia role iliyofungwa kwenye email bila kumtoa mtumiaji nje.
+ const normalizedEmail=(data.user.email||email||"").trim().toLowerCase();
+ const expectedRole=KNOWN_LOGIN_ROLES[normalizedEmail]||null;
+ let prof=null, profileError=null;
+ try{
+   const result=await sbClient.from("profiles").select("*").eq("id",data.user.id).maybeSingle();
+   prof=result.data||null; profileError=result.error||null;
+ }catch(e){profileError=e}
+ if(profileError) console.warn("Profile lookup warning",profileError);
+
+ const fallbackRole=expectedRole||prof?.role||"user";
+ authProfile={
+   ...(prof||{}),
+   id:data.user.id,
+   username:prof?.username||data.user.email?.split("@")[0]||u,
+   role:expectedRole||prof?.role||fallbackRole,
+   permissions:prof?.permissions ?? (fallbackRole==="admin"?["all"]:DEFAULT_USER_PERMISSIONS),
+   active:prof?.active!==false
+ };
+
+ if(authProfile.active===false){
+   await sbClient.auth.signOut(); authProfile=null;
+   alert("Account hii imezimwa na Admin.");
+   return;
+ }
+ if(loginRole!==authProfile.role){
+   await sbClient.auth.signOut(); authProfile=null;
+   alert(loginRole==="admin"?"Chagua User kwenye login kwa account hii.":"Chagua Admin kwenye login kwa account hii.");
+   return;
+ }
+
+ localStorage.setItem("mpa_user",authProfile.username||u);
+ localStorage.setItem("mpa_role",authProfile.role||loginRole);
+ document.getElementById("login").style.display="none";
+ document.getElementById("app").style.display="block";
+ // Muhimu: kosa la render si kosa la password. Usimrudishe mtumiaji login.
+ try{render();toast("Karibu "+currentUser()+" ✓");}
+ catch(e){console.error("M-P-A render error after successful login",e);}
 }
 async function logout(){if(sbClient){try{await sbClient.auth.signOut()}catch(e){}}authProfile=null;localStorage.removeItem("mpa_user");localStorage.removeItem("mpa_role");location.reload()}
 function showPage(id,btn){
@@ -817,7 +828,13 @@ window.addEventListener("load",async()=>{
        alert("Link ya Reset password haijathibitishwa. Omba Reset password tena kutoka Supabase.");
        return;
      }
-     if(session?.user){const {data:prof}=await sbClient.from("profiles").select("*").eq("id",session.user.id).maybeSingle();authProfile=prof||{id:session.user.id,username:session.user.email?.split("@")[0]||"user",role:"user",permissions:[],active:true};if(authProfile.active!==false){document.getElementById("login").style.display="none";document.getElementById("app").style.display="block";localStorage.setItem("mpa_user",authProfile.username);localStorage.setItem("mpa_role",authProfile.role||"user")}}
+     if(session?.user){
+       let prof=null;
+       try{const result=await sbClient.from("profiles").select("*").eq("id",session.user.id).maybeSingle();prof=result.data||null;}catch(e){console.warn("Session profile lookup warning",e)}
+       const email=(session.user.email||"").trim().toLowerCase();
+       const role=KNOWN_LOGIN_ROLES[email]||prof?.role||"user";
+       authProfile={...(prof||{}),id:session.user.id,username:prof?.username||session.user.email?.split("@")[0]||"user",role,permissions:prof?.permissions ?? (role==="admin"?["all"]:DEFAULT_USER_PERMISSIONS),active:prof?.active!==false};
+       if(authProfile.active!==false){document.getElementById("login").style.display="none";document.getElementById("app").style.display="block";localStorage.setItem("mpa_user",authProfile.username);localStorage.setItem("mpa_role",authProfile.role||role)}}
    }catch(e){console.warn("Session restore failed",e)}
 }
  // Usitumie localStorage kama uthibitisho wa login. Ni Supabase session pekee inayoruhusu app kufunguka.
