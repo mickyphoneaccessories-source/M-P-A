@@ -474,11 +474,34 @@ async function login(){
      alert("Username/email au password si sahihi.");
      return;
    }
+   // M-P-A LOGIN FIX:
+   // Tumia Supabase Auth kuthibitisha password, kisha tumia email ya account
+   // kuamua aina ya login inayoruhusiwa. Hii inalinda Admin/User hata
+   // kama kusoma profiles kunazuiwa na RLS.
+   const knownRoles={
+     "mickyphoneaccessories@gmail.com":"admin",
+     "mickywidambe@gmail.com":"user"
+   };
+   const normalizedEmail=(data.user.email||email||"").trim().toLowerCase();
+   const expectedRole=knownRoles[normalizedEmail]||null;
    const {data:prof}=await sbClient.from("profiles").select("*").eq("id",data.user.id).maybeSingle();
-   authProfile=prof||{id:data.user.id,username:data.user.email?.split("@")[0]||u,role:"user",permissions:[],active:true};
+   const defaultUserPermissions=["view_products","sell","add_stock","remove_stock","view_sales","view_reports"];
+   const fallbackRole=expectedRole||"user";
+   authProfile={
+     ...(prof||{}),
+     id:data.user.id,
+     username:prof?.username||data.user.email?.split("@")[0]||u,
+     role:expectedRole||prof?.role||fallbackRole,
+     permissions:prof?.permissions ?? (fallbackRole==="admin"?["all"]:defaultUserPermissions),
+     active:prof?.active!==false
+   };
    if(authProfile.active===false){await sbClient.auth.signOut();authProfile=null;alert("Account hii imezimwa na Admin.");return}
-   if(loginRole==="admin"&&authProfile.role!=="admin"){await sbClient.auth.signOut();authProfile=null;alert("Hii account si Admin.");return}
-   if(loginRole==="user"&&authProfile.role==="admin"){await sbClient.auth.signOut();authProfile=null;alert("Chagua Admin kwenye login kwa account hii.");return}
+   if(loginRole!==authProfile.role){
+     await sbClient.auth.signOut();
+     authProfile=null;
+     alert(loginRole==="admin"?"Chagua User kwenye login kwa account hii.":"Chagua Admin kwenye login kwa account hii.");
+     return;
+   }
    localStorage.setItem("mpa_user",authProfile.username||u);localStorage.setItem("mpa_role",authProfile.role||loginRole);
    document.getElementById("login").style.display="none";
    document.getElementById("app").style.display="block";
