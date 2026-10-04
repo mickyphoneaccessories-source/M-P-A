@@ -34,6 +34,8 @@ main{max-width:900px;margin:auto;padding:16px}.page{display:none}.page.active{di
 .modalback{position:fixed;inset:0;background:#0008;z-index:100;display:none;align-items:flex-end;justify-content:center}.modalback.show{display:flex}.modal{width:min(620px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:24px 24px 0 0;padding:20px}.modalhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.close{width:38px;height:38px;border-radius:50%;background:#eee}.preview{width:92px;height:92px;border-radius:14px;object-fit:cover;background:#eee;display:block;margin-bottom:10px}
 .pricewrap{position:relative}.pricewrap input{padding-right:44px}.eyeprice{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:9px;background:#f0f1f3;color:#333}.eyeprice.hiddenprice{background:#dfe2e7}
 .notice{position:fixed;top:72px;left:50%;transform:translateX(-50%);background:#17191d;color:#fff;padding:12px 16px;border-radius:12px;z-index:200;display:none;max-width:90%;box-shadow:0 7px 25px #0004}
+.resetbox{display:none;margin-top:18px;padding:18px;border:1px solid #d6aa00;border-radius:18px;background:#171717;text-align:left}.resetbox h2{margin:0 0 8px;color:#fff;font-size:22px}.resetbox p{margin:0 0 14px;color:#aaa;font-size:14px;line-height:1.4}.resetbox input{width:100%;box-sizing:border-box;padding:14px 15px;border-radius:12px;border:1px solid #ddd;background:#fff;color:#111;font-size:16px;margin-bottom:10px}.resetbtn{width:100%;padding:15px;border:0;border-radius:14px;background:#f3bf00;color:#111;font-weight:800;font-size:16px}.resetcancel{width:100%;padding:12px;border:0;background:transparent;color:#aaa;font-size:14px;margin-top:4px}
+
 .notiflist .tableitem{align-items:flex-start}.unread{background:#eef3ff;border-radius:12px;padding:10px}.permgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.perm{display:flex;gap:8px;align-items:center;background:#f5f6f8;padding:10px;border-radius:10px;font-size:13px}
 .empty{text-align:center;color:#888;padding:28px}.dangerzone{border:1px solid #ffd0d5;background:#fff7f8}.goalclick{cursor:pointer}.goalclick:active{transform:scale(.99)}.langgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.langbtn.active{background:var(--blue);color:#fff}.branchitem{padding:12px;border:1px solid #eee;border-radius:12px;margin-top:8px}
 .sales-screen{position:relative;min-height:calc(100vh - 120px);padding-bottom:86px}.sales-searchrow{display:flex;gap:10px;align-items:center;margin:4px 0 14px}.sales-search{height:50px;flex:1;background:#eee;border-radius:26px;padding:0 15px;display:flex;align-items:center;gap:9px;color:#777}.sales-search input{border:0;outline:0;background:transparent;width:100%;font-size:15px}.sales-date{height:50px;min-width:145px;display:flex;align-items:center;justify-content:space-between;gap:6px;color:var(--blue)}.sales-date input{border:0;background:transparent;color:var(--blue);font-size:14px;max-width:112px;outline:0}.sales-tabs{display:grid;grid-template-columns:repeat(3,1fr);background:#dfe7ff;border-radius:30px;padding:4px;margin-bottom:18px}.sales-tabs button{padding:14px 5px;border-radius:25px;background:transparent;color:#4e5259}.sales-tabs button.active{background:var(--blue);color:#fff}.sales-summary4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px}.sales-summary4>div{padding:16px 8px;border-radius:7px;text-align:center;background:#e8efff}.sales-summary4>div:nth-child(2){background:#fff8df}.sales-summary4>div:nth-child(3){background:#fff0f6}.sales-summary4>div:nth-child(4){background:#e9fbed}.sales-summary4 small{display:block;font-size:13px}.sales-summary4 b{display:block;margin-top:8px;font-size:16px}.sales-day-title{font-weight:800;font-size:18px;margin:8px 0 14px}.sales-history-list{background:transparent}.sale-history-item{padding:0 4px 16px;margin-bottom:16px;border-bottom:1px dashed #d8d8d8}.sale-history-top{display:grid;grid-template-columns:1fr auto auto;gap:18px;align-items:center}.sale-history-top b{font-weight:600}.sale-history-meta{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:10px;font-size:14px}.sale-history-status{margin-top:10px;font-size:14px}.sale-history-status.paid{color:#17a34a}.sale-history-status.debt{color:#d33}.sales-float{position:fixed;right:18px;bottom:86px;background:var(--blue);color:#fff;padding:15px 24px;border-radius:30px;box-shadow:0 8px 25px #244fff55;font-weight:800;z-index:25}
@@ -61,8 +63,16 @@ main{max-width:900px;margin:auto;padding:16px}.page{display:none}.page.active{di
     </div>
     <div class="field"><label>Username / Email</label><input id="username" placeholder="Andika username au email"></div>
     <div class="field"><label>Password</label><input id="password" type="password" placeholder="Password"></div>
-    <button class="goldbtn" onclick="login()">Ingia kwenye mfumo</button>
-    <div class="hint">Kwa account ya Supabase tumia email + password. Username ya M-P-A itaonekana baada ya kuingia.</div>
+    <button class="goldbtn" id="loginBtn" onclick="login()">Ingia kwenye mfumo</button>
+    <div class="hint" id="loginHint">Kwa account ya Supabase tumia email + password. Username ya M-P-A itaonekana baada ya kuingia.</div>
+    <div id="resetBox" class="resetbox">
+      <h2>Badilisha password</h2>
+      <p>Weka password mpya ya Admin yako. Usitumie password yako ya zamani.</p>
+      <input id="newPassword" type="password" placeholder="Password mpya">
+      <input id="newPassword2" type="password" placeholder="Rudia password mpya">
+      <button class="resetbtn" onclick="changePassword()">Hifadhi password mpya</button>
+      <button class="resetcancel" onclick="cancelPasswordReset()">Rudi kwenye login</button>
+    </div>
   </div>
 </section>
 
@@ -409,6 +419,41 @@ function requestBrowserNotifications(){
  Notification.requestPermission().then(x=>toast(x==="granted"?"Notifications zimeruhusiwa ✓":"Notifications hazijaruhusiwa."));
 }
 function setLogin(role){loginRole=role;document.getElementById("adminTab").classList.toggle("active",role==="admin");document.getElementById("userTab").classList.toggle("active",role==="user")}
+function isPasswordRecoveryLink(){return /type=recovery/i.test(location.hash||"")||/type=recovery/i.test(location.search||"")}
+function showPasswordReset(){
+ document.getElementById("login").style.display="block";
+ document.getElementById("app").style.display="none";
+ document.getElementById("adminTab").style.display="none";
+ document.getElementById("userTab").style.display="none";
+ document.getElementById("username").parentElement.style.display="none";
+ document.getElementById("password").parentElement.style.display="none";
+ document.getElementById("loginBtn").style.display="none";
+ document.getElementById("loginHint").style.display="none";
+ document.getElementById("resetBox").style.display="block";
+}
+function cancelPasswordReset(){location.href=location.origin+location.pathname}
+async function changePassword(){
+ const p1=document.getElementById("newPassword").value;
+ const p2=document.getElementById("newPassword2").value;
+ if(p1.length<6){alert("Password mpya iwe na angalau herufi 6.");return}
+ if(p1!==p2){alert("Password mbili hazifanani.");return}
+ if(!sbClient){alert("Supabase haijaunganishwa.");return}
+ const {data}=await sbClient.auth.getSession();
+ if(!data?.session){alert("Link ya kubadilisha password imekwisha muda au haijathibitishwa. Omba Reset password tena.");return}
+ const {error}=await sbClient.auth.updateUser({password:p1});
+ if(error){alert("Password haikubadilika: "+error.message);return}
+ await sbClient.auth.signOut();
+ history.replaceState(null,"",location.pathname);
+ document.getElementById("resetBox").style.display="none";
+ document.getElementById("adminTab").style.display="";
+ document.getElementById("userTab").style.display="";
+ document.getElementById("username").parentElement.style.display="";
+ document.getElementById("password").parentElement.style.display="";
+ document.getElementById("loginBtn").style.display="";
+ document.getElementById("loginHint").style.display="";
+ document.getElementById("newPassword").value="";document.getElementById("newPassword2").value="";
+ alert("Password mpya imehifadhiwa kikamilifu. Sasa ingia kwa email yako na password mpya.");
+}
 async function login(){
  const u=document.getElementById("username").value.trim(),p=document.getElementById("password").value;
  if(!u||!p){alert("Weka username/email na password.");return}
@@ -739,7 +784,19 @@ window.addEventListener("load",async()=>{
  setupMoneyInput("pBuy"); setupMoneyInput("pPrice"); setupMoneyInput("discount");
  wrapPriceInput("pBuy"); wrapPriceInput("pPrice"); wrapPriceInput("salePrice");
  if(document.getElementById("salesDay"))document.getElementById("salesDay").value=dateKey(now());
- if(sbClient){try{const {data}=await sbClient.auth.getSession();const session=data?.session;if(session?.user){const {data:prof}=await sbClient.from("profiles").select("*").eq("id",session.user.id).maybeSingle();authProfile=prof||{id:session.user.id,username:session.user.email?.split("@")[0]||"user",role:"user",permissions:[],active:true};if(authProfile.active!==false){document.getElementById("login").style.display="none";document.getElementById("app").style.display="block";localStorage.setItem("mpa_user",authProfile.username);localStorage.setItem("mpa_role",authProfile.role||"user")}}}catch(e){console.warn("Session restore failed",e)}}
+ if(sbClient){
+   try{
+     const {data}=await sbClient.auth.getSession();
+     const session=data?.session;
+     if(isPasswordRecoveryLink()){
+       if(session?.user){showPasswordReset();return}
+       showPasswordReset();
+       alert("Link ya Reset password haijathibitishwa. Omba Reset password tena kutoka Supabase.");
+       return;
+     }
+     if(session?.user){const {data:prof}=await sbClient.from("profiles").select("*").eq("id",session.user.id).maybeSingle();authProfile=prof||{id:session.user.id,username:session.user.email?.split("@")[0]||"user",role:"user",permissions:[],active:true};if(authProfile.active!==false){document.getElementById("login").style.display="none";document.getElementById("app").style.display="block";localStorage.setItem("mpa_user",authProfile.username);localStorage.setItem("mpa_role",authProfile.role||"user")}}
+   }catch(e){console.warn("Session restore failed",e)}
+}
  // Usitumie localStorage kama uthibitisho wa login. Ni Supabase session pekee inayoruhusu app kufunguka.
  render();
 });
