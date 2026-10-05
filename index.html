@@ -33,10 +33,10 @@ main{max-width:900px;margin:auto;padding:16px}.page{display:none}.page.active{di
 .tableitem{display:flex;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #eee}.tableitem:last-child{border-bottom:0}.muted{color:var(--muted);font-size:13px}.badge{display:inline-block;padding:5px 9px;border-radius:20px;background:#eef2ff;color:#3348a7;font-size:12px}.badge.red{background:#ffe6e9;color:#b51d2d}.badge.green{background:#e4f8ed;color:#137c4d}
 .modalback{position:fixed;inset:0;background:#0008;z-index:100;display:none;align-items:flex-end;justify-content:center}.modalback.show{display:flex}.modal{width:min(620px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:24px 24px 0 0;padding:20px}.modalhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.close{width:38px;height:38px;border-radius:50%;background:#eee}.preview{width:92px;height:92px;border-radius:14px;object-fit:cover;background:#eee;display:block;margin-bottom:10px}
 .pricewrap{position:relative}.pricewrap input{padding-right:44px}.eyeprice{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:9px;background:#f0f1f3;color:#333}.eyeprice.hiddenprice{background:#dfe2e7}
-.notice{position:fixed;top:72px;left:50%;transform:translateX(-50%);background:#17191d;color:#fff;padding:12px 16px;border-radius:12px;z-index:200;display:none;max-width:90%;box-shadow:0 7px 25px #0004}
+.notice{position:fixed;top:76px;left:50%;transform:translateX(-50%) translateY(-14px);background:#fff;color:#17191d;padding:10px 14px;border-radius:18px;z-index:200;display:none;width:min(430px,calc(100% - 28px));box-shadow:0 14px 40px #0003;border:1px solid #e8e9ed;opacity:0;transition:opacity .22s ease,transform .22s ease}.notice.show{display:flex;opacity:1;transform:translateX(-50%) translateY(0)}.notice-inner{display:flex;align-items:center;gap:11px;width:100%}.notice-logo{width:43px;height:43px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:#f2f3f5}.notice-copy{min-width:0;flex:1}.notice-title{font-weight:800;font-size:15px;line-height:1.15}.notice-detail{color:#686d76;font-size:13px;margin-top:3px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.notice-bell{width:30px;height:30px;border-radius:10px;background:#eef3ff;display:grid;place-items:center;font-size:15px;flex:0 0 auto}
 .resetbox{display:none;margin-top:18px;padding:18px;border:1px solid #d6aa00;border-radius:18px;background:#171717;text-align:left}.resetbox h2{margin:0 0 8px;color:#fff;font-size:22px}.resetbox p{margin:0 0 14px;color:#aaa;font-size:14px;line-height:1.4}.resetbox input{width:100%;box-sizing:border-box;padding:14px 15px;border-radius:12px;border:1px solid #ddd;background:#fff;color:#111;font-size:16px;margin-bottom:10px}.resetbtn{width:100%;padding:15px;border:0;border-radius:14px;background:#f3bf00;color:#111;font-weight:800;font-size:16px}.resetcancel{width:100%;padding:12px;border:0;background:transparent;color:#aaa;font-size:14px;margin-top:4px}
 
-.notiflist .tableitem{align-items:flex-start}.unread{background:#eef3ff;border-radius:12px;padding:10px}.permgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.perm{display:flex;gap:8px;align-items:center;background:#f5f6f8;padding:10px;border-radius:10px;font-size:13px}
+.notiflist .tableitem{align-items:flex-start}.notif-card{display:flex;gap:12px;padding:13px;border-bottom:1px solid #eee;background:#fff}.notif-logo{width:44px;height:44px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:#f1f2f4}.unread{background:#eef3ff;border-radius:12px;padding:10px}.permgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.perm{display:flex;gap:8px;align-items:center;background:#f5f6f8;padding:10px;border-radius:10px;font-size:13px}
 .empty{text-align:center;color:#888;padding:28px}.dangerzone{border:1px solid #ffd0d5;background:#fff7f8}.goalclick{cursor:pointer}.goalclick:active{transform:scale(.99)}.langgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.langbtn.active{background:var(--blue);color:#fff}.branchitem{padding:12px;border:1px solid #eee;border-radius:12px;margin-top:8px}
 .sales-screen{position:relative;min-height:calc(100vh - 120px);padding-bottom:86px}.sales-searchrow{display:flex;gap:10px;align-items:center;margin:4px 0 14px}.sales-search{height:50px;flex:1;background:#eee;border-radius:26px;padding:0 15px;display:flex;align-items:center;gap:9px;color:#777}.sales-search input{border:0;outline:0;background:transparent;width:100%;font-size:15px}.sales-date{height:50px;min-width:145px;display:flex;align-items:center;justify-content:space-between;gap:6px;color:var(--blue)}.sales-date input{border:0;background:transparent;color:var(--blue);font-size:14px;max-width:112px;outline:0}.sales-tabs{display:grid;grid-template-columns:repeat(3,1fr);background:#dfe7ff;border-radius:30px;padding:4px;margin-bottom:18px}.sales-tabs button{padding:14px 5px;border-radius:25px;background:transparent;color:#4e5259}.sales-tabs button.active{background:var(--blue);color:#fff}.sales-summary4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px}.sales-summary4>div{padding:16px 8px;border-radius:7px;text-align:center;background:#e8efff}.sales-summary4>div:nth-child(2){background:#fff8df}.sales-summary4>div:nth-child(3){background:#fff0f6}.sales-summary4>div:nth-child(4){background:#e9fbed}.sales-summary4 small{display:block;font-size:13px}.sales-summary4 b{display:block;margin-top:8px;font-size:16px}.sales-day-title{font-weight:800;font-size:18px;margin:8px 0 14px}.sales-history-list{background:transparent}.sale-history-item{padding:0 4px 16px;margin-bottom:16px;border-bottom:1px dashed #d8d8d8}.sale-history-top{display:grid;grid-template-columns:1fr auto auto;gap:18px;align-items:center}.sale-history-top b{font-weight:600}.sale-history-meta{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:10px;font-size:14px}.sale-history-status{margin-top:10px;font-size:14px}.sale-history-status.paid{color:#17a34a}.sale-history-status.debt{color:#d33}.sales-float{position:fixed;right:18px;bottom:86px;background:var(--blue);color:#fff;padding:15px 24px;border-radius:30px;box-shadow:0 8px 25px #244fff55;font-weight:800;z-index:25}
 .sale-history-item{cursor:pointer;transition:transform .12s,box-shadow .12s}.sale-history-item:active{transform:scale(.995);box-shadow:0 3px 12px #0001}.sale-detail{padding:4px 0 110px}.sale-detail-head{display:flex;align-items:center;gap:12px;margin:0 0 20px}.sale-detail-back{width:42px;height:42px;border-radius:50%;background:transparent;font-size:38px;line-height:1}.sale-detail-head h2{margin:0;font-size:20px;flex:1}.sale-detail-date{color:#8a8d94;font-size:14px}.sale-delete-top{width:48px;height:48px;border-radius:50%;background:#fff0f3;color:#e51f38;font-size:22px}.sale-detail-card{background:#f7f7f8;border-radius:22px;overflow:hidden;margin-bottom:24px}.sale-detail-row{padding:16px 18px;border-bottom:1px dashed #d8d8d8}.sale-detail-row:last-child{border-bottom:0}.sale-detail-label{display:block;color:#666;font-size:14px;margin-bottom:8px}.sale-detail-value{font-size:19px;font-weight:700}.sale-detail-products-title{font-size:15px;color:#aaa;text-transform:uppercase;letter-spacing:.4px;margin:0 0 12px}.sale-detail-product{display:grid;grid-template-columns:58px 1fr auto auto;gap:10px;align-items:center;padding:12px 0;border-bottom:1px dashed #ddd}.sale-detail-product:last-child{border-bottom:0}.sale-detail-product img{width:58px;height:58px;border-radius:10px;object-fit:cover;background:#eee}.sale-detail-product small{display:block;color:#777;margin-top:4px}.sale-detail-product .qty{text-align:center}.sale-detail-product .line{text-align:right;white-space:nowrap}.sale-detail-totals{margin-top:14px}.sale-detail-totals>div{display:flex;justify-content:space-between;padding:14px 0;border-bottom:1px dashed #ddd}.sale-detail-totals>div:last-child{font-size:18px;border-bottom:0}.sale-receipt-btn{width:100%;padding:17px;border-radius:30px;background:var(--blue);color:#fff;font-weight:800;font-size:16px;margin-top:18px}.receipt-sheet{background:#fff;padding:8px}.receipt-head{display:flex;justify-content:space-between;gap:15px;border-bottom:1px solid #ddd;padding-bottom:14px}.receipt-brand{display:flex;gap:10px;align-items:center}.receipt-brand img{width:48px;height:48px;border-radius:10px;object-fit:cover}.receipt-title{font-weight:900;font-size:18px}.receipt-sub{font-size:11px;color:#666;margin-top:3px}.receipt-meta{text-align:right;font-size:11px}.receipt-meta b{font-size:15px}.receipt-table{width:100%;border-collapse:collapse;margin-top:14px;font-size:12px}.receipt-table th,.receipt-table td{padding:8px 5px;border-bottom:1px solid #eee;text-align:left}.receipt-table th:nth-child(n+3),.receipt-table td:nth-child(n+3){text-align:right}.receipt-total{text-align:right;margin-top:12px;font-size:13px}.receipt-total div{margin:6px 0}.receipt-total .grand{font-size:17px;font-weight:900}.receipt-foot{border-top:1px solid #eee;margin-top:14px;padding-top:12px;font-size:12px}.receipt-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-top:14px}.receipt-actions .btn{padding:14px;border-radius:15px}.receipt-actions .blue{background:var(--blue);color:#fff}.sale-detail-wrap{width:100%;max-width:900px;height:100vh;max-height:100vh;border-radius:0;padding:14px 16px 24px;overflow:auto}
@@ -332,7 +332,7 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
 </nav>
 </section>
 
-<div id="expenseModal" class="modalback"><div class="modal"><div class="modalhead"><h2>Rekodi Matumizi</h2><button class="close" onclick="closeModal('expenseModal')">×</button></div><div class="field"><label>Tarehe (Kama ni matumizi ya zamani)</label><input id="expenseDate" type="date"></div><div class="field"><label>Aina Ya Matumizi</label><select id="expenseName"><option value="">Chagua aina ya matumizi</option><option>Chakula</option><option>Usafiri</option><option>Umeme</option><option>Mishahara</option><option>Stock</option><option>Internet</option><option>Kodi</option><option>Matengenezo</option><option>Nyingine</option></select></div><div class="field"><label>Kiasi</label><input id="expenseAmountModal" type="text" inputmode="numeric" placeholder="0"></div><div class="field"><label>Kundi La Matumizi</label><select id="expenseCategory"><option value="">Chagua kundi la matumizi</option><option>Biashara</option><option>Usafiri</option><option>Chakula</option><option>Nyumbani</option><option>Mishahara</option><option>Bill</option><option>Nyingine</option></select></div><div class="field"><label>＋ Maelezo ya ziada (sio lazima)</label><textarea id="expenseNote" rows="3" placeholder="Maelezo ya ziada"></textarea></div><button class="btn blue" style="width:100%;padding:16px" onclick="saveExpenseRecord()">Save</button></div></div>
+<div id="expenseModal" class="modalback"><div class="modal"><div class="modalhead"><h2>Rekodi Matumizi</h2><button class="close" onclick="closeModal('expenseModal')">×</button></div><div class="field"><label>Tarehe (Kama ni matumizi ya zamani)</label><input id="expenseDate" type="date"></div><div class="field"><label>Aina Ya Matumizi</label><input id="expenseName" type="text" placeholder="Andika aina ya matumizi, mfano: Mafuta, Chakula, Umeme..."></div><div class="field"><label>Kiasi</label><input id="expenseAmountModal" type="text" inputmode="numeric" placeholder="Andika kiasi, mfano 50,000"></div><div class="field"><label>Kundi La Matumizi</label><input id="expenseCategory" type="text" placeholder="Andika kundi, mfano: Biashara, Usafiri..."></div><div class="field"><label>＋ Maelezo ya ziada (sio lazima)</label><textarea id="expenseNote" rows="3" placeholder="Maelezo ya ziada"></textarea></div><button class="btn blue" style="width:100%;padding:16px" onclick="saveExpenseRecord()">Hifadhi Matumizi</button></div></div>
 <div id="productModal" class="modalback">
  <div class="modal">
   <div class="modalhead"><h2 id="productModalTitle">Bidhaa Mpya</h2><button class="close" onclick="closeModal('productModal')">×</button></div>
@@ -430,7 +430,7 @@ let storeName=localStorage.getItem("mpa_store")||"Micky Phone Accessories";
 let language=localStorage.getItem("mpa_lang")||"sw";
 let users=JSON.parse(localStorage.getItem("mpa_users")||"null")||[
  {id:1,username:"admin",password:"1234",role:"admin",permissions:["all"],active:true},
- {id:2,username:"user",password:"1234",role:"user",permissions:["view_products","sell","add_stock","remove_stock","view_sales","view_reports","view_expenses","manage_expenses"],active:true}
+ {id:2,username:"user",password:"1234",role:"user",permissions:["view_products","sell","add_stock","remove_stock","view_sales","view_reports","view_expenses","manage_expenses","view_expense_history"],active:true}
 ];
 
 users=users.map(u=>({...u,active:u.active!==false,permissions:Array.isArray(u.permissions)?u.permissions:[]}));
@@ -451,14 +451,39 @@ function saveAll(){
  localStorage.setItem("mpa_customers",JSON.stringify(customers));localStorage.setItem("mpa_expenses",JSON.stringify(expenses));
  localStorage.setItem("mpa_movements",JSON.stringify(movements));localStorage.setItem("mpa_notifications",JSON.stringify(notifications));
  localStorage.setItem("mpa_users",JSON.stringify(users));localStorage.setItem("mpa_goal",String(goalTarget));localStorage.setItem("mpa_branches",JSON.stringify(branches));localStorage.setItem("mpa_store",storeName);localStorage.setItem("mpa_lang",language);localStorage.setItem("mpa_active_branch",activeBranch);render();
+ queueAutoNotification();
 }
-function toast(msg){const n=document.getElementById("notice");n.textContent=msg;n.style.display="block";setTimeout(()=>n.style.display="none",2400)}
+let autoNotifyTimer=null;
+function toast(msg){
+ const n=document.getElementById("notice");
+ if(!n)return;
+ n.innerHTML=`<div class="notice-inner"><img class="notice-logo" src="logo.png" alt="M-P-A"><div class="notice-copy"><div class="notice-title">${esc(String(msg).replace(/^🔔\s*/,""))}</div><div class="notice-detail">M-P-A • Taarifa ya mfumo</div></div><div class="notice-bell">🔔</div></div>`;
+ n.style.display="flex";
+ requestAnimationFrame(()=>n.classList.add("show"));
+ clearTimeout(n._timer);n._timer=setTimeout(()=>{n.classList.remove("show");setTimeout(()=>{if(!n.classList.contains("show"))n.style.display="none"},220)},3800);
+}
 function notify(title,detail){
+ if(autoNotifyTimer){clearTimeout(autoNotifyTimer);autoNotifyTimer=null}
  notifications.unshift({id:Date.now()+Math.random(),title,detail,user:currentUser(),date:now().toISOString(),read:false});
  localStorage.setItem("mpa_notifications",JSON.stringify(notifications));
- if("Notification" in window && Notification.permission==="granted"){try{new Notification(title,{body:detail})}catch(e){}}
- toast("🔔 "+title);
+ renderNotifications();
+ if("Notification" in window && Notification.permission==="granted"){
+   try{new Notification(title,{body:detail,icon:"./logo.png",badge:"./logo.png",tag:"mpa-"+Date.now()})}catch(e){}
+ }
+ const n=document.getElementById("notice");
+ if(n){
+   n.innerHTML=`<div class="notice-inner"><img class="notice-logo" src="logo.png" alt="M-P-A"><div class="notice-copy"><div class="notice-title">${esc(title)}</div><div class="notice-detail">${esc(detail||"Mabadiliko yamefanyika kwenye mfumo.")}</div></div><div class="notice-bell">🔔</div></div>`;
+   n.style.display="flex";requestAnimationFrame(()=>n.classList.add("show"));
+   clearTimeout(n._timer);n._timer=setTimeout(()=>{n.classList.remove("show");setTimeout(()=>{if(!n.classList.contains("show"))n.style.display="none"},220)},4200);
+ }
  updateNotifDot();
+}
+function queueAutoNotification(){
+ clearTimeout(autoNotifyTimer);
+ autoNotifyTimer=setTimeout(()=>{
+   autoNotifyTimer=null;
+   notify("Mabadiliko yamefanyika", "Mfumo umehifadhi kitendo chako • "+currentUser());
+ },180);
 }
 function updateNotifDot(){document.getElementById("notifDot")?.classList.toggle("hidden",!notifications.some(n=>!n.read))}
 function requestBrowserNotifications(){
@@ -505,7 +530,7 @@ const KNOWN_LOGIN_ROLES={
  "mickyphoneaccessories@gmail.com":"admin",
  "mickywidambe@gmail.com":"user"
 };
-const DEFAULT_USER_PERMISSIONS=["view_products","sell","add_stock","remove_stock","view_sales","view_reports"];
+const DEFAULT_USER_PERMISSIONS=["view_products","sell","add_stock","remove_stock","view_sales","view_reports","view_expenses","manage_expenses","view_expense_history"];
 
 async function login(){
  const u=document.getElementById("username").value.trim(),p=document.getElementById("password").value;
@@ -550,7 +575,7 @@ async function login(){
    id:data.user.id,
    username:prof?.username||data.user.email?.split("@")[0]||u,
    role:expectedRole||prof?.role||fallbackRole,
-   permissions:prof?.permissions ?? (fallbackRole==="admin"?["all"]:DEFAULT_USER_PERMISSIONS),
+   permissions:fallbackRole==="admin"?["all"]:[...new Set([...(Array.isArray(prof?.permissions)?prof.permissions:[]),...DEFAULT_USER_PERMISSIONS])],
    active:prof?.active!==false
  };
 
@@ -589,7 +614,7 @@ async function forceRefreshApp(){
 async function logout(){if(sbClient){try{await sbClient.auth.signOut()}catch(e){}}authProfile=null;localStorage.removeItem("mpa_user");localStorage.removeItem("mpa_role");location.reload()}
 function showPage(id,btn){
  const gates={products:"view_products",sales:"view_sales",expenses:"view_expenses",reports:"view_reports",analyticsSales:"view_reports",analyticsProfit:"view_reports",analyticsProducts:"view_reports",analyticsExpenses:"view_reports",analyticsCustomers:"view_reports",purchases:"view_products",deleted:"delete_sales",stockTools:"view_products"};
- if(gates[id]&&!can(gates[id])){toast("Huna ruhusa ya kufungua sehemu hii.");return}
+ if(gates[id]&&!can(gates[id])){toast("Huna ruhusa ya kufungua sehemu hii. Admin anaweza kukupa ruhusa.");return}
  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));document.getElementById(id)?.classList.add("active");
  document.querySelectorAll(".bottom button").forEach(b=>b.classList.remove("active"));
  if(btn)btn.classList.add("active");
@@ -799,8 +824,8 @@ function renderLists(){
  document.getElementById("customerList").innerHTML=customers.length?customers.map(c=>`<div class="tableitem"><div><b>${esc(c.name)}</b><div class="muted">${esc(c.phone||"Hakuna namba")}</div></div></div>`).join(""):"<div class='empty'>Hakuna wateja.</div>";
  renderExpensePage();
 }
-function renderNotifications(){document.getElementById("notificationList").innerHTML=notifications.length?notifications.slice(0,100).map(n=>`<div class="tableitem ${n.read?"":"unread"}"><div><b>${esc(n.title)}</b><div>${esc(n.detail)}</div><div class="muted">${n.user} • ${niceDate(n.date)} ${timeNow(n.date)}</div></div></div>`).join(""):"<div class='empty'>Hakuna notification.</div>"}
-function markNotificationsRead(){notifications.forEach(n=>n.read=true);saveAll();updateNotifDot()}
+function renderNotifications(){const el=document.getElementById("notificationList");if(!el)return;el.innerHTML=notifications.length?notifications.slice(0,100).map(n=>`<div class="tableitem notif-card ${n.read?"":"unread"}"><img class="notif-logo" src="logo.png" alt="M-P-A"><div><b>${esc(n.title)}</b><div>${esc(n.detail)}</div><div class="muted">${esc(n.user||"")} • ${niceDate(n.date)} ${timeNow(n.date)}</div></div></div>`).join(""):"<div class='empty'>Hakuna notification.</div>"}
+function markNotificationsRead(){if(autoNotifyTimer){clearTimeout(autoNotifyTimer);autoNotifyTimer=null}notifications.forEach(n=>n.read=true);localStorage.setItem("mpa_notifications",JSON.stringify(notifications));renderNotifications();updateNotifDot()}
 function renderMovements(){document.getElementById("movementList").innerHTML=movements.length?movements.slice(0,50).map(m=>{const p=products.find(x=>x.id===m.productId);return `<div class="tableitem"><div><b>${m.type==="add"?"＋":m.type==="remove"?"−":"🛒"} ${esc(p?.name||"Bidhaa")}</b><div class="muted">${m.note||""} • ${m.user}</div></div><span>${m.type==="add"?"+":"-"}${m.qty}</span></div>`}).join(""):"<div class='empty'>Hakuna movement.</div>"}
 let usersTab="active",selectedUserDetailId=null,editingUserId=null;
 function setUsersTab(tab){usersTab=tab;document.getElementById("usersTabActive")?.classList.toggle("active",tab==="active");document.getElementById("usersTabInactive")?.classList.toggle("active",tab==="inactive");renderUsers();}
@@ -897,7 +922,7 @@ window.addEventListener("load",async()=>{
        try{const result=await sbClient.from("profiles").select("*").eq("id",session.user.id).maybeSingle();prof=result.data||null;}catch(e){console.warn("Session profile lookup warning",e)}
        const email=(session.user.email||"").trim().toLowerCase();
        const role=KNOWN_LOGIN_ROLES[email]||prof?.role||"user";
-       authProfile={...(prof||{}),id:session.user.id,username:prof?.username||session.user.email?.split("@")[0]||"user",role,permissions:prof?.permissions ?? (role==="admin"?["all"]:DEFAULT_USER_PERMISSIONS),active:prof?.active!==false};
+       authProfile={...(prof||{}),id:session.user.id,username:prof?.username||session.user.email?.split("@")[0]||"user",role,permissions:role==="admin"?["all"]:[...new Set([...(Array.isArray(prof?.permissions)?prof.permissions:[]),...DEFAULT_USER_PERMISSIONS])],active:prof?.active!==false};
        if(authProfile.active!==false){document.getElementById("login").style.display="none";document.getElementById("app").style.display="block";localStorage.setItem("mpa_user",authProfile.username);localStorage.setItem("mpa_role",authProfile.role||role)}}
    }catch(e){console.warn("Session restore failed",e)}
 }
