@@ -299,7 +299,7 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
       <div class="settings-group-title">TAARIFA ZA APP</div>
       <div class="settings-ios-list">
         <button onclick="toast('Taarifa za usalama ziko tayari.')"><span class="setting-icon" style="background:#5d7dff">⇩</span><span class="setting-main">Taarifa za usalama</span><b>›</b></button>
-        <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span>New Version - 260</span><button onclick="location.reload()">Update</button></div>
+        <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span>New Version - 261</span><button onclick="forceRefreshApp()">↻ Refresh</button></div>
         <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span>0767203506</span><button onclick="logout()" style="background:#999!important">Logout</button></div>
       </div>
       <div class="settings-group-title">MWONEKANO</div>
@@ -572,6 +572,19 @@ async function login(){
  // Muhimu: kosa la render si kosa la password. Usimrudishe mtumiaji login.
  try{render();toast("Karibu "+currentUser()+" ✓");}
  catch(e){console.error("M-P-A render error after successful login",e);}
+}
+async function forceRefreshApp(){
+  try{
+    if("serviceWorker" in navigator){
+      const regs=await navigator.serviceWorker.getRegistrations();
+      for(const reg of regs){ try{await reg.update();}catch(e){} }
+    }
+    if("caches" in window){
+      const keys=await caches.keys();
+      await Promise.all(keys.filter(k=>k.startsWith("mpa-")).map(k=>caches.delete(k)));
+    }
+  }catch(e){}
+  location.reload(true);
 }
 async function logout(){if(sbClient){try{await sbClient.auth.signOut()}catch(e){}}authProfile=null;localStorage.removeItem("mpa_user");localStorage.removeItem("mpa_role");location.reload()}
 function showPage(id,btn){

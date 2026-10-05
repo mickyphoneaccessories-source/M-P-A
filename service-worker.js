@@ -1,4 +1,4 @@
-const CACHE="mpa-final-v11-users-settings-fix-20261005";
+const CACHE="mpa-final-v12-refresh-20261006";
 const ASSETS=["./","./index.html","./logo.png","./icon.svg","./manifest.webmanifest","./service-worker.js"];
 self.addEventListener("install",e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener("activate",e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
