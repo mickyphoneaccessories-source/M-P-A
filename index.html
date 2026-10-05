@@ -19,7 +19,7 @@ button,input,select,textarea{font:inherit}button{border:0;cursor:pointer}
 .login h1{text-align:center;color:var(--gold);margin:8px 0 4px}.sub{text-align:center;color:#aaa;margin:0 0 20px}
 .tabs{display:grid;grid-template-columns:1fr 1fr;background:#292929;border-radius:24px;padding:4px;margin-bottom:20px}.tabs button{padding:12px;border-radius:20px;background:transparent;color:#aaa;font-weight:700}.tabs button.active{background:linear-gradient(135deg,var(--gold),#ffb400);color:#111}
 .field{margin:12px 0}.field label{display:block;margin-bottom:6px;font-weight:700}.field input,.field select,.field textarea{width:100%;padding:13px;border:1px solid #d8dadd;border-radius:12px;outline:0;background:#fff}.goldbtn{width:100%;padding:14px;border-radius:13px;background:linear-gradient(135deg,var(--gold),#ffb400);font-weight:800}.hint{text-align:center;color:#777;font-size:12px;margin-top:14px}
-.app{min-height:100vh;padding-bottom:84px;zoom:var(--fontScale,1)}.header{background:#fff;position:sticky;top:0;z-index:30;border-bottom:1px solid var(--line);padding:10px 14px 8px}.brandrow{display:flex;align-items:center;gap:10px}.avatar{width:45px;height:45px;border-radius:50%;background:#f1f2f4;display:grid;place-items:center;font-weight:800;font-size:20px}.brandtext{min-width:0}.brandtext b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}.brandtext small{color:#8a8d94}.headactions{margin-left:auto;display:flex;gap:7px}.iconbtn{width:42px;height:42px;border-radius:12px;background:#f3f4f6;position:relative}.dot{position:absolute;width:9px;height:9px;border-radius:50%;background:#ef3150;right:8px;top:7px}
+.app{min-height:100vh;padding-bottom:84px;zoom:var(--fontScale,1)}.header{background:#fff;position:sticky;top:0;z-index:30;border-bottom:1px solid var(--line);padding:10px 14px 8px}.brandrow{display:flex;align-items:center;gap:10px}.avatar{width:45px;height:45px;border-radius:50%;background:#f1f2f4;display:grid;place-items:center;font-weight:800;font-size:20px}.brandtext{min-width:0}.brandtext b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}.brandtext small{color:#8a8d94}.headactions{margin-left:auto;display:flex;gap:7px}.iconbtn{width:42px;height:42px;border-radius:12px;background:#f3f4f6;position:relative}.dot{position:absolute;min-width:10px;height:10px;padding:0 3px;border-radius:12px;background:#ef3150;color:#fff;right:6px;top:5px;display:grid;place-items:center;font-size:8px;font-weight:800;line-height:10px;box-shadow:0 0 0 2px #fff}.dot.count{min-width:18px;height:18px;top:3px;right:3px;font-size:10px;line-height:18px;padding:0 4px}
 main{max-width:900px;margin:auto;padding:16px}.page{display:none}.page.active{display:block}
 .hero{background:#d8f8dc;border-radius:24px;padding:22px 20px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:145px}.hero h2{margin:0 0 8px;font-size:21px}.hero p{margin:0;color:#39463c;line-height:1.45}.heroimg{width:125px;height:100px;object-fit:contain}
 .quickgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:10px 0 22px}.quick{background:#fff;border-radius:18px;padding:13px 8px;text-align:center;border:1px solid #f0f1f2}.quick .qi{width:52px;height:52px;border-radius:50%;margin:0 auto 8px;display:grid;place-items:center;font-size:24px}.quick span{font-size:13px;color:#45474d;line-height:1.25}.sectiontitle{font-size:20px;font-weight:800;margin:18px 0 12px}
@@ -33,7 +33,7 @@ main{max-width:900px;margin:auto;padding:16px}.page{display:none}.page.active{di
 .tableitem{display:flex;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #eee}.tableitem:last-child{border-bottom:0}.muted{color:var(--muted);font-size:13px}.badge{display:inline-block;padding:5px 9px;border-radius:20px;background:#eef2ff;color:#3348a7;font-size:12px}.badge.red{background:#ffe6e9;color:#b51d2d}.badge.green{background:#e4f8ed;color:#137c4d}
 .modalback{position:fixed;inset:0;background:#0008;z-index:100;display:none;align-items:flex-end;justify-content:center}.modalback.show{display:flex}.modal{width:min(620px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:24px 24px 0 0;padding:20px}.modalhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.close{width:38px;height:38px;border-radius:50%;background:#eee}.preview{width:92px;height:92px;border-radius:14px;object-fit:cover;background:#eee;display:block;margin-bottom:10px}
 .pricewrap{position:relative}.pricewrap input{padding-right:44px}.eyeprice{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:9px;background:#f0f1f3;color:#333}.eyeprice.hiddenprice{background:#dfe2e7}
-.notice{position:fixed;top:76px;left:50%;transform:translateX(-50%) translateY(-14px);background:#fff;color:#17191d;padding:10px 14px;border-radius:18px;z-index:200;display:none;width:min(430px,calc(100% - 28px));box-shadow:0 14px 40px #0003;border:1px solid #e8e9ed;opacity:0;transition:opacity .22s ease,transform .22s ease}.notice.show{display:flex;opacity:1;transform:translateX(-50%) translateY(0)}.notice-inner{display:flex;align-items:center;gap:11px;width:100%}.notice-logo{width:43px;height:43px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:#f2f3f5}.notice-copy{min-width:0;flex:1}.notice-title{font-weight:800;font-size:15px;line-height:1.15}.notice-detail{color:#686d76;font-size:13px;margin-top:3px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.notice-bell{width:30px;height:30px;border-radius:10px;background:#eef3ff;display:grid;place-items:center;font-size:15px;flex:0 0 auto}
+.notice{position:fixed;top:76px;left:50%;transform:translateX(-50%) translateY(-14px);background:#fff;color:#17191d;padding:10px 14px;border-radius:18px;z-index:200;display:none;width:min(430px,calc(100% - 28px));box-shadow:0 14px 40px #0003;border:1px solid #e8e9ed;opacity:0;transition:opacity .22s ease,transform .22s ease}.notice.show{display:flex;opacity:1;transform:translateX(-50%) translateY(0)}.notice-inner{display:flex;align-items:center;gap:11px;width:100%}.notice-logo{width:43px;height:43px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:#f2f3f5}.notice-copy{min-width:0;flex:1}.notice-title{font-weight:800;font-size:15px;line-height:1.15}.notice-detail{color:#686d76;font-size:13px;margin-top:3px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.notice-bell{width:30px;height:30px;border-radius:10px;background:#eef3ff;display:grid;place-items:center;font-size:15px;flex:0 0 auto}.refresh-indicator{position:fixed;top:68px;left:50%;transform:translate(-50%,-80px);z-index:190;background:#fff;border:1px solid #e5e7eb;border-radius:22px;padding:9px 15px;box-shadow:0 8px 24px #0002;color:#2450ff;font-weight:800;font-size:13px;opacity:0;transition:.2s}.refresh-indicator.show{transform:translate(-50%,0);opacity:1}
 .resetbox{display:none;margin-top:18px;padding:18px;border:1px solid #d6aa00;border-radius:18px;background:#171717;text-align:left}.resetbox h2{margin:0 0 8px;color:#fff;font-size:22px}.resetbox p{margin:0 0 14px;color:#aaa;font-size:14px;line-height:1.4}.resetbox input{width:100%;box-sizing:border-box;padding:14px 15px;border-radius:12px;border:1px solid #ddd;background:#fff;color:#111;font-size:16px;margin-bottom:10px}.resetbtn{width:100%;padding:15px;border:0;border-radius:14px;background:#f3bf00;color:#111;font-weight:800;font-size:16px}.resetcancel{width:100%;padding:12px;border:0;background:transparent;color:#aaa;font-size:14px;margin-top:4px}
 
 .notiflist .tableitem{align-items:flex-start}.notif-card{display:flex;gap:12px;padding:13px;border-bottom:1px solid #eee;background:#fff}.notif-logo{width:44px;height:44px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:#f1f2f4}.unread{background:#eef3ff;border-radius:12px;padding:10px}.permgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.perm{display:flex;gap:8px;align-items:center;background:#f5f6f8;padding:10px;border-radius:10px;font-size:13px}
@@ -55,7 +55,7 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-<div id="notice" class="notice"></div>
+<div id="notice" class="notice"></div><div id="refreshIndicator" class="refresh-indicator">↻ Inasasisha data...</div>
 
 <section id="login" class="login">
   <div class="loginbox">
@@ -87,7 +87,7 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
     <div class="avatar"><img src="logo.png" alt="M-P-A logo"></div>
     <div class="brandtext"><b>Micky Phone Accessories</b><small id="userLine">Ilembula • <span id="roleText">Admin</span> • <span id="userText">admin</span></small></div>
     <div class="headactions">
-      <button class="iconbtn" onclick="showPage('notifications',null)" aria-label="Notifications">🔔<span id="notifDot" class="dot hidden"></span></button>
+      <button class="iconbtn" onclick="showPage('notifications',null);markNotificationsRead()" aria-label="Notifications">🔔<span id="notifDot" class="dot hidden"></span></button>
       <button class="iconbtn" onclick="showPage('settings',null)" aria-label="Settings">⚙️</button>
     </div>
   </div>
@@ -359,12 +359,14 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
 
 <div id="userModal" class="modalback">
  <div class="modal">
-  <div class="modalhead"><h2>User mpya</h2><button class="close" onclick="closeModal('userModal')">×</button></div>
+  <div class="modalhead"><h2 id="userModalTitle">User mpya</h2><button class="close" onclick="closeModal('userModal')">×</button></div>
   <div class="field"><label>Username</label><input id="newUserName"></div>
-  <div class="field"><label>Password</label><input id="newUserPass" value="1234"></div><div class="field"><label>Role</label><select id="newUserRole"><option value="user">User</option><option value="admin">Admin</option></select></div>
+  <div class="field"><label>Password / PIN</label><input id="newUserPass" value="1234"></div><div class="field"><label>Role</label><select id="newUserRole"><option value="user">User</option><option value="admin">Admin</option></select></div>
   <div class="sectiontitle" style="font-size:16px">Ruhusa</div>
   <div id="permForm" class="permgrid"></div>
   <button class="btn blue" style="width:100%;margin-top:14px" onclick="saveUser()">Hifadhi User</button>
+  <button id="deleteUserEditBtn" class="btn red" style="width:100%;margin-top:10px;display:none" onclick="deleteEditingUser()">🗑️ &nbsp;Futa User</button>
+  <div id="deleteUserHint" class="muted" style="text-align:center;font-size:12px;margin-top:7px;display:none">User huyu ataondolewa kabisa kwenye mfumo.</div>
  </div>
 </div>
 
@@ -451,9 +453,7 @@ function saveAll(){
  localStorage.setItem("mpa_customers",JSON.stringify(customers));localStorage.setItem("mpa_expenses",JSON.stringify(expenses));
  localStorage.setItem("mpa_movements",JSON.stringify(movements));localStorage.setItem("mpa_notifications",JSON.stringify(notifications));
  localStorage.setItem("mpa_users",JSON.stringify(users));localStorage.setItem("mpa_goal",String(goalTarget));localStorage.setItem("mpa_branches",JSON.stringify(branches));localStorage.setItem("mpa_store",storeName);localStorage.setItem("mpa_lang",language);localStorage.setItem("mpa_active_branch",activeBranch);render();
- queueAutoNotification();
 }
-let autoNotifyTimer=null;
 function toast(msg){
  const n=document.getElementById("notice");
  if(!n)return;
@@ -463,29 +463,28 @@ function toast(msg){
  clearTimeout(n._timer);n._timer=setTimeout(()=>{n.classList.remove("show");setTimeout(()=>{if(!n.classList.contains("show"))n.style.display="none"},220)},3800);
 }
 function notify(title,detail){
- if(autoNotifyTimer){clearTimeout(autoNotifyTimer);autoNotifyTimer=null}
- notifications.unshift({id:Date.now()+Math.random(),title,detail,user:currentUser(),date:now().toISOString(),read:false});
+ const item={id:Date.now()+Math.random(),title:String(title||"Mabadiliko yamefanyika"),detail:String(detail||"Mabadiliko yamefanyika kwenye mfumo."),user:currentUser(),date:now().toISOString(),read:false};
+ notifications.unshift(item);
+ notifications=notifications.slice(0,200);
  localStorage.setItem("mpa_notifications",JSON.stringify(notifications));
  renderNotifications();
- if("Notification" in window && Notification.permission==="granted"){
-   try{new Notification(title,{body:detail,icon:"./logo.png",badge:"./logo.png",tag:"mpa-"+Date.now()})}catch(e){}
- }
  const n=document.getElementById("notice");
  if(n){
-   n.innerHTML=`<div class="notice-inner"><img class="notice-logo" src="logo.png" alt="M-P-A"><div class="notice-copy"><div class="notice-title">${esc(title)}</div><div class="notice-detail">${esc(detail||"Mabadiliko yamefanyika kwenye mfumo.")}</div></div><div class="notice-bell">🔔</div></div>`;
+   n.innerHTML=`<div class="notice-inner"><img class="notice-logo" src="logo.png" alt="M-P-A"><div class="notice-copy"><div class="notice-title">${esc(item.title)}</div><div class="notice-detail">${esc(item.detail)}</div></div><div class="notice-bell">🔔</div></div>`;
    n.style.display="flex";requestAnimationFrame(()=>n.classList.add("show"));
    clearTimeout(n._timer);n._timer=setTimeout(()=>{n.classList.remove("show");setTimeout(()=>{if(!n.classList.contains("show"))n.style.display="none"},220)},4200);
  }
+ if("Notification" in window && Notification.permission==="granted"){
+   try{new Notification(item.title,{body:item.detail,icon:"./logo.png",badge:"./logo.png",tag:"mpa-"+item.id,renotify:true})}catch(e){}
+ }
  updateNotifDot();
 }
-function queueAutoNotification(){
- clearTimeout(autoNotifyTimer);
- autoNotifyTimer=setTimeout(()=>{
-   autoNotifyTimer=null;
-   notify("Mabadiliko yamefanyika", "Mfumo umehifadhi kitendo chako • "+currentUser());
- },180);
+function updateNotifDot(){
+ const dot=document.getElementById("notifDot"); if(!dot)return;
+ const count=notifications.filter(n=>!n.read).length;
+ dot.classList.toggle("hidden",count===0);dot.classList.toggle("count",count>0);
+ dot.textContent=count>99?"99+":String(count);
 }
-function updateNotifDot(){document.getElementById("notifDot")?.classList.toggle("hidden",!notifications.some(n=>!n.read))}
 function requestBrowserNotifications(){
  if(!("Notification" in window)){toast("Browser hii haitumii notifications.");return}
  Notification.requestPermission().then(x=>toast(x==="granted"?"Notifications zimeruhusiwa ✓":"Notifications hazijaruhusiwa."));
@@ -829,7 +828,7 @@ function markNotificationsRead(){if(autoNotifyTimer){clearTimeout(autoNotifyTime
 function renderMovements(){document.getElementById("movementList").innerHTML=movements.length?movements.slice(0,50).map(m=>{const p=products.find(x=>x.id===m.productId);return `<div class="tableitem"><div><b>${m.type==="add"?"＋":m.type==="remove"?"−":"🛒"} ${esc(p?.name||"Bidhaa")}</b><div class="muted">${m.note||""} • ${m.user}</div></div><span>${m.type==="add"?"+":"-"}${m.qty}</span></div>`}).join(""):"<div class='empty'>Hakuna movement.</div>"}
 let usersTab="active",selectedUserDetailId=null,editingUserId=null;
 function setUsersTab(tab){usersTab=tab;document.getElementById("usersTabActive")?.classList.toggle("active",tab==="active");document.getElementById("usersTabInactive")?.classList.toggle("active",tab==="inactive");renderUsers();}
-function openUserModal(editId=null){if(!can("manage_users")){toast("Admin pekee.");return}editingUserId=editId;const u=editId?users.find(x=>x.id===editId):null;document.getElementById("newUserName").value=u?.username||"";document.getElementById("newUserPass").value=u?.password||"1234";document.getElementById("newUserRole").value=u?.role||"user";document.getElementById("permForm").innerHTML=perms.map(([k,l])=>`<label class="perm"><input type="checkbox" data-perm="${k}" ${u&&(u.role==='admin'||u.permissions.includes(k))?'checked':''}> ${l}</label>`).join("");document.getElementById("userModal").classList.add("show");document.getElementById("newUserRole").onchange=function(){const admin=this.value==="admin";document.querySelectorAll("#permForm [data-perm]").forEach(x=>x.checked=admin)}}
+function openUserModal(editId=null){if(!can("manage_users")){toast("Admin pekee.");return}editingUserId=editId;const u=editId?users.find(x=>x.id===editId):null;document.getElementById("userModalTitle").textContent=u?"Edit User":"User mpya";document.getElementById("newUserName").value=u?.username||"";document.getElementById("newUserPass").value=u?.password||"1234";document.getElementById("newUserRole").value=u?.role||"user";document.getElementById("permForm").innerHTML=perms.map(([k,l])=>`<label class="perm"><input type="checkbox" data-perm="${k}" ${u&&(u.role==='admin'||u.permissions.includes(k))?'checked':''}> ${l}</label>`).join("");const del=document.getElementById("deleteUserEditBtn"),hint=document.getElementById("deleteUserHint");const canRemove=!!u&&u.role!=="admin";if(del){del.style.display=canRemove?"block":"none"}if(hint){hint.style.display=canRemove?"block":"none"}document.getElementById("userModal").classList.add("show");document.getElementById("newUserRole").onchange=function(){const admin=this.value==="admin";document.querySelectorAll("#permForm [data-perm]").forEach(x=>x.checked=admin);if(del){del.style.display=editingUserId&&!admin?"block":"none"}if(hint){hint.style.display=editingUserId&&!admin?"block":"none"}}}
 function saveUser(){const username=document.getElementById("newUserName").value.trim(),password=document.getElementById("newUserPass").value||"1234",role=document.getElementById("newUserRole").value;if(!username){toast("Weka username.");return}if(users.some(u=>u.username===username&&u.id!==editingUserId)){toast("Username tayari ipo.");return}const permissions=role==="admin"?["all"]:[...document.querySelectorAll("#permForm [data-perm]:checked")].map(x=>x.dataset.perm);if(editingUserId){const u=users.find(x=>x.id===editingUserId);if(!u){toast("User hakupatikana.");return}u.username=username;u.password=password;u.role=role;u.permissions=permissions;saveAll();closeModal("userModal");editingUserId=null;selectedUserDetailId=u.id;renderUserDetail();renderUsers();notify("User amebadilishwa",username);return}const nu={id:Date.now(),username,password,role,permissions,active:true,createdAt:now().toISOString()};users.push(nu);users=[...users];closeModal("userModal");saveAll();setUsersTab("active");openUserDetail(nu.id);notify("User mpya ameongezwa",username)}
 function renderUsers(){const el=document.getElementById("userListIos");if(!el)return;const list=users.filter(u=>u.role!=="admin" && (usersTab==="active"?u.active!==false:u.active===false)).sort((a,b)=>String(a.username).localeCompare(String(b.username)));if(!list.length){el.innerHTML=`<div class="user-empty">Hakuna wauzaji ${usersTab==="active"?"Active":"Inactive"} kwa sasa.</div>`;return}const first=(list[0].username||"M").charAt(0).toUpperCase();el.innerHTML=`<div class="user-section-letter">${first}</div>`+list.map(u=>`<div class="user-list-row" onclick="openUserDetail(${u.id})"><div class="user-avatar-ios">${esc((u.username||"M").charAt(0).toUpperCase())}</div><div class="user-row-main"><b>Username: ${esc(u.username)}</b><small class="user-status ${u.active===false?'inactive':''}">${u.active===false?'Inactive':'Active'}</small></div><span style="color:#999;font-size:28px">›</span></div>`).join("");}
 function openUserDetail(id){const u=users.find(x=>x.id===id);if(!u)return;selectedUserDetailId=id;showPage("userDetail",null);renderUserDetail();}
@@ -838,7 +837,8 @@ const groups=[['Mauzo',[['view_products','Kuona bidhaa'],['sell','Kuuza bidhaa']
 const allowed=k=>u.role==='admin'||u.permissions.includes('all')||u.permissions.includes(k);document.getElementById("userDetailPerms").innerHTML=groups.map(([name,items])=>`<div class="perm-group-row"><span>${name}: Ruhusa za ${name.toLowerCase()}</span><b>⌄</b></div><div class="perm-sub">${items.map(([k,l])=>`<label class="perm-check-row"><input type="checkbox" ${allowed(k)?'checked':''} ${u.role==='admin'?'disabled':''} onchange="toggleUserPerm(${u.id},'${k}',this.checked);renderUserDetail()">${l}</label>`).join('')}</div>`).join('');}
 function editCurrentUserDetail(){const u=users.find(x=>x.id===selectedUserDetailId);if(!u)return;openUserModal(u.id);}
 function toggleUserStatus(id){if(!can("manage_users"))return;const u=users.find(x=>x.id===id);if(!u||u.role==="admin")return;u.active=u.active===false;saveAll();notify(u.active?"User amewashwa":"User amezimwa",u.username);renderUsers();}
-function deleteUser(id){if(!can("manage_users"))return;const u=users.find(x=>x.id===id);if(!u||u.role==="admin")return;if(!confirm("Futa user "+u.username+"?"))return;users=users.filter(x=>x.id!==id);saveAll();setUsersTab("active");notify("User amefutwa",u.username);showPage("users",null)}
+function deleteUser(id){if(!can("manage_users")){toast("Admin pekee.");return}const u=users.find(x=>x.id===id);if(!u)return;if(u.role==="admin"){toast("Admin hawezi kufutwa hapa.");return}if(!confirm("Futa user "+u.username+"?\n\nUser huyu ataondolewa kabisa kwenye mfumo."))return;users=users.filter(x=>x.id!==id);saveAll();editingUserId=null;selectedUserDetailId=null;closeModal("userModal");setUsersTab("active");notify("User amefutwa",u.username);showPage("users",null)}
+function deleteEditingUser(){if(!editingUserId)return;deleteUser(editingUserId)}
 function toggleUserPerm(id,key,on){if(!can("manage_users"))return;const u=users.find(x=>x.id===id);if(!u||u.role==="admin")return;u.permissions=u.permissions||[];u.permissions=u.permissions.filter(x=>x!==key);if(on)u.permissions.push(key);u.permissions=[...new Set(u.permissions)];saveAll();notify("Ruhusa imebadilishwa",u.username+" • "+key+(on?" ON":" OFF"));}
 function monthName(i){return ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][i]}
 function availableYears(){const ys=new Set([now().getFullYear()]);sales.forEach(s=>ys.add(new Date(s.date).getFullYear()));return [...ys].sort((a,b)=>b-a)}
@@ -855,9 +855,9 @@ function renderExpenseAnalytics(){const arr=rangeFilter(expenses,"expenseFrom","
 function renderCustomerAnalytics(){const map={};sales.forEach(s=>{const name=s.customer||"Mteja wa kawaida";if(!map[name])map[name]={name,orders:0,value:0};map[name].orders++;map[name].value+=Number(s.total||0)});const rows=Object.values(map).sort((a,b)=>b.value-a.value);document.getElementById("customerAnalyticsCount").textContent=customers.length;document.getElementById("customerAnalyticsBuyers").textContent=rows.filter(x=>x.name!=="Mteja wa kawaida").length;document.getElementById("customerAnalyticsTable").innerHTML=rows.length?rows.map(x=>`<div class="analysis-row"><span>${esc(x.name)}</span><span>${x.orders}</span><span>${money(x.value)}</span></div>`).join(""):"<div class='empty'>Hakuna mauzo yenye mteja.</div>"}
 function initAnalytics(){const today=dateKey(now()),first=today.slice(0,8)+"01";["productFrom","expenseFrom"].forEach(id=>{if(document.getElementById(id)&&!document.getElementById(id).value)document.getElementById(id).value=first});["productTo","expenseTo"].forEach(id=>{if(document.getElementById(id)&&!document.getElementById(id).value)document.getElementById(id).value=today});renderSalesAnalytics();renderProfitAnalytics();renderProductAnalytics();renderExpenseAnalytics();renderCustomerAnalytics()}
 function openGoalModal(){if(!can("manage_goals")){toast("Huna ruhusa ya kubadilisha lengo.");return}document.getElementById("goalInput").value=goalTarget;document.getElementById("goalModal").classList.add("show")}
-function saveGoal(){const v=Number(document.getElementById("goalInput").value||0);if(v<=0){toast("Weka kiasi cha lengo.");return}goalTarget=v;localStorage.setItem("mpa_goal",String(goalTarget));closeModal("goalModal");render();toast("Lengo limehifadhiwa ✓")}
+function saveGoal(){const v=Number(document.getElementById("goalInput").value||0);if(v<=0){toast("Weka kiasi cha lengo.");return}goalTarget=v;localStorage.setItem("mpa_goal",String(goalTarget));closeModal("goalModal");render();notify("Lengo limebadilishwa",money(goalTarget))}
 function openPinModal(){document.getElementById("newPin").value="";document.getElementById("newPin2").value="";document.getElementById("pinModal").classList.add("show")}
-function changePin(){const a=document.getElementById("newPin").value,b=document.getElementById("newPin2").value;if(!a||a!==b||!/^\d{4,8}$/.test(a)){toast("PIN iwe tarakimu 4–8 na zifanane.");return}const u=currentUserObj();u.password=a;users=users.map(x=>x.id===u.id?u:x);saveAll();closeModal("pinModal");toast("PIN imebadilishwa ✓")}
+function changePin(){const a=document.getElementById("newPin").value,b=document.getElementById("newPin2").value;if(!a||a!==b||!/^\d{4,8}$/.test(a)){toast("PIN iwe tarakimu 4–8 na zifanane.");return}const u=currentUserObj();u.password=a;users=users.map(x=>x.id===u.id?u:x);saveAll();closeModal("pinModal");notify("PIN imebadilishwa", "PIN ya "+currentUser()+" imebadilishwa kwa mafanikio.") }
 async function enableBiometric(){
  if(!window.PublicKeyCredential||!navigator.credentials){toast("Kifaa/browser hiki hakitumii biometric hapa.");return}
  try{const supported=await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();if(!supported){toast("Face ID/Fingerprint haipatikani kwenye browser hii.");return}
@@ -869,12 +869,12 @@ async function enableBiometric(){
 function setFontSize(v){const n=Math.max(85,Math.min(120,Number(v)||100));localStorage.setItem("mpa_font_size",String(n));document.documentElement.style.setProperty("--fontScale",n/100);const r=document.getElementById("fontSizeRange");if(r)r.value=n;const l=document.getElementById("fontSizeLabel");if(l)l.textContent=n+"%"}
 function changeFontSize(step){const n=Number(localStorage.getItem("mpa_font_size")||100)+step*5;setFontSize(n)}
 function applyFontSize(){setFontSize(Number(localStorage.getItem("mpa_font_size")||100))}
-function setLanguage(lang){language=lang;localStorage.setItem("mpa_lang",lang);document.documentElement.lang=lang;document.getElementById("langSw")?.classList.toggle("active",lang==='sw');document.getElementById("langEn")?.classList.toggle("active",lang==='en');toast(lang==='sw'?"Kiswahili kimechaguliwa ✓":"English selected ✓")}
-function saveStore(){if(!can("manage_settings")){toast("Admin/ruhusa inahitajika.");return}storeName=document.getElementById("storeNameInput").value.trim()||"Micky Phone Accessories";localStorage.setItem("mpa_store",storeName);document.querySelector('.brandtext b').textContent=storeName;toast("Store imehifadhiwa ✓")}
+function setLanguage(lang){language=lang;localStorage.setItem("mpa_lang",lang);document.documentElement.lang=lang;document.getElementById("langSw")?.classList.toggle("active",lang==='sw');document.getElementById("langEn")?.classList.toggle("active",lang==='en');toast(lang==='sw'?"Kiswahili kimechaguliwa ✓":"English selected ✓"); if(typeof notify==="function") notify("Lugha imebadilishwa",lang==='sw'?"Kiswahili":"English") }
+function saveStore(){if(!can("manage_settings")){toast("Admin/ruhusa inahitajika.");return}storeName=document.getElementById("storeNameInput").value.trim()||"Micky Phone Accessories";localStorage.setItem("mpa_store",storeName);document.querySelector('.brandtext b').textContent=storeName;notify("Jina la store limebadilishwa",storeName)}
 function addBranch(){if(!can("manage_branches")){toast("Huna ruhusa ya kuongeza branch.");return}const n=document.getElementById("branchName").value.trim();if(!n){toast("Andika jina la branch.");return}branches.push({id:Date.now(),name:n});document.getElementById("branchName").value="";saveAll();notify("Branch imeongezwa",n)}
 function renderBranches(){const el=document.getElementById("branchList");if(!el)return;el.innerHTML=branches.length?branches.map(b=>`<div class="branchitem row"><b>🏪 ${esc(b.name)}</b><button class="btn small red" onclick="deleteBranch(${b.id})">Futa</button></div>`).join(""):"<div class='muted' style='margin-top:8px'>Hakuna branch bado.</div>";const s=document.getElementById("activeBranchSelect");if(s){s.innerHTML='<option value="">Main Store</option>'+branches.map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join("");s.value=activeBranch}}
-function setActiveBranch(id){activeBranch=String(id||"");localStorage.setItem("mpa_active_branch",activeBranch);toast(activeBranch?"Branch imechaguliwa ✓":"Main Store imechaguliwa ✓")}
-function deleteBranch(id){if(!can("manage_branches"))return;branches=branches.filter(b=>b.id!==id);saveAll();toast("Branch imefutwa") }
+function setActiveBranch(id){activeBranch=String(id||"");localStorage.setItem("mpa_active_branch",activeBranch);notify("Branch imebadilishwa",activeBranch?"Imechaguliwa: "+(branches.find(b=>String(b.id)===activeBranch)?.name||activeBranch):"Main Store")}
+function deleteBranch(id){if(!can("manage_branches"))return;const b=branches.find(x=>x.id===id);if(!b)return;branches=branches.filter(x=>x.id!==id);saveAll();notify("Branch imefutwa",b.name)}
 
 function applyLanguage(){
  const en=language==='en';
@@ -887,7 +887,7 @@ function applyLanguage(){
  document.documentElement.lang=language;document.getElementById('langSw')?.classList.toggle('active',!en);document.getElementById('langEn')?.classList.toggle('active',en);
 }
 
-function clearData(){if(!can("manage_settings")){toast("Admin/ruhusa inahitajika.");return}const code=prompt("Hii ni ENEO LA HATARI. Andika FUTA ili kuendelea:");if(code!=="FUTA")return;if(!confirm("FUTA DATA ZOTE? Bidhaa, mauzo, matumizi, wateja na notifications zitafutwa kwenye kifaa hiki."))return;products=[];sales=[];customers=[];expenses=[];movements=[];notifications=[];saveAll();toast("Data zote zimefutwa.")}
+function clearData(){if(!can("manage_settings")){toast("Admin/ruhusa inahitajika.");return}const code=prompt("Hii ni ENEO LA HATARI. Andika FUTA ili kuendelea:");if(code!=="FUTA")return;if(!confirm("FUTA DATA ZOTE? Bidhaa, mauzo, matumizi, wateja na notifications zitafutwa kwenye kifaa hiki."))return;products=[];sales=[];customers=[];expenses=[];movements=[];notifications=[];saveAll();notify("Data zote zimefutwa","Mfumo umeondoa data zote za kifaa hiki.")}
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 function render(){
  const u=currentUserObj();document.getElementById("roleText").textContent=u.role==="admin"?"Admin":"User";document.getElementById("userText").textContent=u.username;document.getElementById("settingsUser").textContent=u.username;document.getElementById("storeNameInput")&&(document.getElementById("storeNameInput").value=storeName);renderBranches();setLanguage(language);applyLanguage();
@@ -898,6 +898,19 @@ function render(){
  document.getElementById("allSales").textContent=money(all);document.getElementById("allProfit").textContent=money(profit);document.getElementById("allExpenses").textContent=money(ex);document.getElementById("netProfit").textContent=money(profit-ex);
  const dnow=now(),daysInMonth=new Date(dnow.getFullYear(),dnow.getMonth()+1,0).getDate(),daysLeft=Math.max(1,daysInMonth-dnow.getDate()),monthStart=new Date(dnow.getFullYear(),dnow.getMonth(),1),monthSalesTotal=sales.filter(x=>new Date(x.date)>=monthStart).reduce((a,x)=>a+Number(x.total||0),0),target=goalTarget,pct=Math.min(100,Math.round(monthSalesTotal/target*100)),remaining=Math.max(0,target-monthSalesTotal),dailyNeed=Math.ceil(remaining/daysLeft);const prevStart=new Date(dnow.getFullYear(),dnow.getMonth()-1,1),prevEnd=new Date(dnow.getFullYear(),dnow.getMonth(),1),prevMonth=sales.filter(x=>{const d=new Date(x.date);return d>=prevStart&&d<prevEnd}).reduce((a,x)=>a+Number(x.total||0),0),compare=prevMonth?Math.round((monthSalesTotal-prevMonth)/prevMonth*100):0;document.getElementById("goalTarget").textContent=money(target);document.getElementById("goalTargetSmall").textContent=money(target);document.getElementById("goalBar").style.width=pct+"%";document.getElementById("goalSales").textContent=money(monthSalesTotal);document.getElementById("goalPercent").textContent=pct+"%";document.getElementById("goalCompare").textContent=(compare>=0?compare+"% ↗":""+compare+"% ↘")+" vs mwezi uliopita";document.getElementById("goalMessage").textContent=remaining>0?`Ili utimize lengo lako, kwa siku ${daysLeft} zilizobaki unahitaji kuuza wastani wa ${money(dailyNeed)} kwa siku kwa mwezi huu.`:`Hongera! Umetimiza lengo la mauzo la mwezi huu.`;
 }
+let pullStartY=0,pullTriggered=false,pullBusy=false;
+function refreshDataView(){
+ if(pullBusy)return; pullBusy=true;
+ const el=document.getElementById("refreshIndicator"); if(el)el.classList.add("show");
+ try{
+  products=JSON.parse(localStorage.getItem("mpa_products")||"[]");sales=JSON.parse(localStorage.getItem("mpa_sales")||"[]");customers=JSON.parse(localStorage.getItem("mpa_customers")||"[]");expenses=JSON.parse(localStorage.getItem("mpa_expenses")||"[]");movements=JSON.parse(localStorage.getItem("mpa_movements")||"[]");notifications=JSON.parse(localStorage.getItem("mpa_notifications")||"[]");users=JSON.parse(localStorage.getItem("mpa_users")||"null")||users;branches=JSON.parse(localStorage.getItem("mpa_branches")||"[]");goalTarget=Number(localStorage.getItem("mpa_goal")||goalTarget);storeName=localStorage.getItem("mpa_store")||storeName;language=localStorage.getItem("mpa_lang")||language;activeBranch=localStorage.getItem("mpa_active_branch")||activeBranch;
+  render(); toast("Data imefresh ✓");
+ }catch(e){console.warn("refreshDataView",e);toast("Refresh imeshindikana.")}
+ setTimeout(()=>{if(el)el.classList.remove("show");pullBusy=false},550);
+}
+document.addEventListener("touchstart",e=>{if(window.scrollY<=5 && e.touches?.length===1){pullStartY=e.touches[0].clientY;pullTriggered=false}},{passive:true});
+document.addEventListener("touchmove",e=>{if(!pullStartY||window.scrollY>5||!e.touches?.length)return;const dy=e.touches[0].clientY-pullStartY;if(dy>85)pullTriggered=true},{passive:true});
+document.addEventListener("touchend",()=>{if(pullTriggered){refreshDataView()}pullStartY=0;pullTriggered=false},{passive:true});
 document.addEventListener("gesturestart",e=>e.preventDefault(),{passive:false});document.addEventListener("gesturechange",e=>e.preventDefault(),{passive:false});document.addEventListener("gestureend",e=>e.preventDefault(),{passive:false});let lastTouchEnd=0;document.addEventListener("touchend",e=>{const nowt=Date.now();if(nowt-lastTouchEnd<=280)e.preventDefault();lastTouchEnd=nowt},{passive:false});
 window.addEventListener("load",async()=>{
  // Anza kwenye login; app ionyeshwe tu baada ya Supabase session kuthibitishwa.
