@@ -485,21 +485,27 @@ function notify(title,detail,targetPage,targetId){
  const item={id:Date.now()+Math.random(),title:String(title||"Mabadiliko yamefanyika"),detail:String(detail||"Mabadiliko yamefanyika kwenye mfumo."),user:currentUser(),date:now().toISOString(),read:false,targetPage:targetPage||"notifications",targetId:targetId??null};
  notifications.unshift(item);
  notifications=notifications.slice(0,200);
- localStorage.setItem("mpa_notifications",JSON.stringify(notifications));
+ try{localStorage.setItem("mpa_notifications",JSON.stringify(notifications))}catch(e){}
+ updateNotifDot();
  renderNotifications();
+ // On-screen notification is the primary notification and must appear immediately after a successful action.
  const n=document.getElementById("notice");
  if(n){
-   n.innerHTML=`<div class="notice-inner" onclick="openNotification('${String(item.id).replace(/'/g,"\\'")}')"><img class="notice-logo" src="logo.png" alt="M-P-A"><div class="notice-copy"><div class="notice-title">${esc(item.title)}</div><div class="notice-detail">${esc(item.detail)}</div></div><div class="notice-bell">🔔</div></div>`;
-   n.style.display="flex";requestAnimationFrame(()=>n.classList.add("show"));
-   clearTimeout(n._timer);n._timer=setTimeout(()=>{n.classList.remove("show");setTimeout(()=>{if(!n.classList.contains("show"))n.style.display="none"},220)},4200);
+   n.classList.remove("show");
+   n.style.display="flex";
+   n.innerHTML=`<div class="notice-inner" role="button" tabindex="0" onclick="openNotification('${String(item.id).replace(/'/g,"\\'")}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openNotification('${String(item.id).replace(/'/g,"\\'")}')}"><img class="notice-logo" src="logo.png" alt="M-P-A"><div class="notice-copy"><div class="notice-title">${esc(item.title)}</div><div class="notice-detail">${esc(item.detail)}</div></div><div class="notice-bell">🔔</div></div>`;
+   void n.offsetWidth;
+   requestAnimationFrame(()=>n.classList.add("show"));
+   clearTimeout(n._timer);
+   n._timer=setTimeout(()=>{n.classList.remove("show");setTimeout(()=>{if(!n.classList.contains("show"))n.style.display="none"},240)},5000);
  }
+ // Optional system notification, if the user has granted browser permission.
  if("Notification" in window && Notification.permission==="granted"){
    try{
-     const bn=new Notification(item.title,{body:item.detail,icon:"./logo.png",badge:"./logo.png",tag:"mpa-"+item.id,renotify:true});
+     const bn=new Notification(item.title,{body:item.detail,icon:"./logo.png",badge:"./logo.png",tag:"mpa-action-"+item.id,renotify:true});
      bn.onclick=()=>{try{window.focus()}catch(e){};openNotification(item.id);try{bn.close()}catch(e){}};
    }catch(e){}
  }
- updateNotifDot();
 }
 function updateNotifDot(){
  const dot=document.getElementById("notifDot"); if(!dot)return;
