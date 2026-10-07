@@ -825,7 +825,7 @@ async function addProduct(){
 
 function editProduct(id){
  if(!can("edit_products")){toast("Huna ruhusa ya ku-edit bidhaa.");return}
- const p=products.find(x=>x.id===id);if(!p)return;
+ const p=products.find(x=>String(x.id)===String(id));if(!p)return;
  selectedStockId=id;selectedImage=p.image||"";document.getElementById("productModalTitle").textContent="Edit Bidhaa";document.getElementById("imagePreview").src=selectedImage||"";
  document.getElementById("pName").value=p.name||"";document.getElementById("pCategory").value=p.category||"";document.getElementById("pBuy").value=Number(p.buy||0).toLocaleString("en-US");document.getElementById("pPrice").value=Number(p.price||0).toLocaleString("en-US");document.getElementById("pQty").value=p.qty||0;
  document.getElementById("pBuy").dataset.real="";document.getElementById("pPrice").dataset.real="";document.getElementById("pBuy").dataset.hidden="0";document.getElementById("pPrice").dataset.hidden="0";
@@ -860,7 +860,7 @@ async function deleteProduct(id){
 }
 
 function openStock(id){
- selectedStockId=id;const p=products.find(x=>x.id===id);if(!p)return;
+ selectedStockId=id;const p=products.find(x=>String(x.id)===String(id));if(!p)return;
  document.getElementById("stockTitle").textContent=p.name;document.getElementById("stockInfo").innerHTML=`<div class="row"><div><b>${esc(p.name)}</b><div class="muted">${esc(p.category||"Hakuna category")}</div></div><strong>${p.qty}</strong></div><div class="two" style="margin-top:12px"><div><small class="muted">Bei ya kununua</small><br><b>${money(p.buy)}</b></div><div><small class="muted">Bei ya kuuza</small><br><b>${money(p.price)}</b></div></div><div style="margin-top:10px"><small class="muted">Faida kwa bidhaa</small><br><b class="green">${money(Number(p.price||0)-Number(p.buy||0))}</b></div>`;
  document.getElementById("stockQty").value=1;document.getElementById("stockNote").value="";
  renderProductHistory(id);document.getElementById("stockModal").classList.add("show");
@@ -928,18 +928,18 @@ function renderSalePicker(){
  const el=document.getElementById("salePickerList");if(!el)return;
  const q=(document.getElementById("saleProductSearch")?.value||"").toLowerCase();
  const arr=products.filter(p=>p.qty>0 && (!q||(p.name+" "+p.category).toLowerCase().includes(q)));
- el.innerHTML=arr.length?arr.map(p=>`<div class="sale-picker-item"><div><b>${esc(p.name)}</b><div class="muted">${money(p.price)} • stock ${p.qty}</div></div><button class="btn blue small" onclick="addSaleItem(${p.id})">＋</button></div>`).join(""):"<div class='empty'>Hakuna bidhaa inayopatikana.</div>";
+ el.innerHTML=arr.length?arr.map(p=>`<div class="sale-picker-item"><div><b>${esc(p.name)}</b><div class="muted">${money(p.price)} • stock ${p.qty}</div></div><button class="btn blue small" onclick="addSaleItem('${p.id}')">＋</button></div>`).join(""):"<div class='empty'>Hakuna bidhaa inayopatikana.</div>";
 }
 function addSaleItem(id){
- const p=products.find(x=>x.id===id);if(!p)return;
- const found=saleCart.find(x=>x.productId===id);if(found){if(found.qty<p.qty)found.qty++;else toast("Stock haitoshi.")}else saleCart.push({productId:id,qty:1});
+ const p=products.find(x=>String(x.id)===String(id));if(!p)return;
+ const found=saleCart.find(x=>String(x.productId)===String(id));if(found){if(found.qty<p.qty)found.qty++;else toast("Stock haitoshi.")}else saleCart.push({productId:id,qty:1});
  renderSaleCart();document.getElementById("saleProductPicker").classList.add("hidden");
 }
-function changeSaleItem(id,delta){const item=saleCart.find(x=>x.productId===id),p=products.find(x=>x.id===id);if(!item||!p)return;item.qty+=delta;if(item.qty>p.qty){item.qty=p.qty;toast("Stock haitoshi.")}if(item.qty<=0)saleCart=saleCart.filter(x=>x.productId!==id);renderSaleCart()}
-function removeSaleItem(id){saleCart=saleCart.filter(x=>x.productId!==id);renderSaleCart()}
+function changeSaleItem(id,delta){const item=saleCart.find(x=>String(x.productId)===String(id)),p=products.find(x=>String(x.id)===String(id));if(!item||!p)return;item.qty+=delta;if(item.qty>p.qty){item.qty=p.qty;toast("Stock haitoshi.")}if(item.qty<=0)saleCart=saleCart.filter(x=>String(x.productId)!==String(id));renderSaleCart()}
+function removeSaleItem(id){saleCart=saleCart.filter(x=>String(x.productId)!==String(id));renderSaleCart()}
 function renderSaleCart(){
  const el=document.getElementById("saleCart");if(!el)return;
- el.innerHTML=saleCart.length?saleCart.map(item=>{const p=products.find(x=>x.id===item.productId);return p?`<div class="sale-cart-row"><img class="sale-cart-img" src="${p.image||'icon.svg'}"><div class="sale-cart-info"><b>${esc(p.name)}</b><small>${money(p.price)} @${money(p.price)}</small></div><button class="sale-trash" onclick="removeSaleItem(${p.id})">♧</button><div class="sale-cart-actions"><button class="sale-qty-btn" onclick="changeSaleItem(${p.id},-1)">−</button><b>${item.qty}</b><button class="sale-qty-btn" onclick="changeSaleItem(${p.id},1)">＋</button></div></div>`:""}).join(""):"<div class='sale-cart-empty'>Hakuna bidhaa kwenye oda. Chagua bidhaa hapa chini.</div>";
+ el.innerHTML=saleCart.length?saleCart.map(item=>{const p=products.find(x=>x.id===item.productId);return p?`<div class="sale-cart-row"><img class="sale-cart-img" src="${p.image||'icon.svg'}"><div class="sale-cart-info"><b>${esc(p.name)}</b><small>${money(p.price)} @${money(p.price)}</small></div><button class="sale-trash" onclick="removeSaleItem('${p.id}')">♧</button><div class="sale-cart-actions"><button class="sale-qty-btn" onclick="changeSaleItem('${p.id}',-1)">−</button><b>${item.qty}</b><button class="sale-qty-btn" onclick="changeSaleItem('${p.id}',1)">＋</button></div></div>`:""}).join(""):"<div class='sale-cart-empty'>Hakuna bidhaa kwenye oda. Chagua bidhaa hapa chini.</div>";
  calculateSaleOrder();
 }
 function calculateSaleOrder(){
