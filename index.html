@@ -498,50 +498,30 @@ function applyRemoteProduct(row){return {id:row.id,supabaseId:row.id,name:row.na
 async function syncProductsFromSupabase({silent=false}={}){
  if(!sbClient||!authProfile)return {ok:false,skipped:true};
  try{
+  // Supabase ndiyo chanzo kikuu cha products. Kila refresh/sync inapakia
+  // list mpya kutoka cloud badala ya kutegemea data ya browser.
   const {data:remote,error}=await sbClient.from('products').select('*').order('created_at',{ascending:true});
   if(error)throw error;
-  const rows=Array.isArray(remote)?remote:[],local=[...products],used=new Set();
+  const rows=Array.isArray(remote)?remote:[];
 
-  // First reconcile local records with Supabase by stable id, then SKU, then name.
-  for(const lp of local){
-   let rr=rows.find(r=>String(r.id)===String(lp.supabaseId));
-   if(!rr&&lp.code)rr=rows.find(r=>!used.has(r.id)&&String(r.sku||'').trim()===String(lp.code||'').trim());
-   if(!rr&&lp.name)rr=rows.find(r=>!used.has(r.id)&&String(r.name||'').trim().toLowerCase()===String(lp.name||'').trim().toLowerCase());
-   if(rr){
-    lp.supabaseId=rr.id;used.add(rr.id);
-    lp.name=rr.name||lp.name; lp.category=rr.category||lp.category; lp.code=rr.sku||lp.code;
-    lp.buy=Number(rr.buy_price??lp.buy); lp.price=Number(rr.sell_price??lp.price); lp.qty=Number(rr.stock_qty??lp.qty);
-    lp.minStock=Number(rr.min_stock??lp.minStock??0); lp.image=rr.image_url||lp.image||''; lp.updatedAt=rr.updated_at||lp.updatedAt;
-   }
-  }
+  // Usitengeneze product mpya kwa sababu tu local array ilikuwa tupu.
+  // Product iliyopo Supabase hubaki na UUID ile ile na stock yake halisi.
+  products=rows.map(applyRemoteProduct);
 
-  // Upload every local-only product. This is what makes an existing device's data available to other devices.
-  for(const lp of local){
-   if(!lp.supabaseId||!used.has(lp.supabaseId)){
-    const result=await syncProductToSupabase(lp);
-    if(result.ok)used.add(lp.supabaseId);
-   }
-  }
-
-  // Pull products that exist only in Supabase onto this device.
-  for(const rr of rows){if(!used.has(rr.id))local.push(applyRemoteProduct(rr));}
-  products=local;
+  refreshCategories();
   render();
-  if(!silent){
-   if(rows.length===0&&products.length)toast('Bidhaa za kifaa zimeunganishwa na Supabase ✓');
-   else if(rows.length>0)toast('Bidhaa zimesawazishwa na Supabase ✓');
-  }
+  if(!silent)toast('Bidhaa zimesawazishwa na Supabase ✓');
   return {ok:true,count:products.length};
  }catch(e){
   console.warn('Supabase products load failed',e);
   if(!silent){
    const code=e?.code?String(e.code):'';
-   toast('Sync ya bidhaa imeshindikana'+(code?' ('+code+')':'')+'. Angalia RLS policy ya products.');
+   const msg=e?.message?String(e.message):'';
+   toast('Sync ya bidhaa imeshindikana'+(code?' ('+code+')':'')+(msg?' • '+msg:'')+'. Angalia RLS policy ya products.');
   }
   return {ok:false,error:e};
  }
 }
-
 async function deleteProductFromSupabase(p){if(!sbClient||!authProfile||!p?.supabaseId)return {ok:true,skipped:true};try{const {error}=await sbClient.from('products').delete().eq('id',p.supabaseId);if(error)throw error;return {ok:true};}catch(e){console.warn('Supabase product delete failed',e);return {ok:false,error:e};}}
 
 // ===== SUPABASE SALES SYNC (M-P-A V19) =====
@@ -792,10 +772,23 @@ function showPage(id,btn){
  if((id==="users"||id==="userDetail")&&!can("manage_users")){toast("Huna ruhusa ya kusimamia users.");showPage("home",document.getElementById("navHome"));return}
  window.scrollTo(0,0);render();
 }
+function clearProductForm(){
+ selectedImage="";
+ selectedStockId=null;
+ const img=document.getElementById("imagePreview"); if(img)img.src="";
+ ["pName","pCategory","pCode","pBuy","pPrice"].forEach(id=>{
+  const e=document.getElementById(id);
+  if(e){e.value="";e.dataset.hidden="0";e.dataset.real="";}
+ });
+ const q=document.getElementById("pQty"); if(q)q.value=1;
+ const file=document.getElementById("pImage"); if(file)file.value="";
+ const title=document.getElementById("productModalTitle"); if(title)title.textContent="Bidhaa Mpya";
+ resetProductModalButton();
+}
+
 function openProductModal(){
  if(!can("add_stock")){toast("Huna ruhusa ya kuongeza bidhaa/stock.");return}
- selectedImage="";selectedStockId=null;document.getElementById("imagePreview").src="";document.getElementById("productModalTitle").textContent="Bidhaa Mpya";resetProductModalButton();
- ["pName","pCategory","pCode","pBuy","pPrice"].forEach(id=>{const e=document.getElementById(id);e.value="";e.dataset.hidden="0";e.dataset.real="";});document.getElementById("pQty").value=1;
+ clearProductForm();
  document.getElementById("productModal").classList.add("show");
 }
 function closeModal(id){document.getElementById(id).classList.remove("show")}
@@ -1179,6 +1172,7 @@ window.addEventListener("load",async()=>{
  document.getElementById("app").style.display="none";
  if("serviceWorker" in navigator)navigator.serviceWorker.register("./service-worker.js").then(r=>r.update()).catch(()=>{});
  setupMoneyInput("pBuy"); setupMoneyInput("pPrice"); setupMoneyInput("discount");
+ clearProductForm();
  wrapPriceInput("pBuy"); wrapPriceInput("pPrice"); wrapPriceInput("salePrice");
  if(document.getElementById("salesDay"))document.getElementById("salesDay").value=dateKey(now());
  if(sbClient){
