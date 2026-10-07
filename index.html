@@ -339,7 +339,7 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
   <img id="imagePreview" class="preview" src="" alt="">
   <div class="field"><label>Picha ya bidhaa</label><input id="pImage" type="file" accept="image/*" onchange="previewImage(event)"></div>
   <div class="field"><label>Jina la bidhaa</label><input id="pName" placeholder="Mfano Charger Fast"></div>
-  <div class="two"><div class="field"><label>Category</label><input id="pCategory" placeholder="Mfano Charger"></div><div class="field"><label>Code/SKU</label><input id="pCode" placeholder="Optional"></div></div>
+  <div class="field"><label>Category</label><input id="pCategory" placeholder="Mfano Charger"></div>
   <div class="three"><div class="field"><label>Bei ya kununua (TZS)</label><input id="pBuy" type="text" inputmode="numeric" placeholder="15,000"></div><div class="field"><label>Bei ya kuuza (TZS)</label><input id="pPrice" type="text" inputmode="numeric" placeholder="20,000"></div><div class="field"><label>Idadi</label><input id="pQty" type="number" min="0" value="1"></div></div>
   <button class="btn blue" style="width:100%" onclick="addProduct()">Hifadhi Bidhaa</button>
  </div>
@@ -477,7 +477,7 @@ function can(p){let u=currentUserObj();return u.role==="admin"||u.permissions.in
 async function supabaseProductRow(p){
  const supabaseId=p.supabaseId||crypto.randomUUID();
  p.supabaseId=supabaseId;
- return {id:supabaseId,name:String(p.name||''),sku:String(p.code||''),category:String(p.category||''),image_url:String(p.image||''),buy_price:Number(p.buy||0),sell_price:Number(p.price||0),stock_qty:Number(p.qty||0),min_stock:Number(p.minStock||0),branch_id:null,active:true,updated_at:now().toISOString()};
+ return {id:supabaseId,name:String(p.name||''),sku:null,category:String(p.category||''),image_url:String(p.image||''),buy_price:Number(p.buy||0),sell_price:Number(p.price||0),stock_qty:Number(p.qty||0),min_stock:Number(p.minStock||0),branch_id:null,active:true,updated_at:now().toISOString()};
 }
 async function syncProductToSupabase(p){
  if(!sbClient||!authProfile)return {ok:false,skipped:true,error:new Error('Supabase session haipo')};
@@ -494,7 +494,7 @@ async function syncProductToSupabase(p){
   return {ok:false,error:e};
  }
 }
-function applyRemoteProduct(row){return {id:row.id,supabaseId:row.id,name:row.name||'',category:row.category||'',code:row.sku||'',buy:Number(row.buy_price||0),price:Number(row.sell_price||0),qty:Number(row.stock_qty||0),minStock:Number(row.min_stock||0),image:row.image_url||'',createdAt:row.created_at||now().toISOString(),updatedAt:row.updated_at||row.created_at||now().toISOString()};}
+function applyRemoteProduct(row){return {id:row.id,supabaseId:row.id,name:row.name||'',category:row.category||'',code:'',buy:Number(row.buy_price||0),price:Number(row.sell_price||0),qty:Number(row.stock_qty||0),minStock:Number(row.min_stock||0),image:row.image_url||'',createdAt:row.created_at||now().toISOString(),updatedAt:row.updated_at||row.created_at||now().toISOString()};}
 async function syncProductsFromSupabase({silent=false}={}){
  if(!sbClient||!authProfile)return {ok:false,skipped:true};
  try{
@@ -776,7 +776,7 @@ function clearProductForm(){
  selectedImage="";
  selectedStockId=null;
  const img=document.getElementById("imagePreview"); if(img)img.src="";
- ["pName","pCategory","pCode","pBuy","pPrice"].forEach(id=>{
+ ["pName","pCategory","pBuy","pPrice"].forEach(id=>{
   const e=document.getElementById(id);
   if(e){e.value="";e.dataset.hidden="0";e.dataset.real="";}
  });
@@ -803,16 +803,15 @@ async function runOnce(key,fn){
 }
 async function addProduct(){
  return runOnce("product-save",async()=>{
-  const name=document.getElementById("pName").value.trim(),category=document.getElementById("pCategory").value.trim(),code=document.getElementById("pCode").value.trim();
+  const name=document.getElementById("pName").value.trim(),category=document.getElementById("pCategory").value.trim();
   const buy=getPriceValue("pBuy"),price=getPriceValue("pPrice"),qty=Number(document.getElementById("pQty").value||0);
   if(!name||!price||qty<0){alert("Jaza jina, bei ya kuuza na idadi.");return {ok:false}}
-  const p={id:crypto.randomUUID(),supabaseId:null,name,category,code,buy,price,qty,image:selectedImage||"",createdAt:now().toISOString(),updatedAt:now().toISOString(),minStock:0};
+  const p={id:crypto.randomUUID(),supabaseId:null,name,category,code:"",buy,price,qty,image:selectedImage||"",createdAt:now().toISOString(),updatedAt:now().toISOString(),minStock:0};
   const remote=await syncProductToSupabase(p);
   if(!remote.ok){
    const msg=remote.error?.message?String(remote.error.message):"Sababu haikupatikana";
    const code=remote.error?.code?String(remote.error.code):"";
-   if(code==="23505" && /sku/i.test(msg)) toast("Bidhaa haijahifadhiwa: SKU hii tayari ipo Supabase.");
-   else toast("Bidhaa haijahifadhiwa: "+msg);
+   toast("Bidhaa haijahifadhiwa: "+msg);
    return remote
   }
   products.unshift(p);
@@ -828,7 +827,7 @@ function editProduct(id){
  if(!can("edit_products")){toast("Huna ruhusa ya ku-edit bidhaa.");return}
  const p=products.find(x=>x.id===id);if(!p)return;
  selectedStockId=id;selectedImage=p.image||"";document.getElementById("productModalTitle").textContent="Edit Bidhaa";document.getElementById("imagePreview").src=selectedImage||"";
- document.getElementById("pName").value=p.name||"";document.getElementById("pCategory").value=p.category||"";document.getElementById("pCode").value=p.code||"";document.getElementById("pBuy").value=Number(p.buy||0).toLocaleString("en-US");document.getElementById("pPrice").value=Number(p.price||0).toLocaleString("en-US");document.getElementById("pQty").value=p.qty||0;
+ document.getElementById("pName").value=p.name||"";document.getElementById("pCategory").value=p.category||"";document.getElementById("pBuy").value=Number(p.buy||0).toLocaleString("en-US");document.getElementById("pPrice").value=Number(p.price||0).toLocaleString("en-US");document.getElementById("pQty").value=p.qty||0;
  document.getElementById("pBuy").dataset.real="";document.getElementById("pPrice").dataset.real="";document.getElementById("pBuy").dataset.hidden="0";document.getElementById("pPrice").dataset.hidden="0";
  document.getElementById("productModal").classList.add("show");
  document.querySelector("#productModal .btn.blue").textContent="Hifadhi Mabadiliko";
@@ -838,7 +837,7 @@ async function updateProduct(){
  return runOnce("product-save",async()=>{
   const p=products.find(x=>x.id===selectedStockId);if(!p)return {ok:false};
   const before=JSON.parse(JSON.stringify(p));const oldQty=p.qty;const name=document.getElementById("pName").value.trim();const qty=Number(document.getElementById("pQty").value||0);if(!name||qty<0){toast("Jaza taarifa sahihi.");return {ok:false}}
-  p.name=name;p.category=document.getElementById("pCategory").value.trim();p.code=document.getElementById("pCode").value.trim();p.buy=getPriceValue("pBuy");p.price=getPriceValue("pPrice");p.qty=qty;p.image=selectedImage||p.image||"";p.updatedAt=now().toISOString();
+  p.name=name;p.category=document.getElementById("pCategory").value.trim();p.code="";p.buy=getPriceValue("pBuy");p.price=getPriceValue("pPrice");p.qty=qty;p.image=selectedImage||p.image||"";p.updatedAt=now().toISOString();
   if(qty!==oldQty)movements.unshift({id:crypto.randomUUID(),productId:p.id,type:qty>oldQty?"add":"remove",qty:Math.abs(qty-oldQty),user:currentUser(),note:"Edit bidhaa / stock",date:now().toISOString()});
   const remote=await syncProductToSupabase(p);
   if(!remote.ok){Object.assign(p,before);toast("Mabadiliko hayajahifadhiwa; Supabase haikupokea.");render();return remote}
@@ -892,7 +891,7 @@ function renderProductHistory(id){
 function setProductTab(t){productTab=t;document.querySelectorAll(".pills button").forEach(x=>x.classList.remove("active"));document.getElementById(t==="in"?"tabIn":t==="low"?"tabLow":"tabOut").classList.add("active");renderProducts()}
 function renderProducts(){
  const q=(document.getElementById("productSearch")?.value||"").toLowerCase(),cat=document.getElementById("filterCategory")?.value||"",sort=document.getElementById("sortProducts")?.value||"name";
- let arr=products.filter(p=>(!q||(p.name+" "+p.category+" "+p.code).toLowerCase().includes(q))&&(!cat||p.category===cat));
+ let arr=products.filter(p=>(!q||(p.name+" "+p.category).toLowerCase().includes(q))&&(!cat||p.category===cat));
  arr=arr.filter(p=>productTab==="in"?p.qty>0:productTab==="low"?p.qty>0&&p.qty<=3:p.qty<=0);
  arr.sort((a,b)=>sort==="stock"?b.qty-a.qty:sort==="price"?b.price-a.price:a.name.localeCompare(b.name));
  const list=document.getElementById("productList");
@@ -928,7 +927,7 @@ function openSaleProductPicker(){document.getElementById("saleProductPicker").cl
 function renderSalePicker(){
  const el=document.getElementById("salePickerList");if(!el)return;
  const q=(document.getElementById("saleProductSearch")?.value||"").toLowerCase();
- const arr=products.filter(p=>p.qty>0 && (!q||(p.name+" "+p.category+" "+p.code).toLowerCase().includes(q)));
+ const arr=products.filter(p=>p.qty>0 && (!q||(p.name+" "+p.category).toLowerCase().includes(q)));
  el.innerHTML=arr.length?arr.map(p=>`<div class="sale-picker-item"><div><b>${esc(p.name)}</b><div class="muted">${money(p.price)} • stock ${p.qty}</div></div><button class="btn blue small" onclick="addSaleItem(${p.id})">＋</button></div>`).join(""):"<div class='empty'>Hakuna bidhaa inayopatikana.</div>";
 }
 function addSaleItem(id){
