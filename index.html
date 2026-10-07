@@ -568,7 +568,7 @@ async function saveCloudState(){
  const job=cloudSavePromise.then(async()=>{
   const {error}=await sbClient.from("mpa_app_state").upsert({scope:cloudStateScope,payload,updated_by:authProfile.id,updated_at:now().toISOString()},{onConflict:"scope"});
   if(error)throw error;return {ok:true};
- }).catch(e=>{console.warn("Supabase app state save failed",e);toast("Hifadhi ya Supabase imeshindikana. Data haijahifadhiwa kwenye kifaa.");return {ok:false,error:e};});
+ }).catch(e=>{console.warn("Supabase app state save failed",e);toast("Sync ya taarifa za ziada imeshindikana; bidhaa na mauzo ya Supabase hazijafutwa.");return {ok:false,error:e};});
  cloudSavePromise=job.catch(()=>({ok:false}));
  return job;
 }
@@ -817,9 +817,13 @@ async function addProduct(){
   products.unshift(p);
   if(qty>0)movements.unshift({id:crypto.randomUUID(),productId:p.id,type:"add",qty,user:currentUser(),note:"Stock ya kuanzia",date:now().toISOString()});
   const state=await saveAll({renderNow:false});
-  if(!state.ok){await deleteProductFromSupabase(p);products=products.filter(x=>x.id!==p.id);movements=movements.filter(m=>m.productId!==p.id);toast("Hifadhi ya mfumo imeshindikana; bidhaa haijahifadhiwa.");return state}
-  closeModal("productModal");resetProductModalButton();notify("Bidhaa mpya imeongezwa",name+" • stock "+qty,"products",p.id);toast("Bidhaa imehifadhiwa Supabase ✓");render();
-  return {ok:true};
+  if(!state.ok){
+   // Bidhaa tayari imehifadhiwa kwenye products. Usii-rollback kwa sababu
+   // mpa_app_state ni data saidizi (notifications/movements/settings), si database ya bidhaa.
+   toast("Bidhaa imehifadhiwa Supabase ✓ (data za ziada zitasawazishwa baadaye)");
+  }
+  closeModal("productModal");resetProductModalButton();notify("Bidhaa mpya imeongezwa",name+" • stock "+qty,"products",p.id);render();
+  return {ok:true, stateOk:!!state.ok};
  });
 }
 
@@ -965,8 +969,15 @@ async function makeSale(){
   if(!saleSync.ok){oldQty.forEach((q,id)=>{const p=products.find(x=>x.id===id);if(p)p.qty=q});movements=movements.filter(m=>!items.some(x=>x.productId===m.productId&&m.type==="sale"&&m.note==="Mauzo"&&Math.abs(new Date(m.date)-new Date(order.date))<2000));const e=saleSync.error||{};const code=e.code?String(e.code):"ERR";const msg=e.message?String(e.message):String(e);const detail=e.details?" • "+String(e.details):"";toast("Mauzo hayajahifadhiwa ["+code+"]: "+msg+detail);return saleSync}
   sales.unshift(order);
   const state=await saveAll({renderNow:false});
-  if(!state.ok){sales=sales.filter(x=>x.id!==order.id);oldQty.forEach((q,id)=>{const p=products.find(x=>x.id===id);if(p)p.qty=q});for(const p of products.filter(p=>oldQty.has(p.id)))await syncProductToSupabase(p);await deleteSaleFromSupabase(order);toast("Mauzo hayajahifadhiwa kwenye mfumo.");return state}
-  closeSaleEntry();saleCart=[];render();notify(salePaid?"Mauzo yamelipwa":"Mauzo yamewekwa deni",customer+" • "+money(total),"sales",order.id);toast("Mauzo yamehifadhiwa Supabase ✓");return {ok:true};
+  if(!state.ok){
+   // Sale na stock tayari vimehifadhiwa kwenye tables zao za Supabase.
+   // Usifute mauzo kwa sababu mpa_app_state imegoma; hiyo ni data saidizi.
+   closeSaleEntry();saleCart=[];render();
+   notify(salePaid?"Mauzo yamelipwa":"Mauzo yamewekwa deni",customer+" • "+money(total),"sales",order.id);
+   toast("Mauzo yamehifadhiwa Supabase ✓ (sync ya taarifa za ziada itajaribiwa tena)");
+   return {ok:true,stateOk:false};
+  }
+  closeSaleEntry();saleCart=[];render();notify(salePaid?"Mauzo yamelipwa":"Mauzo yamewekwa deni",customer+" • "+money(total),"sales",order.id);toast("Mauzo yamehifadhiwa Supabase ✓");return {ok:true,stateOk:true};
  });
 }
 
