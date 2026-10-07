@@ -448,6 +448,30 @@ function flattenPermissions(p){if(Array.isArray(p))return p;if(!p||typeof p!=="o
 function currentUser(){return authProfile?.username||localStorage.getItem("mpa_user")||"admin"}
 function currentUserObj(){if(authProfile)return {id:authProfile.id,username:authProfile.username||authProfile.display_name||authProfile.id,role:authProfile.role||"user",permissions:flattenPermissions(authProfile.permissions),active:authProfile.active!==false};return users.find(u=>u.username===currentUser())||users[0]}
 function can(p){let u=currentUserObj();return u.role==="admin"||u.permissions.includes("all")||u.permissions.includes(p)}
+async function supabaseProductRow(p){
+ const supabaseId=p.supabaseId||crypto.randomUUID();
+ p.supabaseId=supabaseId;
+ return {id:supabaseId,name:String(p.name||''),sku:String(p.code||''),category:String(p.category||''),image_url:String(p.image||''),buy_price:Number(p.buy||0),sell_price:Number(p.price||0),stock_qty:Number(p.qty||0),min_stock:Number(p.minStock||0),branch_id:null,active:true,updated_at:now().toISOString()};
+}
+async function syncProductToSupabase(p){
+ if(!sbClient||!authProfile)return {ok:false,skipped:true};
+ try{const row=await supabaseProductRow(p);const {data,error}=await sbClient.from('products').upsert(row,{onConflict:'id'}).select().single();if(error)throw error;p.supabaseId=data?.id||row.id;p.updatedAt=data?.updated_at||now().toISOString();localStorage.setItem('mpa_products',JSON.stringify(products));return {ok:true,data};}
+ catch(e){console.warn('Supabase product sync failed',e);return {ok:false,error:e};}
+}
+function applyRemoteProduct(row){return {id:Date.now()+Math.random(),supabaseId:row.id,name:row.name||'',category:row.category||'',code:row.sku||'',buy:Number(row.buy_price||0),price:Number(row.sell_price||0),qty:Number(row.stock_qty||0),minStock:Number(row.min_stock||0),image:row.image_url||'',createdAt:row.created_at||now().toISOString(),updatedAt:row.updated_at||row.created_at||now().toISOString()};}
+async function syncProductsFromSupabase({silent=false}={}){
+ if(!sbClient||!authProfile)return;
+ try{
+  const {data:remote,error}=await sbClient.from('products').select('*').order('created_at',{ascending:true});if(error)throw error;
+  const rows=Array.isArray(remote)?remote:[],local=[...products],used=new Set();
+  for(const lp of local){let rr=rows.find(r=>String(r.id)===String(lp.supabaseId));if(!rr&&lp.code)rr=rows.find(r=>!used.has(r.id)&&String(r.sku||'')===String(lp.code));if(!rr&&lp.name)rr=rows.find(r=>!used.has(r.id)&&String(r.name||'').trim().toLowerCase()===String(lp.name||'').trim().toLowerCase());if(rr){lp.supabaseId=rr.id;used.add(rr.id);lp.name=rr.name||lp.name;lp.category=rr.category||lp.category;lp.code=rr.sku||lp.code;lp.buy=Number(rr.buy_price??lp.buy);lp.price=Number(rr.sell_price??lp.price);lp.qty=Number(rr.stock_qty??lp.qty);lp.minStock=Number(rr.min_stock??lp.minStock??0);lp.image=rr.image_url||lp.image||'';lp.updatedAt=rr.updated_at||lp.updatedAt;}}
+  for(const lp of local){if(!lp.supabaseId||!used.has(lp.supabaseId)){const result=await syncProductToSupabase(lp);if(result.ok)used.add(lp.supabaseId);}}
+  for(const rr of rows){if(!used.has(rr.id))local.push(applyRemoteProduct(rr));}
+  products=local;localStorage.setItem('mpa_products',JSON.stringify(products));render();if(!silent&&rows.length===0&&products.length)toast('Bidhaa zimeunganishwa na Supabase ✓');
+ }catch(e){console.warn('Supabase products load failed',e);if(!silent)toast('Bidhaa hazikuweza kusawazishwa na Supabase.');}
+}
+async function deleteProductFromSupabase(p){if(!sbClient||!authProfile||!p?.supabaseId)return {ok:true,skipped:true};try{const {error}=await sbClient.from('products').delete().eq('id',p.supabaseId);if(error)throw error;return {ok:true};}catch(e){console.warn('Supabase product delete failed',e);return {ok:false,error:e};}}
+
 function saveAll(){
  localStorage.setItem("mpa_products",JSON.stringify(products));localStorage.setItem("mpa_sales",JSON.stringify(sales));
  localStorage.setItem("mpa_customers",JSON.stringify(customers));localStorage.setItem("mpa_expenses",JSON.stringify(expenses));
@@ -660,14 +684,17 @@ function closeModal(id){document.getElementById(id).classList.remove("show")}
 function previewImage(e){
  const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=()=>{selectedImage=r.result;document.getElementById("imagePreview").src=selectedImage};r.readAsDataURL(f)
 }
-function addProduct(){
+async function addProduct(){
  const name=document.getElementById("pName").value.trim(),category=document.getElementById("pCategory").value.trim(),code=document.getElementById("pCode").value.trim();
  const buy=getPriceValue("pBuy"),price=getPriceValue("pPrice"),qty=Number(document.getElementById("pQty").value||0);
  if(!name||!price||qty<0){alert("Jaza jina, bei ya kuuza na idadi.");return}
- const p={id:Date.now(),name,category,code,buy,price,qty,image:selectedImage||"",createdAt:now().toISOString()};
+ const p={id:Date.now(),name,category,code,buy,price,qty,image:selectedImage||"",createdAt:now().toISOString(),updatedAt:now().toISOString(),minStock:0};
  products.unshift(p);
  if(qty>0)movements.unshift({id:Date.now()+1,productId:p.id,type:"add",qty,user:currentUser(),note:"Stock ya kuanzia",date:now().toISOString()});
  closeModal("productModal");saveAll();notify("Bidhaa mpya imeongezwa",name+" • stock "+qty,"products",p.id);
+ const result=await syncProductToSupabase(p);
+ if(!result.ok&&!result.skipped)toast("Bidhaa imehifadhiwa kwenye simu, lakini Supabase haikupokea.");else if(result.ok)toast("Bidhaa imehifadhiwa na kusawazishwa ✓");
+ render();
 }
 function editProduct(id){
  if(!can("edit_products")){toast("Huna ruhusa ya ku-edit bidhaa.");return}
@@ -679,14 +706,15 @@ function editProduct(id){
  document.querySelector("#productModal .btn.blue").textContent="Hifadhi Mabadiliko";
  document.querySelector("#productModal .btn.blue").onclick=updateProduct;
 }
-function updateProduct(){
+async function updateProduct(){
  const p=products.find(x=>x.id===selectedStockId);if(!p)return;const oldQty=p.qty;const name=document.getElementById("pName").value.trim();const qty=Number(document.getElementById("pQty").value||0);if(!name||qty<0){toast("Jaza taarifa sahihi.");return}
  p.name=name;p.category=document.getElementById("pCategory").value.trim();p.code=document.getElementById("pCode").value.trim();p.buy=getPriceValue("pBuy");p.price=getPriceValue("pPrice");p.qty=qty;p.image=selectedImage||p.image||"";p.updatedAt=now().toISOString();
  if(qty!==oldQty)movements.unshift({id:Date.now(),productId:p.id,type:qty>oldQty?"add":"remove",qty:Math.abs(qty-oldQty),user:currentUser(),note:"Edit bidhaa / stock",date:now().toISOString()});
  closeModal("productModal");resetProductModalButton();saveAll();notify("Bidhaa imehaririwa",p.name,"products",p.id);
+ const result=await syncProductToSupabase(p);if(!result.ok&&!result.skipped)toast("Mabadiliko yamehifadhiwa kwenye simu, lakini Supabase haikusasishwa.");else if(result.ok)toast("Bidhaa imesasishwa ✓");render();
 }
 function resetProductModalButton(){const b=document.querySelector("#productModal .btn.blue");if(b){b.textContent="Hifadhi Bidhaa";b.onclick=addProduct}}
-function deleteProduct(id){if(!can("delete_products")){toast("Huna ruhusa ya kufuta bidhaa.");return}const p=products.find(x=>x.id===id);if(!p)return;if(!confirm("Futa bidhaa "+p.name+"?"))return;products=products.filter(x=>x.id!==id);saveAll();notify("Bidhaa imefutwa",p.name)}
+async function deleteProduct(id){if(!can("delete_products")){toast("Huna ruhusa ya kufuta bidhaa.");return}const p=products.find(x=>x.id===id);if(!p)return;if(!confirm("Futa bidhaa "+p.name+"?"))return;products=products.filter(x=>x.id!==id);saveAll();notify("Bidhaa imefutwa",p.name);const result=await deleteProductFromSupabase(p);if(!result.ok)toast("Bidhaa imefutwa kwenye simu, lakini Supabase haikuweza kufutwa.");}
 
 function openStock(id){
  selectedStockId=id;const p=products.find(x=>x.id===id);if(!p)return;
@@ -696,7 +724,7 @@ function openStock(id){
 }
 let stockMode="add";
 function changeStock(m){stockMode=m;toast(m==="add"?"Ongeza Stock imechaguliwa":"Punguza Stock imechaguliwa")}
-function applyStockChange(){
+async function applyStockChange(){
  const p=products.find(x=>x.id===selectedStockId),q=Number(document.getElementById("stockQty").value||0),note=document.getElementById("stockNote").value.trim()||"Mabadiliko ya stock";
  if(!p||!q||q<1)return;
  if(stockMode==="remove"&&!can("remove_stock")){toast("Huna ruhusa ya kupunguza stock.");return}
@@ -705,6 +733,7 @@ function applyStockChange(){
  p.qty += stockMode==="add"?q:-q;
  movements.unshift({id:Date.now(),productId:p.id,type:stockMode,qty:q,user:currentUser(),note,date:now().toISOString()});
  closeModal("stockModal");saveAll();notify(stockMode==="add"?"Stock imeongezwa":"Stock imepunguzwa",p.name+" • "+(stockMode==="add"?"+":"-")+q+" • sasa "+p.qty,"products",p.id);
+ const result=await syncProductToSupabase(p);if(!result.ok&&!result.skipped)toast("Stock imebadilika kwenye simu, lakini Supabase haikusasishwa.");else if(result.ok)toast("Stock imesawazishwa ✓");render();
 }
 function renderProductHistory(id){
  const rows=movements.filter(m=>m.productId===id).slice(0,12);
@@ -772,7 +801,7 @@ function calculateSaleOrder(){
  return {subtotal,discount,total};
 }
 function setSalePayment(paid){salePaid=paid;document.getElementById("salePaid")?.classList.toggle("active",paid);document.getElementById("saleUnpaid")?.classList.toggle("active",!paid)}
-function makeSale(){
+async function makeSale(){
  if(!can("sell")){toast("Huna ruhusa ya kuuza.");return}
  if(!saleCart.length){toast("Chagua angalau bidhaa moja.");return}
  for(const item of saleCart){const p=products.find(x=>x.id===item.productId);if(!p||item.qty<1||item.qty>p.qty){toast("Stock haitoshi kwa bidhaa fulani.");return}}
@@ -782,6 +811,7 @@ function makeSale(){
  items.forEach(x=>{const p=products.find(y=>y.id===x.productId);p.qty-=x.qty;movements.unshift({id:Date.now()+Math.random(),productId:p.id,type:"sale",qty:x.qty,user:currentUser(),note:"Mauzo",date:new Date(saleDate+"T12:00:00").toISOString()})});
  const order={id:Date.now(),items,productId:items[0].productId,product:items[0].product,qty:items[0].qty,price:items[0].price,discount,total,subtotal,profit,customer,date:new Date(saleDate+"T12:00:00").toISOString(),user:currentUser(),paid:salePaid,note};
  order.branchId=activeBranch||""; sales.unshift(order);saveAll();notify(salePaid?"Mauzo yamelipwa":"Mauzo yamewekwa deni",customer+" • "+money(total),"sales",order.id);closeSaleEntry();render();
+ for(const item of items){const p=products.find(x=>x.id===item.productId);if(p)await syncProductToSupabase(p);}
 }
 function setSalesTab(tab){salesTab=tab;document.querySelectorAll('.sales-tabs button').forEach(x=>x.classList.remove('active'));document.getElementById(tab==='all'?'salesTabAll':tab==='paid'?'salesTabPaid':'salesTabDebt').classList.add('active');renderSalesHistory()}
 function saleItemsCount(s){return s.items?s.items.reduce((a,x)=>a+Number(x.qty||0),0):Number(s.qty||0)}
@@ -817,7 +847,7 @@ function openSaleDetails(id){
  </div>`;
  document.getElementById('saleDetailContent').innerHTML=html;document.getElementById('saleDetailModal').classList.add('show');
 }
-function deleteSale(id){
+async function deleteSale(id){
  if(!can('delete_sales')){toast('Huna ruhusa ya kufuta mauzo.');return}
  const s=sales.find(x=>x.id===id);if(!s)return;
  const items=s.items||[{productId:s.productId,qty:s.qty||0}];
@@ -825,6 +855,7 @@ function deleteSale(id){
  if(!confirm('Futa Mauzo Haya?\n\nStock ya bidhaa zilizouzwa itarudishwa. Takwimu za mauzo pia zitapungua.'))return;
  items.forEach(i=>{const p=products.find(x=>x.id===i.productId);if(p){const q=Number(i.qty||0);p.qty+=q;movements.unshift({id:Date.now()+Math.random(),productId:p.id,type:'add',qty:q,user:currentUser(),note:'Stock imerudishwa baada ya kufuta mauzo',date:now().toISOString()})}});
  sales=sales.filter(x=>x.id!==id);saveAll();notify('Mauzo yamefutwa','Order #'+String(s.id).slice(-8)+' • Stock imerudishwa','sales',s.id);closeModal('saleDetailModal');renderSalesHistory();renderProducts();render();
+ for(const i of items){const p=products.find(x=>x.id===i.productId);if(p)await syncProductToSupabase(p);}
 }
 function openReceipt(id){
  const s=sales.find(x=>x.id===id);if(!s)return;const items=s.items||[{productId:s.productId,product:s.product,qty:s.qty||1,price:s.price||s.total,buy:s.buy||0,lineTotal:(s.price||s.total)*(s.qty||1)}];
@@ -1007,7 +1038,7 @@ window.addEventListener("load",async()=>{
        const email=(session.user.email||"").trim().toLowerCase();
        const role=KNOWN_LOGIN_ROLES[email]||prof?.role||"user";
        authProfile={...(prof||{}),id:session.user.id,username:prof?.username||session.user.email?.split("@")[0]||"user",role,permissions:role==="admin"?["all"]:[...new Set([...(Array.isArray(prof?.permissions)?prof.permissions:[]),...DEFAULT_USER_PERMISSIONS])],active:prof?.active!==false};
-       if(authProfile.active!==false){document.getElementById("login").style.display="none";document.getElementById("app").style.display="block";localStorage.setItem("mpa_user",authProfile.username);localStorage.setItem("mpa_role",authProfile.role||role)}}
+       if(authProfile.active!==false){document.getElementById("login").style.display="none";document.getElementById("app").style.display="block";localStorage.setItem("mpa_user",authProfile.username);localStorage.setItem("mpa_role",authProfile.role||role);await syncProductsFromSupabase({silent:false})}}
    }catch(e){console.warn("Session restore failed",e)}
 }
  // Usitumie localStorage kama uthibitisho wa login. Ni Supabase session pekee inayoruhusu app kufunguka.
