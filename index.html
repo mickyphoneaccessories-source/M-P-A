@@ -460,16 +460,53 @@ async function syncProductToSupabase(p){
 }
 function applyRemoteProduct(row){return {id:Date.now()+Math.random(),supabaseId:row.id,name:row.name||'',category:row.category||'',code:row.sku||'',buy:Number(row.buy_price||0),price:Number(row.sell_price||0),qty:Number(row.stock_qty||0),minStock:Number(row.min_stock||0),image:row.image_url||'',createdAt:row.created_at||now().toISOString(),updatedAt:row.updated_at||row.created_at||now().toISOString()};}
 async function syncProductsFromSupabase({silent=false}={}){
- if(!sbClient||!authProfile)return;
+ if(!sbClient||!authProfile)return {ok:false,skipped:true};
  try{
-  const {data:remote,error}=await sbClient.from('products').select('*').order('created_at',{ascending:true});if(error)throw error;
+  const {data:remote,error}=await sbClient.from('products').select('*').order('created_at',{ascending:true});
+  if(error)throw error;
   const rows=Array.isArray(remote)?remote:[],local=[...products],used=new Set();
-  for(const lp of local){let rr=rows.find(r=>String(r.id)===String(lp.supabaseId));if(!rr&&lp.code)rr=rows.find(r=>!used.has(r.id)&&String(r.sku||'')===String(lp.code));if(!rr&&lp.name)rr=rows.find(r=>!used.has(r.id)&&String(r.name||'').trim().toLowerCase()===String(lp.name||'').trim().toLowerCase());if(rr){lp.supabaseId=rr.id;used.add(rr.id);lp.name=rr.name||lp.name;lp.category=rr.category||lp.category;lp.code=rr.sku||lp.code;lp.buy=Number(rr.buy_price??lp.buy);lp.price=Number(rr.sell_price??lp.price);lp.qty=Number(rr.stock_qty??lp.qty);lp.minStock=Number(rr.min_stock??lp.minStock??0);lp.image=rr.image_url||lp.image||'';lp.updatedAt=rr.updated_at||lp.updatedAt;}}
-  for(const lp of local){if(!lp.supabaseId||!used.has(lp.supabaseId)){const result=await syncProductToSupabase(lp);if(result.ok)used.add(lp.supabaseId);}}
+
+  // First reconcile local records with Supabase by stable id, then SKU, then name.
+  for(const lp of local){
+   let rr=rows.find(r=>String(r.id)===String(lp.supabaseId));
+   if(!rr&&lp.code)rr=rows.find(r=>!used.has(r.id)&&String(r.sku||'').trim()===String(lp.code||'').trim());
+   if(!rr&&lp.name)rr=rows.find(r=>!used.has(r.id)&&String(r.name||'').trim().toLowerCase()===String(lp.name||'').trim().toLowerCase());
+   if(rr){
+    lp.supabaseId=rr.id;used.add(rr.id);
+    lp.name=rr.name||lp.name; lp.category=rr.category||lp.category; lp.code=rr.sku||lp.code;
+    lp.buy=Number(rr.buy_price??lp.buy); lp.price=Number(rr.sell_price??lp.price); lp.qty=Number(rr.stock_qty??lp.qty);
+    lp.minStock=Number(rr.min_stock??lp.minStock??0); lp.image=rr.image_url||lp.image||''; lp.updatedAt=rr.updated_at||lp.updatedAt;
+   }
+  }
+
+  // Upload every local-only product. This is what makes an existing device's data available to other devices.
+  for(const lp of local){
+   if(!lp.supabaseId||!used.has(lp.supabaseId)){
+    const result=await syncProductToSupabase(lp);
+    if(result.ok)used.add(lp.supabaseId);
+   }
+  }
+
+  // Pull products that exist only in Supabase onto this device.
   for(const rr of rows){if(!used.has(rr.id))local.push(applyRemoteProduct(rr));}
-  products=local;localStorage.setItem('mpa_products',JSON.stringify(products));render();if(!silent&&rows.length===0&&products.length)toast('Bidhaa zimeunganishwa na Supabase ✓');
- }catch(e){console.warn('Supabase products load failed',e);if(!silent)toast('Bidhaa hazikuweza kusawazishwa na Supabase.');}
+  products=local;
+  localStorage.setItem('mpa_products',JSON.stringify(products));
+  render();
+  if(!silent){
+   if(rows.length===0&&products.length)toast('Bidhaa za kifaa zimeunganishwa na Supabase ✓');
+   else if(rows.length>0)toast('Bidhaa zimesawazishwa na Supabase ✓');
+  }
+  return {ok:true,count:products.length};
+ }catch(e){
+  console.warn('Supabase products load failed',e);
+  if(!silent){
+   const code=e?.code?String(e.code):'';
+   toast('Sync ya bidhaa imeshindikana'+(code?' ('+code+')':'')+'. Angalia RLS policy ya products.');
+  }
+  return {ok:false,error:e};
+ }
 }
+
 async function deleteProductFromSupabase(p){if(!sbClient||!authProfile||!p?.supabaseId)return {ok:true,skipped:true};try{const {error}=await sbClient.from('products').delete().eq('id',p.supabaseId);if(error)throw error;return {ok:true};}catch(e){console.warn('Supabase product delete failed',e);return {ok:false,error:e};}}
 
 function saveAll(){
@@ -691,9 +728,16 @@ async function addProduct(){
  const p={id:Date.now(),name,category,code,buy,price,qty,image:selectedImage||"",createdAt:now().toISOString(),updatedAt:now().toISOString(),minStock:0};
  products.unshift(p);
  if(qty>0)movements.unshift({id:Date.now()+1,productId:p.id,type:"add",qty,user:currentUser(),note:"Stock ya kuanzia",date:now().toISOString()});
- closeModal("productModal");saveAll();notify("Bidhaa mpya imeongezwa",name+" • stock "+qty,"products",p.id);
+ saveAll();
  const result=await syncProductToSupabase(p);
- if(!result.ok&&!result.skipped)toast("Bidhaa imehifadhiwa kwenye simu, lakini Supabase haikupokea.");else if(result.ok)toast("Bidhaa imehifadhiwa na kusawazishwa ✓");
+ closeModal("productModal");
+ if(result.ok){
+   notify("Bidhaa mpya imeongezwa",name+" • stock "+qty,"products",p.id);
+   toast("Bidhaa imehifadhiwa na kusawazishwa ✓");
+ }else{
+   notify("Bidhaa imehifadhiwa kwenye kifaa",name+" • stock "+qty+" • sync ya Supabase inasubiri","products",p.id);
+   toast("Bidhaa imehifadhiwa kwenye simu; Supabase haikupokea. Tutajaribu kusawazisha tena.");
+ }
  render();
 }
 function editProduct(id){
