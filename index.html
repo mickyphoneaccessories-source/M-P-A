@@ -899,7 +899,7 @@ function renderProducts(){
  arr=arr.filter(p=>productTab==="in"?p.qty>0:productTab==="low"?p.qty>0&&p.qty<=3:p.qty<=0);
  arr.sort((a,b)=>sort==="stock"?b.qty-a.qty:sort==="price"?b.price-a.price:a.name.localeCompare(b.name));
  const list=document.getElementById("productList");
- list.innerHTML=arr.length?arr.map(p=>`<div class="productrow" data-product-id="${p.id}" onclick="openStock(${p.id})"><img class="pimg" src="${p.image||'icon.svg'}" alt=""><div class="pinfo"><b>${esc(p.name)}</b><small>${p.qty} in stock${p.category?" • "+esc(p.category):""}</small></div><div class="pprice"><b>${Number(p.price||0).toLocaleString("en-US")}</b><small>TZS</small><div style="margin-top:6px;display:flex;gap:5px;justify-content:flex-end" onclick="event.stopPropagation()"><button class="btn small" onclick="editProduct(${p.id})">Edit</button>${can("delete_products")?`<button class="btn small red" onclick="deleteProduct(${p.id})">Futa</button>`:""}</div></div></div>`).join(""):"<div class='empty'>Hakuna bidhaa kwenye kundi hili.</div>";
+ list.innerHTML=arr.length?arr.map(p=>`<div class="productrow" data-product-id="${p.id}" onclick="openStock(${JSON.stringify(p.id)})"><img class="pimg" src="${p.image||'icon.svg'}" alt=""><div class="pinfo"><b>${esc(p.name)}</b><small>${p.qty} in stock${p.category?" • "+esc(p.category):""}</small></div><div class="pprice"><b>${Number(p.price||0).toLocaleString("en-US")}</b><small>TZS</small><div style="margin-top:6px;display:flex;gap:5px;justify-content:flex-end" onclick="event.stopPropagation()"><button class="btn small" onclick="editProduct(${JSON.stringify(p.id)})">Edit</button>${can("delete_products")?`<button class="btn small red" onclick="deleteProduct(${JSON.stringify(p.id)})">Futa</button>`:""}</div></div></div>`).join(""):"<div class='empty'>Hakuna bidhaa kwenye kundi hili.</div>";
  document.getElementById("sumProducts").textContent=products.length;document.getElementById("sumBuy").textContent=money(products.reduce((a,p)=>a+p.buy*p.qty,0));document.getElementById("sumSell").textContent=money(products.reduce((a,p)=>a+p.price*p.qty,0));
 }
 function toggleProductFilter(){document.getElementById("productFilter").classList.toggle("hidden")}
@@ -932,7 +932,7 @@ function renderSalePicker(){
  const el=document.getElementById("salePickerList");if(!el)return;
  const q=(document.getElementById("saleProductSearch")?.value||"").toLowerCase();
  const arr=products.filter(p=>p.qty>0 && (!q||(p.name+" "+p.category).toLowerCase().includes(q)));
- el.innerHTML=arr.length?arr.map(p=>`<div class="sale-picker-item"><div><b>${esc(p.name)}</b><div class="muted">${money(p.price)} • stock ${p.qty}</div></div><button class="btn blue small" onclick="addSaleItem(${p.id})">＋</button></div>`).join(""):"<div class='empty'>Hakuna bidhaa inayopatikana.</div>";
+ el.innerHTML=arr.length?arr.map(p=>`<div class="sale-picker-item"><div><b>${esc(p.name)}</b><div class="muted">${money(p.price)} • stock ${p.qty}</div></div><button class="btn blue small" onclick="addSaleItem(${JSON.stringify(p.id)})">＋</button></div>`).join(""):"<div class='empty'>Hakuna bidhaa inayopatikana.</div>";
 }
 function addSaleItem(id){
  const p=products.find(x=>x.id===id);if(!p)return;
@@ -943,7 +943,7 @@ function changeSaleItem(id,delta){const item=saleCart.find(x=>x.productId===id),
 function removeSaleItem(id){saleCart=saleCart.filter(x=>x.productId!==id);renderSaleCart()}
 function renderSaleCart(){
  const el=document.getElementById("saleCart");if(!el)return;
- el.innerHTML=saleCart.length?saleCart.map(item=>{const p=products.find(x=>x.id===item.productId);return p?`<div class="sale-cart-row"><img class="sale-cart-img" src="${p.image||'icon.svg'}"><div class="sale-cart-info"><b>${esc(p.name)}</b><small>${money(p.price)} @${money(p.price)}</small></div><button class="sale-trash" onclick="removeSaleItem(${p.id})">♧</button><div class="sale-cart-actions"><button class="sale-qty-btn" onclick="changeSaleItem(${p.id},-1)">−</button><b>${item.qty}</b><button class="sale-qty-btn" onclick="changeSaleItem(${p.id},1)">＋</button></div></div>`:""}).join(""):"<div class='sale-cart-empty'>Hakuna bidhaa kwenye oda. Chagua bidhaa hapa chini.</div>";
+ el.innerHTML=saleCart.length?saleCart.map(item=>{const p=products.find(x=>x.id===item.productId);return p?`<div class="sale-cart-row"><img class="sale-cart-img" src="${p.image||'icon.svg'}"><div class="sale-cart-info"><b>${esc(p.name)}</b><small>${money(p.price)} @${money(p.price)}</small></div><button class="sale-trash" onclick="removeSaleItem(${JSON.stringify(p.id)})">♧</button><div class="sale-cart-actions"><button class="sale-qty-btn" onclick="changeSaleItem(${JSON.stringify(p.id)},-1)">−</button><b>${item.qty}</b><button class="sale-qty-btn" onclick="changeSaleItem(${JSON.stringify(p.id)},1)">＋</button></div></div>`:""}).join(""):"<div class='sale-cart-empty'>Hakuna bidhaa kwenye oda. Chagua bidhaa hapa chini.</div>";
  calculateSaleOrder();
 }
 function calculateSaleOrder(){
