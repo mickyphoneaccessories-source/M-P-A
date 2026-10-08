@@ -525,10 +525,19 @@ async function syncProductsFromSupabase({silent=false}={}){
 async function deleteProductFromSupabase(p){if(!sbClient||!authProfile||!p?.supabaseId)return {ok:true,skipped:true};try{const {error}=await sbClient.from('products').delete().eq('id',p.supabaseId);if(error)throw error;return {ok:true};}catch(e){console.warn('Supabase product delete failed',e);return {ok:false,error:e};}}
 
 // ===== SUPABASE SALES SYNC (M-P-A V19) =====
-function supabaseSaleRow(s){const branchId=(activeBranch&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(activeBranch)))?String(activeBranch):null;const saleId=s.supabaseId||crypto.randomUUID();const total=Number(s.total||0),paid=s.paid!==false;s.supabaseId=saleId;return {id:saleId,branch_id:branchId,customer_id:null,sold_by:authProfile?.id||null,sale_date:s.date||now().toISOString(),subtotal:Number(s.subtotal||0),discount:Number(s.discount||0),total,paid,debt:paid?0:total,payment_status:paid?'paid':'unpaid',notes:String(s.note||''),created_at:s.date||now().toISOString()};}
+function supabaseSaleRow(s){
+ const branchId=(activeBranch&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(activeBranch)))?String(activeBranch):null;
+ const saleId=s.supabaseId||crypto.randomUUID();
+ const total=Number(s.total||0),paid=s.paid!==false;
+ s.supabaseId=saleId;
+ // M-P-A V22: Supabase's legacy `sales.paid` column may be numeric.
+ // Store payment state as 1/0 instead of a JS boolean so numeric schemas
+ // do not fail with 22P02 ("invalid input syntax for type numeric: \"true\"").
+ return {id:saleId,branch_id:branchId,customer_id:null,sold_by:authProfile?.id||null,sale_date:s.date||now().toISOString(),subtotal:Number(s.subtotal||0),discount:Number(s.discount||0),total,paid:paid?1:0,debt:paid?0:total,payment_status:paid?'paid':'unpaid',notes:String(s.note||''),created_at:s.date||now().toISOString()};
+}
 async function syncSaleToSupabase(s){if(!sbClient||!authProfile)return {ok:false,skipped:true};let saleId=null,saleCreated=false;try{for(const item of(s.items||[])){const p=products.find(x=>x.id===item.productId);if(!p)throw new Error('Bidhaa haikupatikana kwenye mfumo.');const pr=await syncProductToSupabase(p);if(!pr.ok&&!pr.skipped)throw pr.error||new Error('Product sync failed');if(!p.supabaseId)throw new Error('Bidhaa haijapata Supabase product ID: '+p.name);}const row=supabaseSaleRow(s);saleId=row.id;const {data,error}=await sbClient.from('sales').upsert(row,{onConflict:'id'}).select().single();if(error)throw error;saleCreated=true;saleId=data?.id??row.id;for(const item of(s.items||[])){const p=products.find(x=>x.id===item.productId);if(!p?.supabaseId)throw new Error('Bidhaa haina Supabase ID: '+(p?.name||'unknown'));const itemRow={sale_id:saleId,product_id:p.supabaseId,quantity:Number(item.qty||0),unit_price:Number(item.price||0),buy_price:Number(item.buy||0),discount:0,total:Number(item.lineTotal||((item.price||0)*(item.qty||0))),profit:Number(((item.price||0)-(item.buy||0))*(item.qty||0))};const {data:existing,error:se}=await sbClient.from('sale_items').select('id').eq('sale_id',saleId).eq('product_id',p.supabaseId).maybeSingle();if(se)throw se;if(existing?.id){const {error:ue}=await sbClient.from('sale_items').update(itemRow).eq('id',existing.id);if(ue)throw ue;}else{const {error:ie}=await sbClient.from('sale_items').insert(itemRow);if(ie)throw ie;}}s.supabaseSynced=true;s.supabaseId=saleId;s.id=saleId;return {ok:true,data};}catch(e){console.warn('Supabase sale sync failed',e);if(saleCreated&&saleId){try{await sbClient.from('sale_items').delete().eq('sale_id',saleId);await sbClient.from('sales').delete().eq('id',saleId);}catch(cleanErr){console.warn('Supabase sale rollback failed',cleanErr)}}return {ok:false,error:e};}}
 async function deleteSaleFromSupabase(s){if(!sbClient||!authProfile)return {ok:false,skipped:true};try{const saleId=s.supabaseId??s.id;const {error:itemError}=await sbClient.from('sale_items').delete().eq('sale_id',saleId);if(itemError)throw itemError;const {error:saleError}=await sbClient.from('sales').delete().eq('id',saleId);if(saleError)throw saleError;return {ok:true};}catch(e){console.warn('Supabase sale delete failed',e);return {ok:false,error:e};}}
-async function syncSalesFromSupabase({silent=false}={}){if(!sbClient||!authProfile)return {ok:false,skipped:true};try{const {data:remoteSales,error}=await sbClient.from('sales').select('*').order('sale_date',{ascending:false});if(error)throw error;const rs=Array.isArray(remoteSales)?remoteSales:[];const ids=rs.map(x=>x.id).filter(Boolean);let remoteItems=[];if(ids.length){const {data:ri,error:rie}=await sbClient.from('sale_items').select('*').in('sale_id',ids);if(rie)throw rie;remoteItems=Array.isArray(ri)?ri:[];}const bySale={};remoteItems.forEach(i=>(bySale[i.sale_id]??=[]).push(i));const remoteMapped=rs.map(r=>{const items=(bySale[r.id]||[]).map(i=>{const p=products.find(x=>String(x.supabaseId)===String(i.product_id));const qty=Number(i.quantity||0),price=Number(i.unit_price||0),buy=Number(i.buy_price||0);return {productId:p?.id||i.product_id,product:p?.name||'Bidhaa',qty,price,buy,lineTotal:Number(i.total??price*qty)};});const total=Number(r.total||0),subtotal=Number(r.subtotal||total),discount=Number(r.discount||0);return {id:r.id,items,productId:items[0]?.productId,product:items[0]?.product||'Bidhaa',qty:items[0]?.qty||0,price:items[0]?.price||0,discount,total,subtotal,profit:Number(r.profit||items.reduce((a,x)=>a+(x.price-x.buy)*x.qty,0)-discount),customer:r.customer_name||'Mteja',date:r.sale_date||r.created_at||now().toISOString(),user:r.sold_by||'Admin',paid:r.paid!==false,note:r.notes||'',branchId:r.branch_id||'',supabaseId:r.id,supabaseSynced:true};});const localById=new Map(sales.map(s=>[String(s.supabaseId??s.id),s]));remoteMapped.forEach(r=>localById.set(String(r.supabaseId??r.id),r));sales=[...localById.values()].sort((a,b)=>new Date(b.date)-new Date(a.date));renderSalesHistory();if(!silent)toast('Mauzo yamesawazishwa na Supabase ✓');return {ok:true,count:remoteMapped.length};}catch(e){console.warn('Supabase sales load failed',e);if(!silent){const code=e?.code?String(e.code):'';const msg=e?.message?String(e.message):'';toast('Sync ya mauzo imeshindikana'+(code?' ('+code+')':'')+(msg?' • '+msg:'')+'. Angalia RLS ya sales/sale_items.');}return {ok:false,error:e};}}
+async function syncSalesFromSupabase({silent=false}={}){if(!sbClient||!authProfile)return {ok:false,skipped:true};try{const {data:remoteSales,error}=await sbClient.from('sales').select('*').order('sale_date',{ascending:false});if(error)throw error;const rs=Array.isArray(remoteSales)?remoteSales:[];const ids=rs.map(x=>x.id).filter(Boolean);let remoteItems=[];if(ids.length){const {data:ri,error:rie}=await sbClient.from('sale_items').select('*').in('sale_id',ids);if(rie)throw rie;remoteItems=Array.isArray(ri)?ri:[];}const bySale={};remoteItems.forEach(i=>(bySale[i.sale_id]??=[]).push(i));const remoteMapped=rs.map(r=>{const items=(bySale[r.id]||[]).map(i=>{const p=products.find(x=>String(x.supabaseId)===String(i.product_id));const qty=Number(i.quantity||0),price=Number(i.unit_price||0),buy=Number(i.buy_price||0);return {productId:p?.id||i.product_id,product:p?.name||'Bidhaa',qty,price,buy,lineTotal:Number(i.total??price*qty)};});const total=Number(r.total||0),subtotal=Number(r.subtotal||total),discount=Number(r.discount||0),remotePaid=Number(r.paid)!==0;return {id:r.id,items,productId:items[0]?.productId,product:items[0]?.product||'Bidhaa',qty:items[0]?.qty||0,price:items[0]?.price||0,discount,total,subtotal,profit:Number(r.profit||items.reduce((a,x)=>a+(x.price-x.buy)*x.qty,0)-discount),customer:r.customer_name||'Mteja',date:r.sale_date||r.created_at||now().toISOString(),user:r.sold_by||'Admin',paid:remotePaid,note:r.notes||'',branchId:r.branch_id||'',supabaseId:r.id,supabaseSynced:true};});const localById=new Map(sales.map(s=>[String(s.supabaseId??s.id),s]));remoteMapped.forEach(r=>localById.set(String(r.supabaseId??r.id),r));sales=[...localById.values()].sort((a,b)=>new Date(b.date)-new Date(a.date));renderSalesHistory();if(!silent)toast('Mauzo yamesawazishwa na Supabase ✓');return {ok:true,count:remoteMapped.length};}catch(e){console.warn('Supabase sales load failed',e);if(!silent){const code=e?.code?String(e.code):'';const msg=e?.message?String(e.message):'';toast('Sync ya mauzo imeshindikana'+(code?' ('+code+')':'')+(msg?' • '+msg:'')+'. Angalia RLS ya sales/sale_items.');}return {ok:false,error:e};}}
 
 async function loadCloudState(){
  if(!sbClient||!authProfile)return {ok:false,skipped:true};
@@ -816,13 +825,20 @@ async function addProduct(){
   }
   products.unshift(p);
   if(qty>0)movements.unshift({id:crypto.randomUUID(),productId:p.id,type:"add",qty,user:currentUser(),note:"Stock ya kuanzia",date:now().toISOString()});
+
+  // V22: onyesha bidhaa mara moja baada ya products table kukubali save.
+  // Hatusubiri mpa_app_state (notifications/movements/settings) ndipo UI ionekane.
+  closeModal("productModal");
+  resetProductModalButton();
+  render();
+
+  // Data saidizi isawazishwe baada ya UI kuonekana.
   const state=await saveAll({renderNow:false});
   if(!state.ok){
-   // Bidhaa tayari imehifadhiwa kwenye products. Usii-rollback kwa sababu
-   // mpa_app_state ni data saidizi (notifications/movements/settings), si database ya bidhaa.
-   toast("Bidhaa imehifadhiwa Supabase ✓ (data za ziada zitasawazishwa baadaye)");
+   toast("Bidhaa imehifadhiwa Supabase ✓ (sync ya taarifa za ziada itajaribiwa tena)");
   }
-  closeModal("productModal");resetProductModalButton();notify("Bidhaa mpya imeongezwa",name+" • stock "+qty,"products",p.id);render();
+  notify("Bidhaa mpya imeongezwa",name+" • stock "+qty,"products",p.id);
+  render();
   return {ok:true, stateOk:!!state.ok};
  });
 }
@@ -1177,6 +1193,15 @@ function render(){
  const dnow=now(),daysInMonth=new Date(dnow.getFullYear(),dnow.getMonth()+1,0).getDate(),daysLeft=Math.max(1,daysInMonth-dnow.getDate()),monthStart=new Date(dnow.getFullYear(),dnow.getMonth(),1),monthSalesTotal=sales.filter(x=>new Date(x.date)>=monthStart).reduce((a,x)=>a+Number(x.total||0),0),target=goalTarget,pct=Math.min(100,Math.round(monthSalesTotal/target*100)),remaining=Math.max(0,target-monthSalesTotal),dailyNeed=Math.ceil(remaining/daysLeft);const prevStart=new Date(dnow.getFullYear(),dnow.getMonth()-1,1),prevEnd=new Date(dnow.getFullYear(),dnow.getMonth(),1),prevMonth=sales.filter(x=>{const d=new Date(x.date);return d>=prevStart&&d<prevEnd}).reduce((a,x)=>a+Number(x.total||0),0),compare=prevMonth?Math.round((monthSalesTotal-prevMonth)/prevMonth*100):0;document.getElementById("goalTarget").textContent=money(target);document.getElementById("goalTargetSmall").textContent=money(target);document.getElementById("goalBar").style.width=pct+"%";document.getElementById("goalSales").textContent=money(monthSalesTotal);document.getElementById("goalPercent").textContent=pct+"%";document.getElementById("goalCompare").textContent=(compare>=0?compare+"% ↗":""+compare+"% ↘")+" vs mwezi uliopita";document.getElementById("goalMessage").textContent=remaining>0?`Ili utimize lengo lako, kwa siku ${daysLeft} zilizobaki unahitaji kuuza wastani wa ${money(dailyNeed)} kwa siku kwa mwezi huu.`:`Hongera! Umetimiza lengo la mauzo la mwezi huu.`;
 }
 let pullStartY=0,pullTriggered=false,pullBusy=false;
+function refreshCurrentPage(){
+  // Preserve the section and scroll position while rebuilding every view.
+  const activePage=document.querySelector(".page.active")?.id||"home";
+  const scrollY=window.scrollY||0;
+  render();
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.getElementById(activePage)?.classList.add("active");
+  requestAnimationFrame(()=>window.scrollTo(0,scrollY));
+}
 async function refreshDataView(){
   if(pullBusy)return;
   pullBusy=true;
