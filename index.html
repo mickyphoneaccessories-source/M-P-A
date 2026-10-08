@@ -502,38 +502,43 @@ function applyRemoteProduct(row){return {id:row.id,supabaseId:row.id,name:row.na
 async function syncProductsFromSupabase({silent=false}={}){
  if(!sbClient||!authProfile)return {ok:false,skipped:true};
  try{
-  // Supabase ndiyo chanzo kikuu cha products. Kila refresh/sync inapakia
-  // list mpya kutoka cloud badala ya kutegemea data ya browser.
   const {data:remote,error}=await sbClient.from('products').select('*').order('created_at',{ascending:true});
   if(error)throw error;
   const rows=Array.isArray(remote)?remote:[];
-
-  // Supabase ndiyo chanzo kikuu. Bidhaa mpya ambayo bado iko kwenye retry
-  // ibaki ionekane mara moja badala ya kupotea wakati refresh ya sekunde 5
-  // inatokea. Ikifika Supabase, itachukuliwa na remote list kwenye sync inayofuata.
   const pending=products.filter(x=>x?.pendingSync);
-  products=rows.map(applyRemoteProduct);
+  // Do not wipe a locally restored Supabase app-state cache just because the dedicated table
+  // temporarily returns an empty result (common while RLS/realtime is settling).
+  if(rows.length===0 && products.length>0){
+    for(const local of pending.slice(0,20)){
+      const remoteRetry=await syncProductToSupabase(local);
+      if(remoteRetry.ok) local.pendingSync=false;
+    }
+    await saveCloudState();
+    refreshCategories();
+    render();
+    return {ok:true,count:products.length,usedFallback:true};
+  }
+  const remoteProducts=rows.map(applyRemoteProduct);
   for(const local of pending){
-    if(!products.some(x=>String(x.id)===String(local.id)||String(x.supabaseId)===String(local.supabaseId))){
-      products.unshift(local);
+    if(!remoteProducts.some(x=>String(x.id)===String(local.id)||String(x.supabaseId)===String(local.supabaseId))){
+      remoteProducts.unshift(local);
     }
   }
-  // Jaribu tena kimya kimya bidhaa zilizoshindikana awali.
+  products=remoteProducts;
   for(const local of pending.slice(0,20)){
     const remoteRetry=await syncProductToSupabase(local);
     if(remoteRetry.ok) local.pendingSync=false;
   }
-
   refreshCategories();
   render();
   if(!silent)toast('Bidhaa zimesawazishwa na Supabase ✓');
   return {ok:true,count:products.length};
  }catch(e){
   console.warn('Supabase products load failed',e);
+  // Keep the Supabase app-state copy visible; never blank the Products page because a refresh failed.
   if(!silent){
-   const code=e?.code?String(e.code):'';
-   const msg=e?.message?String(e.message):'';
-   toast('Sync ya bidhaa imeshindikana'+(code?' ('+code+')':'')+(msg?' • '+msg:'')+'. Angalia RLS policy ya products.');
+   const code=e?.code?String(e.code):''; const msg=e?.message?String(e.message):'';
+   toast('Sync ya bidhaa imeshindikana'+(code?' ('+code+')':'')+(msg?' • '+msg:'')+'. Data iliyohifadhiwa inaendelea kuonekana.');
   }
   return {ok:false,error:e};
  }
@@ -574,8 +579,60 @@ async function deleteSaleFromSupabase(s){
  console.warn('Supabase sale delete failed',lastError);
  return {ok:false,error:lastError||new Error('Sale deletion failed')};
 }
-async function syncSalesFromSupabase({silent=false}={}){if(!sbClient||!authProfile)return {ok:false,skipped:true};try{const {data:remoteSales,error}=await sbClient.from('sales').select('*').order('sale_date',{ascending:false});if(error)throw error;const rs=Array.isArray(remoteSales)?remoteSales:[];const ids=rs.map(x=>x.id).filter(Boolean);let remoteItems=[];if(ids.length){const {data:ri,error:rie}=await sbClient.from('sale_items').select('*').in('sale_id',ids);if(rie)throw rie;remoteItems=Array.isArray(ri)?ri:[];}const bySale={};remoteItems.forEach(i=>(bySale[i.sale_id]??=[]).push(i));const remoteMapped=rs.map(r=>{const items=(bySale[r.id]||[]).map(i=>{const p=products.find(x=>String(x.supabaseId)===String(i.product_id));const qty=Number(i.quantity||0),price=Number(i.unit_price||0),buy=Number(i.buy_price||0);return {productId:p?.id||i.product_id,product:p?.name||'Bidhaa',qty,price,buy,lineTotal:Number(i.total??price*qty)};});const total=Number(r.total||0),subtotal=Number(r.subtotal||total),discount=Number(r.discount||0),remotePaid=Number(r.paid)!==0;return {id:r.id,items,productId:items[0]?.productId,product:items[0]?.product||'Bidhaa',qty:items[0]?.qty||0,price:items[0]?.price||0,discount,total,subtotal,profit:Number(r.profit||items.reduce((a,x)=>a+(x.price-x.buy)*x.qty,0)-discount),customer:r.customer_name||'Mteja',date:r.sale_date||r.created_at||now().toISOString(),user:r.sold_by||'Admin',paid:remotePaid,note:r.notes||'',branchId:r.branch_id||'',supabaseId:r.id,supabaseSynced:true};});const remoteIds=new Set(remoteMapped.map(r=>String(r.supabaseId??r.id)));const unsynced=sales.filter(s=>!s.supabaseSynced&&!s.supabaseId&&!remoteIds.has(String(s.id)));sales=[...remoteMapped,...unsynced].sort((a,b)=>new Date(b.date)-new Date(a.date));renderSalesHistory();if(!silent)toast('Mauzo yamesawazishwa na Supabase ✓');return {ok:true,count:remoteMapped.length};}catch(e){console.warn('Supabase sales load failed',e);if(!silent){const code=e?.code?String(e.code):'';const msg=e?.message?String(e.message):'';toast('Sync ya mauzo imeshindikana'+(code?' ('+code+')':'')+(msg?' • '+msg:'')+'. Angalia RLS ya sales/sale_items.');}return {ok:false,error:e};}}
-
+async function syncSalesFromSupabase({silent=false}={}){
+ if(!sbClient||!authProfile)return {ok:false,skipped:true};
+ try{
+  const {data:remoteSales,error}=await sbClient.from('sales').select('*').order('sale_date',{ascending:false});
+  if(error)throw error;
+  const rs=Array.isArray(remoteSales)?remoteSales:[];
+  const ids=rs.map(x=>x.id).filter(Boolean);
+  let remoteItems=[];
+  if(ids.length){
+   const {data:ri,error:rie}=await sbClient.from('sale_items').select('*').in('sale_id',ids);
+   if(rie)throw rie;
+   remoteItems=Array.isArray(ri)?ri:[];
+  }
+  const bySale={}; remoteItems.forEach(i=>(bySale[i.sale_id]??=[]).push(i));
+  const remoteMapped=rs.map(r=>{
+   const items=(bySale[r.id]||[]).map(i=>{
+    const p=products.find(x=>String(x.supabaseId)===String(i.product_id));
+    const qty=Number(i.quantity||0),price=Number(i.unit_price||0),buy=Number(i.buy_price||0);
+    return {productId:p?.id||i.product_id,product:p?.name||'Bidhaa',qty,price,buy,lineTotal:Number(i.total??price*qty)};
+   });
+   const total=Number(r.total||0),subtotal=Number(r.subtotal||total),discount=Number(r.discount||0),remotePaid=Number(r.paid)!==0;
+   return {id:r.id,items,productId:items[0]?.productId,product:items[0]?.product||'Bidhaa',qty:items[0]?.qty||0,price:items[0]?.price||0,discount,total,subtotal,profit:Number(r.profit||items.reduce((a,x)=>a+(x.price-x.buy)*x.qty,0)-discount),customer:r.customer_name||'Mteja',date:r.sale_date||r.created_at||now().toISOString(),user:r.sold_by||'Admin',paid:remotePaid,note:r.notes||'',branchId:r.branch_id||'',supabaseId:r.id,supabaseSynced:true,pendingSync:false};
+  });
+  const remoteIds=new Set(remoteMapped.map(r=>String(r.supabaseId??r.id)));
+  // Keep only sales that are still pending cloud sync when the dedicated table is temporarily empty.
+  // This prevents the 5-second realtime poll from making a newly saved sale disappear.
+  const localPending=sales.filter(s=>s?.pendingSync&&!remoteIds.has(String(s.supabaseId??s.id)));
+  if(rs.length===0 && sales.length>0){
+    for(const local of localPending.slice(0,20)){
+      const retry=await syncSaleToSupabase(local);
+      if(retry.ok) local.pendingSync=true;
+    }
+    await saveCloudState();
+    renderSalesHistory();
+    return {ok:true,count:sales.length,usedFallback:true};
+  }
+  sales=[...remoteMapped,...localPending].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  // Retry pending sales without making them disappear from the local list.
+  for(const local of localPending.slice(0,20)){
+    const retry=await syncSaleToSupabase(local);
+    if(retry.ok) local.pendingSync=true;
+  }
+  renderSalesHistory();
+  if(!silent)toast('Mauzo yamesawazishwa na Supabase ✓');
+  return {ok:true,count:remoteMapped.length};
+ }catch(e){
+  console.warn('Supabase sales load failed',e);
+  if(!silent){
+   const code=e?.code?String(e.code):''; const msg=e?.message?String(e.message):'';
+   toast('Sync ya mauzo imeshindikana'+(code?' ('+code+')':'')+(msg?' • '+msg:'')+'. Data iliyohifadhiwa inaendelea kuonekana.');
+  }
+  return {ok:false,error:e};
+ }
+}
 async function loadCloudState(){
  if(!sbClient||!authProfile)return {ok:false,skipped:true};
  try{
@@ -583,6 +640,10 @@ async function loadCloudState(){
   if(error)throw error;
   if(data?.payload&&typeof data.payload==="object"){
    const st=data.payload;
+   // Products and sales are also kept inside the authenticated Supabase app-state as a durable fallback.
+   // The dedicated products/sales tables remain the primary normalized source when available.
+   if(Array.isArray(st.products)) products=st.products;
+   if(Array.isArray(st.sales)) sales=st.sales;
    customers=Array.isArray(st.customers)?st.customers:[];
    expenses=Array.isArray(st.expenses)?st.expenses:[];
    movements=Array.isArray(st.movements)?st.movements:[];
@@ -614,7 +675,7 @@ async function loadCloudState(){
 }
 async function saveCloudState(){
  if(!sbClient||!authProfile)return {ok:false,skipped:true};
- const payload={customers,expenses,movements,notifications:notifications.slice(0,200),users,goalTarget:currentGoalTarget(),monthlyGoals,branches,activeBranch,storeName,language,fontSize};
+ const payload={products,sales,customers,expenses,movements,notifications:notifications.slice(0,200),users,goalTarget:currentGoalTarget(),monthlyGoals,branches,activeBranch,storeName,language,fontSize};
  const job=cloudSavePromise.then(async()=>{
   const {error}=await sbClient.from("mpa_app_state").upsert({scope:cloudStateScope,payload,updated_by:authProfile.id,updated_at:now().toISOString()},{onConflict:"scope"});
   if(error)throw error;return {ok:true};
@@ -870,11 +931,13 @@ async function addProduct(){
   const remote=await syncProductToSupabase(p);
   if(!remote.ok){
    p.pendingSync=true;
+   // Hifadhi pia kwenye authenticated Supabase app-state ili refresh isiiote bidhaa hii.
+   await saveCloudState();
    renderProducts();
    render();
    const msg=remote.error?.message?String(remote.error.message):"Supabase haikupokea ombi";
    const code=remote.error?.code?String(remote.error.code):"";
-   toast("Bidhaa imeonekana mara moja, lakini sync ya Supabase imeshindikana"+(code?" ["+code+"]":"")+". Tutajaribu tena.");
+   toast("Bidhaa imeonekana mara moja na imehifadhiwa kwenye mfumo wa cloud; sync ya Products itaendelea kujaribu"+(code?" ["+code+"]":"")+".");
    return {ok:true,pendingSync:true,error:remote.error}
   }
   p.pendingSync=false;
@@ -1040,7 +1103,19 @@ async function makeSale(){
   items.forEach(x=>{const p=products.find(y=>y.id===x.productId);oldQty.set(p.id,p.qty);p.qty-=x.qty;movements.unshift({id:crypto.randomUUID(),productId:p.id,type:"sale",qty:x.qty,user:currentUser(),note:"Mauzo",date:new Date(saleDate+"T12:00:00").toISOString()})});
   const order={id:crypto.randomUUID(),items,productId:items[0].productId,product:items[0].product,qty:items[0].qty,price:items[0].price,discount,total,subtotal,profit,customer,date:new Date(saleDate+"T12:00:00").toISOString(),user:currentUser(),paid:salePaid,note};order.branchId=activeBranch||"";
   const saleSync=await syncSaleToSupabase(order);
-  if(!saleSync.ok){oldQty.forEach((q,id)=>{const p=products.find(x=>x.id===id);if(p)p.qty=q});movements=movements.filter(m=>!items.some(x=>x.productId===m.productId&&m.type==="sale"&&m.note==="Mauzo"&&Math.abs(new Date(m.date)-new Date(order.date))<2000));const e=saleSync.error||{};const code=e.code?String(e.code):"ERR";const msg=e.message?String(e.message):String(e);const detail=e.details?" • "+String(e.details):"";toast("Mauzo hayajahifadhiwa ["+code+"]: "+msg+detail);return saleSync}
+  if(!saleSync.ok){
+   // Dedicated sales table ikigoma, usifute mauzo yaliyofanyika. Yahifadhi kwenye Supabase app-state
+   // kama pendingSync na yatumwe tena moja kwa moja sync ikipatikana.
+   order.pendingSync=true;
+   sales.unshift(order);
+   const fallback=await saveCloudState();
+   closeSaleEntry();saleCart=[];render();
+   notify(salePaid?"Mauzo yamelipwa":"Mauzo yamewekwa deni",customer+" • "+money(total),"sales",order.id);
+   const e=saleSync.error||{};const code=e.code?String(e.code):"ERR";const msg=e.message?String(e.message):String(e);
+   toast(fallback.ok?"Mauzo yamehifadhiwa kwenye cloud na yanasubiri sync ya Sales ✓":"Mauzo yamehifadhiwa kwenye orodha; sync ya cloud itajaribiwa tena.");
+   return {ok:true,pendingSync:true,error:e};
+  }
+  order.pendingSync=false;
   sales.unshift(order);
   const state=await saveAll({renderNow:false});
   if(!state.ok){
@@ -1092,7 +1167,7 @@ function openSaleDetails(id){
  const items=s.items||[{productId:s.productId,product:s.product,qty:s.qty||1,price:s.price||s.total,buy:0,lineTotal:(s.price||s.total)*(s.qty||1)}];
  const canDelete=(currentUserObj()?.role==="admin")||can("delete_sales");
  const html=`<div class="sale-detail">
-   <div class="sale-detail-head"><button class="sale-detail-back" onclick="closeModal('saleDetailModal')">‹</button><h2>Order #${String(s.id).slice(-8)}</h2><span class="sale-detail-date">${niceDate(s.date)}</span>${canDelete?`<button class="sale-delete-top" title="Futa Mauzo" onclick="deleteSale(${JSON.stringify(String(s.id))})">🗑️</button>`:""}</div>
+   <div class="sale-detail-head"><button class="sale-detail-back" onclick="closeModal('saleDetailModal')">‹</button><h2>Order #${String(s.id).slice(-8)}</h2><span class="sale-detail-date">${niceDate(s.date)}</span>${canDelete?`<button type="button" class="sale-delete-top" title="Futa Mauzo" onclick="event.stopPropagation();window.deleteSale(${JSON.stringify(String(s.id))})">🗑️</button>`:""}</div>
    <div class="sale-detail-card">
     <div class="sale-detail-row"><span class="sale-detail-label">Malipo</span><span class="sale-detail-value">${money(s.total)}</span></div>
     <div class="sale-detail-row"><span class="sale-detail-label">Hali</span><span class="sale-detail-value ${s.paid===false?'red':'green'}">${s.paid===false?'Haijalipwa':'Imelipwa'}</span></div>
@@ -1164,7 +1239,7 @@ function openExpenseDetails(id){
  const e=expenses.find(x=>String(x.id)===String(id));if(!e)return;
  const canDelete=(currentUserObj()?.role==="admin")||can("manage_expenses");
  const html=`<div class="expense-detail">
-   <div class="expense-detail-head"><button class="expense-detail-back" onclick="closeModal('expenseDetailModal')">‹</button><h2>Maelezo ya Matumizi</h2><span class="sale-detail-date">${niceDate(e.date)}</span>${canDelete?`<button class="expense-delete-top" title="Futa Matumizi" onclick="deleteExpense(${JSON.stringify(String(e.id))})">🗑️</button>`:""}</div>
+   <div class="expense-detail-head"><button class="expense-detail-back" onclick="closeModal('expenseDetailModal')">‹</button><h2>Maelezo ya Matumizi</h2><span class="sale-detail-date">${niceDate(e.date)}</span>${canDelete?`<button type="button" class="expense-delete-top" title="Futa Matumizi" onclick="event.stopPropagation();window.deleteExpense(${JSON.stringify(String(e.id))})">🗑️</button>`:""}</div>
    <div class="expense-detail-card">
     <div class="expense-detail-row"><span class="expense-detail-label">Aina ya Matumizi</span><span class="expense-detail-value">${esc(e.name||'Matumizi')}</span></div>
     <div class="expense-detail-row"><span class="expense-detail-label">Kiasi</span><span class="expense-detail-value">${money(e.amount)}</span></div>
