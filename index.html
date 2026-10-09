@@ -688,8 +688,10 @@ async function loadCloudState(){
 }
 async function saveCloudState(){
  if(!sbClient||!authProfile)return {ok:false,skipped:true};
- const payload={products,sales,customers,expenses,movements,notifications:notifications.slice(0,200),users,goalTarget:currentGoalTarget(),monthlyGoals,branches,activeBranch,storeName,language,fontSize,deletedSaleIds,deletedProductIds};
+ // Build the payload only when this queued write starts. Building it before
+ // the queue runs can let an older snapshot overwrite a newer delete/edit.
  const job=cloudSavePromise.then(async()=>{
+  const payload={products,sales,customers,expenses,movements,notifications:notifications.slice(0,200),users,goalTarget:currentGoalTarget(),monthlyGoals,branches,activeBranch,storeName,language,fontSize,deletedSaleIds,deletedProductIds};
   const {error}=await sbClient.from("mpa_app_state").upsert({scope:cloudStateScope,payload,updated_by:authProfile.id,updated_at:now().toISOString()},{onConflict:"scope"});
   if(error)throw error;return {ok:true};
  }).catch(e=>{console.warn("Supabase app state save failed",e);toast("Sync ya taarifa za ziada imeshindikana; bidhaa na mauzo ya Supabase hazijafutwa.");return {ok:false,error:e};});
@@ -1384,7 +1386,7 @@ function startSupabaseRealtime(){
 }
 
 function render(){
- const u=currentUserObj();document.getElementById("roleText").textContent=u.role==="admin"?"Admin":"User";document.getElementById("userText").textContent=u.username;document.getElementById("settingsUser").textContent=u.username;document.getElementById("storeNameInput")&&(document.getElementById("storeNameInput").value=storeName);renderBranches();setLanguage(language,{persist:false});applyLanguage();
+ const u=currentUserObj();const roleEl=document.getElementById("roleText");if(roleEl)roleEl.textContent=u.role==="admin"?"Admin":"User";const userEl=document.getElementById("userText");if(userEl)userEl.textContent=u.username;const settingsUserEl=document.getElementById("settingsUser");if(settingsUserEl)settingsUserEl.textContent=u.username;const storeNameEl=document.getElementById("storeNameInput");if(storeNameEl)storeNameEl.value=storeName;renderBranches();setLanguage(language,{persist:false});applyLanguage();
  document.documentElement.lang=language;document.getElementById("langSw")?.classList.toggle("active",language==='sw');document.getElementById("langEn")?.classList.toggle("active",language==='en');applyLanguage();refreshCategories();renderProducts();updateSaleProducts();calculateSale();renderSalesHistory();renderLists();renderNotifications();renderMovements();renderUsers();if(document.getElementById("userDetail")?.classList.contains("active"))renderUserDetail();updateNotifDot();if(["reports","analyticsSales","analyticsProfit","analyticsProducts","analyticsExpenses","analyticsCustomers"].some(id=>document.getElementById(id)?.classList.contains("active")))initAnalytics();applyFontSize();
  const today=dateKey(now());const ts=sales.filter(s=>dateKey(s.date)===today);const salesToday=ts.reduce((a,s)=>a+s.total,0),profitToday=ts.reduce((a,s)=>a+s.profit,0);
  const all=sales.reduce((a,s)=>a+s.total,0),profit=sales.reduce((a,s)=>a+s.profit,0),ex=expenses.reduce((a,e)=>a+e.amount,0),units=products.reduce((a,p)=>a+p.qty,0);
