@@ -1209,10 +1209,13 @@ async function deleteSale(id){
   if(!confirm('Futa Mauzo Haya?\n\nStock ya bidhaa zilizouzwa itarudishwa. Takwimu za mauzo pia zitapungua.'))return {ok:false,cancelled:true};
   const del=await deleteSaleFromSupabase(s);if(!del.ok){toast('Mauzo hayajafutwa. Supabase haikupokea ombi.');return del}
   for(const i of items){const p=products.find(x=>String(x.id)===String(i.productId));if(p){p.qty+=Number(i.qty||0);movements.unshift({id:crypto.randomUUID(),productId:p.id,type:'add',qty:Number(i.qty||0),user:currentUser(),note:'Stock imerudishwa baada ya kufuta mauzo',date:now().toISOString()});await syncProductToSupabase(p)}}
-  sales=sales.filter(x=>String(x.id)!==String(id));
-  deletedSaleIds=[...new Set([...deletedSaleIds,String(s.supabaseId||s.id)])];
+  const deletedKey=String(s.supabaseId||s.id);
+  sales=sales.filter(x=>String(x.id)!==String(id)&&String(x.supabaseId||x.id)!==deletedKey);
+  deletedSaleIds=[...new Set([...deletedSaleIds,deletedKey,String(id)])];
   const state=await saveAll({renderNow:false});
-  closeModal('saleDetailModal');renderSalesHistory();renderProducts();render();notify('Mauzo yamefutwa','Order #'+String(s.id).slice(-8)+' • Stock imerudishwa','sales',null);toast('Mauzo yamefutwa na stock imerudishwa ✓');return state;
+  closeModal('saleDetailModal');renderSalesHistory();renderProducts();render();
+  if(!state?.ok){toast('Mauzo yameondolewa kwenye skrini, lakini Supabase haijathibitisha kuhifadhi ufutaji. Angalia ruhusa/RLS.');return state}
+  notify('Mauzo yamefutwa','Order #'+String(s.id).slice(-8)+' • Stock imerudishwa','sales',null);toast('Mauzo yamefutwa na mabadiliko yamehifadhiwa ✓');return state;
  });
 }
 
@@ -1230,7 +1233,7 @@ async function deleteTodaySales(){
   if(!confirm("Futa mauzo yote ya leo? Stock itarudishwa."))return {ok:false,cancelled:true};
   for(const s of todays){const r=await deleteSaleFromSupabase(s);if(!r.ok){toast("Mauzo hayajafutwa. Supabase haikupokea ombi.");return r}}
   for(const s of todays){for(const i of(s.items||[{productId:s.productId,qty:s.qty}])){const p=products.find(x=>String(x.id)===String(i.productId));if(p){p.qty+=Number(i.qty||0);movements.unshift({id:crypto.randomUUID(),productId:p.id,type:"add",qty:Number(i.qty||0),user:currentUser(),note:"Stock imerudishwa baada ya kufuta mauzo",date:now().toISOString()});await syncProductToSupabase(p)}}}
-  sales=sales.filter(s=>dateKey(s.date)!==today);const state=await saveAll({renderNow:false});renderSalesHistory();renderProducts();render();notify("Mauzo ya leo yamefutwa","Stock imerudishwa kwenye bidhaa husika.","sales",null);toast("Mauzo ya leo yamefutwa ✓");return state;
+  const deletedKeys=todays.flatMap(s=>[String(s.supabaseId||s.id),String(s.id)]);deletedSaleIds=[...new Set([...deletedSaleIds,...deletedKeys])];sales=sales.filter(s=>dateKey(s.date)!==today&&!deletedKeys.includes(String(s.supabaseId||s.id))&&!deletedKeys.includes(String(s.id)));const state=await saveAll({renderNow:false});renderSalesHistory();renderProducts();render();if(!state?.ok){toast("Mauzo yameondolewa kwenye skrini, lakini Supabase haijathibitisha kuhifadhi ufutaji. Angalia ruhusa/RLS.");return state}notify("Mauzo ya leo yamefutwa","Stock imerudishwa kwenye bidhaa husika.","sales",null);toast("Mauzo ya leo yamefutwa na kuhifadhiwa ✓");return state;
  });
 }
 
@@ -1337,7 +1340,7 @@ async function enableBiometric(){
 function setFontSize(v){const n=Math.max(85,Math.min(120,Number(v)||100));fontSize=n;document.documentElement.style.setProperty("--fontScale",n/100);const r=document.getElementById("fontSizeRange");if(r)r.value=n;const l=document.getElementById("fontSizeLabel");if(l)l.textContent=n+"%"}
 function changeFontSize(step){const n=Number(fontSize||100)+step*5;setFontSize(n);saveCloudState()}
 function applyFontSize(){setFontSize(Number(fontSize||100))}
-function setLanguage(lang,{persist=true}={}){language=lang;if(persist)saveCloudState();document.documentElement.lang=lang;document.getElementById("langSw")?.classList.toggle("active",lang==='sw');document.getElementById("langEn")?.classList.toggle("active",lang==='en');toast(lang==='sw'?"Kiswahili kimechaguliwa ✓":"English selected ✓"); if(typeof notify==="function") notify("Lugha imebadilishwa",lang==='sw'?"Kiswahili":"English","settings",null) }
+function setLanguage(lang,{persist=true}={}){const next=lang==='en'?'en':'sw';const changed=language!==next;language=next;if(persist&&changed)saveCloudState();document.documentElement.lang=next;document.getElementById("langSw")?.classList.toggle("active",next==='sw');document.getElementById("langEn")?.classList.toggle("active",next==='en');if(changed&&persist){toast(next==='sw'?"Kiswahili kimechaguliwa ✓":"English selected ✓");if(typeof notify==="function")notify("Lugha imebadilishwa",next==='sw'?"Kiswahili":"English","settings",null)}}
 function saveStore(){if(!can("manage_settings")){toast("Admin/ruhusa inahitajika.");return}storeName=document.getElementById("storeNameInput").value.trim()||"Micky Phone Accessories";saveCloudState();document.querySelector('.brandtext b').textContent=storeName;notify("Jina la store limebadilishwa",storeName,"settings",null)}
 function addBranch(){if(!can("manage_branches")){toast("Huna ruhusa ya kuongeza branch.");return}const n=document.getElementById("branchName").value.trim();if(!n){toast("Andika jina la branch.");return}branches.push({id:Date.now(),name:n});document.getElementById("branchName").value="";saveAll();notify("Branch imeongezwa",n,"settings",null)}
 function renderBranches(){const el=document.getElementById("branchList");if(!el)return;el.innerHTML=branches.length?branches.map(b=>`<div class="branchitem row"><b>🏪 ${esc(b.name)}</b><button class="btn small red" onclick="deleteBranch(${b.id})">Futa</button></div>`).join(""):"<div class='muted' style='margin-top:8px'>Hakuna branch bado.</div>";const s=document.getElementById("activeBranchSelect");if(s){s.innerHTML='<option value="">Main Store</option>'+branches.map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join("");s.value=activeBranch}}

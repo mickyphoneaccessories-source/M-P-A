@@ -1,4 +1,4 @@
-const CACHE="mpa-final-v30-fix-20261009-1";
+const CACHE="mpa-final-v31-fix-language-delete-20261009-1";
 const ASSETS=["./","./index.html","./logo.png","./icon.svg","./manifest.webmanifest","./service-worker.js"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));
