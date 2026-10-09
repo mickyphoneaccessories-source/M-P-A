@@ -1216,7 +1216,15 @@ async function deleteSale(id){
   const state=await saveAll({renderNow:false});
   closeModal('saleDetailModal');renderSalesHistory();renderProducts();render();
   if(!state?.ok){toast('Mauzo yameondolewa kwenye skrini, lakini Supabase haijathibitisha kuhifadhi ufutaji. Angalia ruhusa/RLS.');return state}
-  notify('Mauzo yamefutwa','Order #'+String(s.id).slice(-8)+' • Stock imerudishwa','sales',null);toast('Mauzo yamefutwa na mabadiliko yamehifadhiwa ✓');return state;
+  // Verify the deletion marker on a fresh read so an old app-state snapshot cannot silently restore the sale.
+  const verify=await sbClient.from('mpa_app_state').select('payload').eq('scope',cloudStateScope).maybeSingle();
+  const persistedIds=Array.isArray(verify.data?.payload?.deletedSaleIds)?verify.data.payload.deletedSaleIds.map(String):[];
+  if(verify.error||!persistedIds.includes(deletedKey)||!persistedIds.includes(String(id))){
+   console.warn('Sale deletion marker verification failed',verify.error);
+   toast('Mauzo yameondolewa kwenye skrini, lakini Supabase haijathibitisha ufutaji. Usifute tena; tutakagua ruhusa/RLS.');
+   return {ok:false,error:verify.error||new Error('Sale deletion marker was not persisted')};
+  }
+  notify('Mauzo yamefutwa','Order #'+String(s.id).slice(-8)+' • Stock imerudishwa','sales',null);toast('Mauzo yamefutwa na Supabase imethibitisha ✓');return state;
  });
 }
 
@@ -1234,7 +1242,7 @@ async function deleteTodaySales(){
   if(!confirm("Futa mauzo yote ya leo? Stock itarudishwa."))return {ok:false,cancelled:true};
   for(const s of todays){const r=await deleteSaleFromSupabase(s);if(!r.ok){toast("Mauzo hayajafutwa. Supabase haikupokea ombi.");return r}}
   for(const s of todays){for(const i of(s.items||[{productId:s.productId,qty:s.qty}])){const p=products.find(x=>String(x.id)===String(i.productId));if(p){p.qty+=Number(i.qty||0);movements.unshift({id:crypto.randomUUID(),productId:p.id,type:"add",qty:Number(i.qty||0),user:currentUser(),note:"Stock imerudishwa baada ya kufuta mauzo",date:now().toISOString()});await syncProductToSupabase(p)}}}
-  const deletedKeys=todays.flatMap(s=>[String(s.supabaseId||s.id),String(s.id)]);deletedSaleIds=[...new Set([...deletedSaleIds,...deletedKeys])];sales=sales.filter(s=>dateKey(s.date)!==today&&!deletedKeys.includes(String(s.supabaseId||s.id))&&!deletedKeys.includes(String(s.id)));const state=await saveAll({renderNow:false});renderSalesHistory();renderProducts();render();if(!state?.ok){toast("Mauzo yameondolewa kwenye skrini, lakini Supabase haijathibitisha kuhifadhi ufutaji. Angalia ruhusa/RLS.");return state}notify("Mauzo ya leo yamefutwa","Stock imerudishwa kwenye bidhaa husika.","sales",null);toast("Mauzo ya leo yamefutwa na kuhifadhiwa ✓");return state;
+  const deletedKeys=todays.flatMap(s=>[String(s.supabaseId||s.id),String(s.id)]);deletedSaleIds=[...new Set([...deletedSaleIds,...deletedKeys])];sales=sales.filter(s=>dateKey(s.date)!==today&&!deletedKeys.includes(String(s.supabaseId||s.id))&&!deletedKeys.includes(String(s.id)));const state=await saveAll({renderNow:false});renderSalesHistory();renderProducts();render();if(!state?.ok){toast("Mauzo yameondolewa kwenye skrini, lakini Supabase haijathibitisha kuhifadhi ufutaji. Angalia ruhusa/RLS.");return state}const verify=await sbClient.from('mpa_app_state').select('payload').eq('scope',cloudStateScope).maybeSingle();const persistedIds=Array.isArray(verify.data?.payload?.deletedSaleIds)?verify.data.payload.deletedSaleIds.map(String):[];if(verify.error||deletedKeys.some(k=>!persistedIds.includes(k))){toast("Supabase haijathibitisha kuhifadhi ufutaji wa mauzo yote ya leo. Angalia ruhusa/RLS.");return {ok:false,error:verify.error||new Error('One or more sale deletion markers were not persisted')}}notify("Mauzo ya leo yamefutwa","Stock imerudishwa kwenye bidhaa husika.","sales",null);toast("Mauzo ya leo yamefutwa na Supabase imethibitisha ✓");return state;
  });
 }
 
