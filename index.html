@@ -462,7 +462,7 @@ function monthKey(d=now()){const x=new Date(d);return `${x.getFullYear()}-${Stri
 function monthLabel(d=now()){return new Date(d).toLocaleDateString("sw-TZ",{month:"long"});}
 function currentGoalTarget(){const k=monthKey();const v=Number(monthlyGoals?.[k]);return v>0?v:10000000;}
 let users=[];
-let cloudStateLoaded=false, cloudSavePromise=Promise.resolve(), cloudStateScope="MICKY-MPA-MAIN", deletedSaleIds=[], deletedProductIds=[], deletedExpenseIds=[];
+let cloudStateLoaded=false, cloudSavePromise=Promise.resolve(), cloudStateScope="MICKY-MPA-MAIN", deletedSaleIds=[], deletedExpenseIds=[], deletedProductIds=[];
 const DEFAULT_USERS=[
  {id:crypto.randomUUID(),username:"admin",password:"1234",role:"admin",permissions:["all"],active:true},
  {id:crypto.randomUUID(),username:"user",password:"1234",role:"user",permissions:["view_products","sell","add_stock","remove_stock","view_sales","view_reports","view_expenses","manage_expenses","view_expense_history"],active:true}
@@ -654,9 +654,9 @@ async function loadCloudState(){
    // Products and sales are also kept inside the authenticated Supabase app-state as a durable fallback.
    // The dedicated products/sales tables remain the primary normalized source when available.
    deletedSaleIds=Array.isArray(st.deletedSaleIds)?st.deletedSaleIds.map(String):[];
-   deletedProductIds=Array.isArray(st.deletedProductIds)?st.deletedProductIds.map(String):[];
    deletedExpenseIds=Array.isArray(st.deletedExpenseIds)?st.deletedExpenseIds.map(String):[];
-   if(Array.isArray(st.sales)) sales=st.sales.filter(x=>!deletedSaleIds.includes(String(x.id||x.supabaseId)));
+   deletedProductIds=Array.isArray(st.deletedProductIds)?st.deletedProductIds.map(String):[];
+   if(Array.isArray(st.sales)) sales=st.sales.filter(x=>!deletedSaleIds.includes(String(x.id))&&!deletedSaleIds.includes(String(x.supabaseId)));
    if(Array.isArray(st.products)) products=st.products.filter(x=>!deletedProductIds.includes(String(x.id||x.supabaseId)));
    customers=Array.isArray(st.customers)?st.customers:[];
    expenses=Array.isArray(st.expenses)?st.expenses.filter(x=>!deletedExpenseIds.includes(String(x.id))):[];
@@ -692,7 +692,7 @@ async function saveCloudState(){
  // Build the payload only when this queued write starts. Building it before
  // the queue runs can let an older snapshot overwrite a newer delete/edit.
  const job=cloudSavePromise.then(async()=>{
-  const payload={products,sales,customers,expenses,movements,notifications:notifications.slice(0,200),users,goalTarget:currentGoalTarget(),monthlyGoals,branches,activeBranch,storeName,language,fontSize,deletedSaleIds,deletedProductIds,deletedExpenseIds};
+  const payload={products,sales,customers,expenses,movements,notifications:notifications.slice(0,200),users,goalTarget:currentGoalTarget(),monthlyGoals,branches,activeBranch,storeName,language,fontSize,deletedSaleIds,deletedExpenseIds,deletedProductIds};
   const {error}=await sbClient.from("mpa_app_state").upsert({scope:cloudStateScope,payload,updated_by:authProfile.id,updated_at:now().toISOString()},{onConflict:"scope"});
   if(error)throw error;return {ok:true};
  }).catch(e=>{console.warn("Supabase app state save failed",e);const code=e?.code?" ("+String(e.code)+")":"";const detail=e?.message?" • "+String(e.message):"";toast("Sync ya taarifa za ziada imeshindikana"+code+detail+". Data ya Supabase haijathibitishwa kuwa imesasishwa.");return {ok:false,error:e};});
@@ -1282,10 +1282,15 @@ async function deleteExpense(id){
   if(!(currentUserObj()?.role==="admin")&&!can('manage_expenses')){toast('Huna ruhusa ya kufuta matumizi.');return {ok:false}}
   const e=expenses.find(x=>String(x.id)===String(id));if(!e)return {ok:false};
   if(!confirm('Futa matumizi haya?\\n\\n'+(e.name||'Matumizi')+' — '+money(e.amount)))return {ok:false,cancelled:true};
-  const before=[...expenses],beforeDeleted=[...deletedExpenseIds];expenses=expenses.filter(x=>String(x.id)!==String(id));deletedExpenseIds=[...new Set([...deletedExpenseIds,String(id)])];
+  const before=[...expenses],beforeDeleted=[...deletedExpenseIds];
+  expenses=expenses.filter(x=>String(x.id)!==String(id));
+  deletedExpenseIds=[...new Set([...deletedExpenseIds,String(e.id)])];
   const state=await saveCloudState();
-  if(!state.ok){expenses=before;deletedExpenseIds=beforeDeleted;toast('Matumizi hayajafutwa. Hifadhi ya mfumo haikupokea ombi.');return state}
-  closeModal('expenseDetailModal');render();notify('Matumizi yamefutwa',(e.name||'Matumizi')+' • '+money(e.amount),'expenses',null);toast('Matumizi yamefutwa ✓');return {ok:true};
+  if(!state.ok){expenses=before;deletedExpenseIds=beforeDeleted;toast('Matumizi hayajafutwa. Supabase haijathibitisha kuhifadhi ufutaji.');return state}
+  // Confirm the saved tombstone survived a fresh read before reporting success.
+  const verify=await sbClient.from('mpa_app_state').select('payload').eq('scope',cloudStateScope).maybeSingle();
+  if(verify.error||!Array.isArray(verify.data?.payload?.deletedExpenseIds)||!verify.data.payload.deletedExpenseIds.map(String).includes(String(e.id))){expenses=before;deletedExpenseIds=beforeDeleted;toast('Supabase haijathibitisha ufutaji wa matumizi. Tafadhali angalia RLS ya mpa_app_state.');return {ok:false,error:verify.error||new Error('Expense deletion tombstone was not persisted')}}
+  closeModal('expenseDetailModal');render();notify('Matumizi yamefutwa',(e.name||'Matumizi')+' • '+money(e.amount),'expenses',null);toast('Matumizi yamefutwa na kuhifadhiwa ✓');return {ok:true};
  });
 }
 
