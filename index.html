@@ -518,7 +518,10 @@ async function syncProductsFromSupabase({silent=false}={}){
     render();
     return {ok:true,count:products.length,usedFallback:true};
   }
-  const remoteProducts=rows.map(applyRemoteProduct).filter(x=>!deletedProductIds.includes(String(x.id)));
+  // Records present in the authoritative products table must remain visible. A stale deletedProductIds tombstone in app-state must never hide a real database row.
+  const remoteProducts=rows.map(applyRemoteProduct);
+  const remoteIdSet=new Set(remoteProducts.map(x=>String(x.id)));
+  deletedProductIds=deletedProductIds.filter(id=>!remoteIdSet.has(String(id)));
   const mergedProducts=[...remoteProducts];
   for(const local of products){
     const key=String(local.supabaseId||local.id);
@@ -545,7 +548,21 @@ async function syncProductsFromSupabase({silent=false}={}){
   return {ok:false,error:e};
  }
 }
-async function deleteProductFromSupabase(p){if(!sbClient||!authProfile||!p?.supabaseId)return {ok:true,skipped:true};try{const {error}=await sbClient.from('products').delete().eq('id',p.supabaseId);if(error)throw error;return {ok:true};}catch(e){console.warn('Supabase product delete failed',e);return {ok:false,error:e};}}
+async function deleteProductFromSupabase(p){
+ if(!sbClient||!authProfile)return {ok:false,error:new Error('Supabase session haipo.')};
+ const productId=String(p?.supabaseId||p?.id||'');
+ if(!productId)return {ok:false,error:new Error('Bidhaa haina ID ya Supabase.')};
+ try{
+  const {data,error}=await sbClient.from('products').delete().eq('id',productId).select('id');
+  if(error)throw error;
+  if(!Array.isArray(data)||data.length===0){
+   const check=await sbClient.from('products').select('id').eq('id',productId).maybeSingle();
+   if(check.error)throw check.error;
+   if(check.data)throw new Error('Supabase haikufuta bidhaa. Angalia RLS policy ya DELETE kwenye products.');
+  }
+  return {ok:true};
+ }catch(e){console.warn('Supabase product delete failed',e);return {ok:false,error:e};}
+}
 
 // ===== SUPABASE SALES SYNC (M-P-A V19) =====
 function supabaseSaleRow(s){
@@ -950,7 +967,7 @@ async function addProduct(){
 
 function editProduct(id){
  if(!can("edit_products")){toast("Huna ruhusa ya ku-edit bidhaa.");return}
- const p=products.find(x=>x.id===id);if(!p)return;
+ const p=products.find(x=>String(x.id)===String(id)||String(x.supabaseId)===String(id));if(!p){toast('Bidhaa haijapatikana kwenye orodha. Jaribu kusawazisha bidhaa.');return;}
  selectedStockId=id;selectedImage=p.image||"";document.getElementById("productModalTitle").textContent="Edit Bidhaa";document.getElementById("imagePreview").src=selectedImage||"";
  document.getElementById("pName").value=p.name||"";document.getElementById("pCategory").value=p.category||"";document.getElementById("pBuy").value=Number(p.buy||0).toLocaleString("en-US");document.getElementById("pPrice").value=Number(p.price||0).toLocaleString("en-US");document.getElementById("pQty").value=p.qty||0;
  document.getElementById("pBuy").dataset.real="";document.getElementById("pPrice").dataset.real="";document.getElementById("pBuy").dataset.hidden="0";document.getElementById("pPrice").dataset.hidden="0";
@@ -960,7 +977,7 @@ function editProduct(id){
 }
 async function updateProduct(){
  return runOnce("product-save",async()=>{
-  const p=products.find(x=>x.id===selectedStockId);if(!p)return {ok:false};
+  const p=products.find(x=>String(x.id)===String(selectedStockId)||String(x.supabaseId)===String(selectedStockId));if(!p){toast('Bidhaa haijapatikana. Funga dirisha na ujaribu tena.');return {ok:false};}
   const before=JSON.parse(JSON.stringify(p));const oldQty=p.qty;const name=document.getElementById("pName").value.trim();const qty=Number(document.getElementById("pQty").value||0);if(!name||qty<0){toast("Jaza taarifa sahihi.");return {ok:false}}
   p.name=name;p.category=document.getElementById("pCategory").value.trim();p.code="";p.buy=getPriceValue("pBuy");p.price=getPriceValue("pPrice");p.qty=qty;p.image=selectedImage||p.image||"";p.updatedAt=now().toISOString();
   if(qty!==oldQty)movements.unshift({id:crypto.randomUUID(),productId:p.id,type:qty>oldQty?"add":"remove",qty:Math.abs(qty-oldQty),user:currentUser(),note:"Edit bidhaa / stock",date:now().toISOString()});
@@ -976,9 +993,9 @@ function resetProductModalButton(){const b=document.querySelector("#productModal
 async function deleteProduct(id){
  return runOnce("product-delete",async()=>{
   if(!can("delete_products")){toast("Huna ruhusa ya kufuta bidhaa.");return {ok:false}}
-  const p=products.find(x=>x.id===id);if(!p)return {ok:false};if(!confirm("Futa bidhaa "+p.name+"?"))return {ok:false,cancelled:true};
-  const remote=await deleteProductFromSupabase(p);if(!remote.ok){toast("Bidhaa haijafutwa. Supabase haikupokea ombi.");return remote}
-  products=products.filter(x=>x.id!==id); deletedProductIds=[...new Set([...deletedProductIds,String(p.supabaseId||p.id)])];movements=movements.filter(m=>m.productId!==id);
+  const p=products.find(x=>String(x.id)===String(id)||String(x.supabaseId)===String(id));if(!p){toast('Bidhaa haijapatikana kwenye orodha.');return {ok:false}}if(!confirm("Futa bidhaa "+p.name+"?"))return {ok:false,cancelled:true};
+  const remote=await deleteProductFromSupabase(p);if(!remote.ok){toast("Bidhaa haijafutwa: "+String(remote.error?.message||"Supabase haikupokea ombi."));return remote}
+  products=products.filter(x=>String(x.id)!==String(p.id)&&String(x.supabaseId)!==String(p.supabaseId||p.id)); deletedProductIds=[...new Set([...deletedProductIds,String(p.supabaseId||p.id)])];movements=movements.filter(m=>String(m.productId)!==String(p.id));
   const state=await saveAll({renderNow:false});if(!state.ok){toast("Bidhaa imefutwa Supabase lakini hali ya mfumo haikusasishwa.");}
   notify("Bidhaa imefutwa",p.name,"products",null);render();return {ok:true};
  });
@@ -1023,7 +1040,7 @@ function renderProducts(){
  arr=arr.filter(p=>productTab==="in"?p.qty>0:productTab==="low"?p.qty>0&&p.qty<=3:p.qty<=0);
  arr.sort((a,b)=>sort==="stock"?b.qty-a.qty:sort==="price"?b.price-a.price:a.name.localeCompare(b.name));
  const list=document.getElementById("productList");
- list.innerHTML=arr.length?arr.map(p=>`<div class="productrow" data-product-id="${p.id}" onclick="openStock(${JSON.stringify(p.id)})"><img class="pimg" src="${p.image||'icon.svg'}" alt=""><div class="pinfo"><b>${esc(p.name)}</b><small>${p.qty} in stock${p.category?" • "+esc(p.category):""}</small></div><div class="pprice"><b>${Number(p.price||0).toLocaleString("en-US")}</b><small>TZS</small><div style="margin-top:6px;display:flex;gap:5px;justify-content:flex-end" onclick="event.stopPropagation()"><button class="btn small" onclick="editProduct(${JSON.stringify(p.id)})">Edit</button>${can("delete_products")?`<button class="btn small red" onclick="deleteProduct(${JSON.stringify(p.id)})">Futa</button>`:""}</div></div></div>`).join(""):"<div class='empty'>Hakuna bidhaa kwenye kundi hili.</div>";
+ list.innerHTML=arr.length?arr.map(p=>`<div class="productrow" data-product-id="${p.id}" onclick="openStock(${JSON.stringify(p.id)})"><img class="pimg" src="${p.image||'icon.svg'}" alt=""><div class="pinfo"><b>${esc(p.name)}</b><small>${p.qty} in stock${p.category?" • "+esc(p.category):""}</small></div><div class="pprice"><b>${Number(p.price||0).toLocaleString("en-US")}</b><small>TZS</small><div style="margin-top:6px;display:flex;gap:5px;justify-content:flex-end" onclick="event.stopPropagation()"><button type="button" class="btn small" onclick="event.preventDefault();event.stopPropagation();editProduct(this.closest('[data-product-id]').dataset.productId)">Edit</button>${can("delete_products")?`<button type="button" class="btn small red" onclick="event.preventDefault();event.stopPropagation();deleteProduct(this.closest('[data-product-id]').dataset.productId)">Futa</button>`:""}</div></div></div>`).join(""):"<div class='empty'>Hakuna bidhaa kwenye kundi hili.</div>";
  document.getElementById("sumProducts").textContent=products.length;document.getElementById("sumBuy").textContent=money(products.reduce((a,p)=>a+p.buy*p.qty,0));document.getElementById("sumSell").textContent=money(products.reduce((a,p)=>a+p.price*p.qty,0));
 }
 function toggleProductFilter(){document.getElementById("productFilter").classList.toggle("hidden")}

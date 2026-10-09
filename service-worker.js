@@ -1,4 +1,4 @@
-const CACHE="mpa-final-v29-20261008";
+const CACHE="mpa-final-v30-20261009";
 const ASSETS=["./","./index.html","./logo.png","./icon.svg","./manifest.webmanifest","./service-worker.js"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));
