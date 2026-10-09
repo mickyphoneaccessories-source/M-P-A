@@ -462,7 +462,7 @@ function monthKey(d=now()){const x=new Date(d);return `${x.getFullYear()}-${Stri
 function monthLabel(d=now()){return new Date(d).toLocaleDateString("sw-TZ",{month:"long"});}
 function currentGoalTarget(){const k=monthKey();const v=Number(monthlyGoals?.[k]);return v>0?v:10000000;}
 let users=[];
-let cloudStateLoaded=false, cloudSavePromise=Promise.resolve(), cloudStateScope="MICKY-MPA-MAIN", deletedSaleIds=[], deletedProductIds=[];
+let cloudStateLoaded=false, cloudSavePromise=Promise.resolve(), cloudStateScope="MICKY-MPA-MAIN", deletedSaleIds=[], deletedProductIds=[], deletedExpenseIds=[];
 const DEFAULT_USERS=[
  {id:crypto.randomUUID(),username:"admin",password:"1234",role:"admin",permissions:["all"],active:true},
  {id:crypto.randomUUID(),username:"user",password:"1234",role:"user",permissions:["view_products","sell","add_stock","remove_stock","view_sales","view_reports","view_expenses","manage_expenses","view_expense_history"],active:true}
@@ -655,10 +655,11 @@ async function loadCloudState(){
    // The dedicated products/sales tables remain the primary normalized source when available.
    deletedSaleIds=Array.isArray(st.deletedSaleIds)?st.deletedSaleIds.map(String):[];
    deletedProductIds=Array.isArray(st.deletedProductIds)?st.deletedProductIds.map(String):[];
+   deletedExpenseIds=Array.isArray(st.deletedExpenseIds)?st.deletedExpenseIds.map(String):[];
    if(Array.isArray(st.sales)) sales=st.sales.filter(x=>!deletedSaleIds.includes(String(x.id||x.supabaseId)));
    if(Array.isArray(st.products)) products=st.products.filter(x=>!deletedProductIds.includes(String(x.id||x.supabaseId)));
    customers=Array.isArray(st.customers)?st.customers:[];
-   expenses=Array.isArray(st.expenses)?st.expenses:[];
+   expenses=Array.isArray(st.expenses)?st.expenses.filter(x=>!deletedExpenseIds.includes(String(x.id))):[];
    movements=Array.isArray(st.movements)?st.movements:[];
    notifications=Array.isArray(st.notifications)?st.notifications:[];
    branches=Array.isArray(st.branches)?st.branches:[];
@@ -691,7 +692,7 @@ async function saveCloudState(){
  // Build the payload only when this queued write starts. Building it before
  // the queue runs can let an older snapshot overwrite a newer delete/edit.
  const job=cloudSavePromise.then(async()=>{
-  const payload={products,sales,customers,expenses,movements,notifications:notifications.slice(0,200),users,goalTarget:currentGoalTarget(),monthlyGoals,branches,activeBranch,storeName,language,fontSize,deletedSaleIds,deletedProductIds};
+  const payload={products,sales,customers,expenses,movements,notifications:notifications.slice(0,200),users,goalTarget:currentGoalTarget(),monthlyGoals,branches,activeBranch,storeName,language,fontSize,deletedSaleIds,deletedProductIds,deletedExpenseIds};
   const {error}=await sbClient.from("mpa_app_state").upsert({scope:cloudStateScope,payload,updated_by:authProfile.id,updated_at:now().toISOString()},{onConflict:"scope"});
   if(error)throw error;return {ok:true};
  }).catch(e=>{console.warn("Supabase app state save failed",e);const code=e?.code?" ("+String(e.code)+")":"";const detail=e?.message?" • "+String(e.message):"";toast("Sync ya taarifa za ziada imeshindikana"+code+detail+". Data ya Supabase haijathibitishwa kuwa imesasishwa.");return {ok:false,error:e};});
@@ -1281,9 +1282,9 @@ async function deleteExpense(id){
   if(!(currentUserObj()?.role==="admin")&&!can('manage_expenses')){toast('Huna ruhusa ya kufuta matumizi.');return {ok:false}}
   const e=expenses.find(x=>String(x.id)===String(id));if(!e)return {ok:false};
   if(!confirm('Futa matumizi haya?\\n\\n'+(e.name||'Matumizi')+' — '+money(e.amount)))return {ok:false,cancelled:true};
-  const before=[...expenses];expenses=expenses.filter(x=>String(x.id)!==String(id));
+  const before=[...expenses],beforeDeleted=[...deletedExpenseIds];expenses=expenses.filter(x=>String(x.id)!==String(id));deletedExpenseIds=[...new Set([...deletedExpenseIds,String(id)])];
   const state=await saveCloudState();
-  if(!state.ok){expenses=before;toast('Matumizi hayajafutwa. Hifadhi ya mfumo haikupokea ombi.');return state}
+  if(!state.ok){expenses=before;deletedExpenseIds=beforeDeleted;toast('Matumizi hayajafutwa. Hifadhi ya mfumo haikupokea ombi.');return state}
   closeModal('expenseDetailModal');render();notify('Matumizi yamefutwa',(e.name||'Matumizi')+' • '+money(e.amount),'expenses',null);toast('Matumizi yamefutwa ✓');return {ok:true};
  });
 }
@@ -1394,7 +1395,7 @@ function render(){
  const today=dateKey(now());const ts=sales.filter(s=>dateKey(s.date)===today);const salesToday=ts.reduce((a,s)=>a+s.total,0),profitToday=ts.reduce((a,s)=>a+s.profit,0);
  const all=sales.reduce((a,s)=>a+s.total,0),profit=sales.reduce((a,s)=>a+s.profit,0),ex=expenses.reduce((a,e)=>a+e.amount,0),units=products.reduce((a,p)=>a+p.qty,0);
  document.getElementById("todaySales").textContent=money(salesToday);document.getElementById("todayProfit").textContent=money(profitToday);document.getElementById("productCount").textContent=products.length;document.getElementById("stockUnits").textContent=units;
- document.getElementById("allSales").textContent=money(all);document.getElementById("allProfit").textContent=money(profit);document.getElementById("allExpenses").textContent=money(ex);document.getElementById("netProfit").textContent=money(profit-ex);
+ const allSalesEl=document.getElementById("allSales"),allProfitEl=document.getElementById("allProfit"),allExpensesEl=document.getElementById("allExpenses"),netProfitEl=document.getElementById("netProfit");if(allSalesEl)allSalesEl.textContent=money(all);if(allProfitEl)allProfitEl.textContent=money(profit);if(allExpensesEl)allExpensesEl.textContent=money(ex);if(netProfitEl)netProfitEl.textContent=money(profit-ex);
  const dnow=now(),daysInMonth=new Date(dnow.getFullYear(),dnow.getMonth()+1,0).getDate(),daysLeft=Math.max(1,daysInMonth-dnow.getDate()),monthStart=new Date(dnow.getFullYear(),dnow.getMonth(),1),monthSalesTotal=sales.filter(x=>{const d=new Date(x.date);return d>=monthStart&&d<new Date(dnow.getFullYear(),dnow.getMonth()+1,1)}).reduce((a,x)=>a+Number(x.total||0),0),target=currentGoalTarget(),pct=Math.min(100,Math.round(monthSalesTotal/target*100)),remaining=Math.max(0,target-monthSalesTotal),dailyNeed=Math.ceil(remaining/daysLeft);const prevStart=new Date(dnow.getFullYear(),dnow.getMonth()-1,1),prevEnd=new Date(dnow.getFullYear(),dnow.getMonth(),1),prevMonth=sales.filter(x=>{const d=new Date(x.date);return d>=prevStart&&d<prevEnd}).reduce((a,x)=>a+Number(x.total||0),0),compare=prevMonth?Math.round((monthSalesTotal-prevMonth)/prevMonth*100):0;document.getElementById("goalTarget").textContent=money(target);document.getElementById("goalTargetSmall").textContent=money(target);const goalTitle=document.querySelector("#home .goalhead span");if(goalTitle)goalTitle.textContent="🎯 Lengo la mauzo "+monthLabel(dnow);document.getElementById("goalBar").style.width=pct+"%";document.getElementById("goalSales").textContent=money(monthSalesTotal);document.getElementById("goalPercent").textContent=pct+"%";document.getElementById("goalCompare").textContent=(compare>=0?compare+"% ↗":""+compare+"% ↘")+" vs mwezi uliopita";document.getElementById("goalMessage").textContent=remaining>0?`Ili utimize lengo lako, kwa siku ${daysLeft} zilizobaki unahitaji kuuza wastani wa ${money(dailyNeed)} kwa siku kwa mwezi huu.`:`Hongera! Umetimiza lengo la mauzo la mwezi huu.`;
 }
 let pullStartY=0,pullTriggered=false,pullBusy=false;
