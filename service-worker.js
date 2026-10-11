@@ -1,4 +1,4 @@
-const CACHE="mpa-v34-seller-modal-save-edit-20261011-1";
+const CACHE="mpa-v35-seller-modal-save-edit-20261011-1";
 const ASSETS=["./","./index.html","./logo.png","./icon.svg","./manifest.webmanifest","./service-worker.js"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));
