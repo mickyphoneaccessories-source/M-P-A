@@ -304,7 +304,7 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
       <div class="settings-group-title">TAARIFA ZA APP</div>
       <div class="settings-ios-list">
         <button onclick="toast('Taarifa za usalama ziko tayari.')"><span class="setting-icon" style="background:#5d7dff">⇩</span><span class="setting-main">Taarifa za usalama</span><b>›</b></button>
-        <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span>New Version - V33</span><button onclick="forceRefreshApp()">↻ Refresh</button></div>
+        <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span>New Version - V34</span><button onclick="forceRefreshApp()">↻ Refresh</button></div>
         <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span>0767203506</span><button onclick="logout()" style="background:#999!important">Logout</button></div>
       </div>
       <div class="settings-group-title">MWONEKANO</div>
@@ -364,27 +364,24 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
 
 <div id="userModal" class="modalback">
  <div class="modal">
-  <div class="modalhead"><h2 id="userModalTitle">User mpya</h2><button class="close" onclick="closeModal('userModal')">×</button></div>
-  <div class="field"><label>Username ya muuzaji (isiwe sawa na ya mwingine)</label><input id="newUserName" autocomplete="off"></div>
-  <div class="field"><label>PIN ya tarakimu 4</label><input id="newUserPass" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="Weka PIN ya muuzaji"></div><div class="field"><label>Role</label><select id="newUserRole"><option value="user">User</option><option value="admin">Admin</option></select></div>
-  <div class="sectiontitle" style="font-size:16px">Ruhusa</div>
-  <div id="permForm" class="permgrid"></div>
+  <div class="modalhead"><h2 id="userModalTitle">Ongeza Muuzaji</h2><button type="button" class="close" aria-label="Funga" onclick="closeModal('userModal')">×</button></div>
+  <div class="field"><label>Username ya muuzaji (isiwe sawa na ya mwingine)</label><input id="newUserName" autocomplete="off" placeholder="Username"></div>
+  <div class="field"><label>PIN ya tarakimu 4</label><input id="newUserPass" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="PIN ya tarakimu 4"></div>
+  <div class="field"><label>Role</label><select id="newUserRole"><option value="user">User</option><option value="admin">Admin</option></select></div>
   <button class="btn blue" style="width:100%;margin-top:14px" onclick="saveUser()">Hifadhi Muuzaji</button>
-  <button id="deleteUserEditBtn" class="btn red" style="width:100%;margin-top:10px;display:none" onclick="deleteEditingUser()">🗑️ &nbsp;Futa User</button>
-  <div id="deleteUserHint" class="muted" style="text-align:center;font-size:12px;margin-top:7px;display:none">User huyu ataondolewa kabisa kwenye mfumo.</div>
  </div>
 </div>
 
 <div id="sellerPinModal" class="modalback">
  <div class="modal seller-pin-modal">
-  <div class="modalhead"><h2 id="sellerPinModalTitle">Edit Muuzaji</h2><button class="close" onclick="closeModal(\'sellerPinModal\')">×</button></div>
-  <p class="muted" style="margin:0 0 18px">Weka PIN ya tarakimu 4 ambayo muuzaji atatumia kuingia kwenye mfumo.</p>
+  <div class="modalhead"><h2 id="sellerPinModalTitle">Edit Muuzaji</h2><button type="button" class="close" aria-label="Funga" onclick="closeModal('sellerPinModal')">×</button></div>
+  <p class="muted" style="margin:0 0 18px">Badilisha taarifa za muuzaji. Acha PIN wazi kama hutaki kuibadilisha.</p>
   <div class="field"><label>Jina la Muuzaji</label><input id="sellerPinName" type="text" placeholder="Andika jina la muuzaji" autocomplete="off"></div>
   <div class="field"><label>UserName</label><input id="sellerPinUsername" readonly aria-readonly="true"><small class="muted">Username imechukuliwa kwenye akaunti ya muuzaji; hapa haibadilishwi.</small></div>
-  <label class="seller-pin-label" for="sellerPinInput">PIN - Tengeneza PIN ya muuzaji ya kuingilia</label>
-  <input id="sellerPinInput" class="seller-pin-input" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="••••" autocomplete="new-password">
-  <div class="seller-pin-help">Muuzaji atahitaji username yake na PIN hii ili kuingia kwenye mfumo.</div>
-  <button class="btn blue" id="sellerPinSaveBtn" style="width:100%;margin-top:18px" onclick="saveSellerPin()">Hifadhi Mabadiliko</button>
+  <div class="field"><label>PIN - PIN mpya ya tarakimu 4 (hiari)</label><input id="sellerPinInput" class="seller-pin-input" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="Acha wazi kama haibadilishwi" autocomplete="new-password"></div>
+  <div class="field"><label>Role</label><select id="sellerPinRole"><option value="user">User</option><option value="admin">Admin</option></select></div>
+  <div class="seller-pin-help">Muuzaji ataingia kwa kutumia username yake na PIN yake.</div>
+  <button type="button" class="btn blue" id="sellerPinSaveBtn" style="width:100%;margin-top:18px" onclick="saveSellerPin()">Hifadhi Mabadiliko</button>
  </div>
 </div>
 
@@ -1357,7 +1354,17 @@ function markNotificationsRead(){if(autoNotifyTimer){clearTimeout(autoNotifyTime
 function renderMovements(){const el=document.getElementById("movementList");if(!el)return;el.innerHTML=movements.length?movements.slice(0,50).map(m=>{const p=products.find(x=>String(x.id)===String(m.productId));return `<div class="tableitem"><div><b>${m.type==="add"?"＋":m.type==="remove"?"−":"🛒"} ${esc(p?.name||"Bidhaa")}</b><div class="muted">${esc(m.note||"")} • ${esc(m.user||"")}</div></div><span>${m.type==="add"?"+":"-"}${esc(String(m.qty??0))}</span></div>`}).join(""):"<div class='empty'>Hakuna movement.</div>"}
 let usersTab="active",selectedUserDetailId=null,editingUserId=null;
 function setUsersTab(tab){usersTab=tab;document.getElementById("usersTabActive")?.classList.toggle("active",tab==="active");document.getElementById("usersTabInactive")?.classList.toggle("active",tab==="inactive");renderUsers();}
-function openUserModal(editId=null){if(!can("manage_users")){toast("Admin pekee.");return}editingUserId=editId;const u=editId?users.find(x=>String(x.id)===String(editId)):null;document.getElementById("userModalTitle").textContent=u?"Edit User":"User mpya";document.getElementById("newUserName").value=u?.username||"";document.getElementById("newUserPass").value=u?.password||"";document.getElementById("newUserPass").placeholder="PIN ya tarakimu 4";document.getElementById("newUserRole").value=u?.role||"user";document.getElementById("permForm").innerHTML=perms.map(([k,l])=>`<label class="perm"><input type="checkbox" data-perm="${k}" ${u&&(u.role==='admin'||(u.permissions||[]).includes(k))?'checked':''}> ${l}</label>`).join("");const del=document.getElementById("deleteUserEditBtn"),hint=document.getElementById("deleteUserHint");const canRemove=!!u&&u.role!=="admin";if(del){del.style.display=canRemove?"block":"none"}if(hint){hint.style.display=canRemove?"block":"none"}document.getElementById("userModal").classList.add("show");document.getElementById("newUserRole").onchange=function(){const admin=this.value==="admin";document.querySelectorAll("#permForm [data-perm]").forEach(x=>x.checked=admin);if(del){del.style.display=editingUserId&&!admin?"block":"none"}if(hint){hint.style.display=editingUserId&&!admin?"block":"none"}}}
+function openUserModal(editId=null){
+ if(!can("manage_users")){toast("Admin pekee.");return}
+ editingUserId=editId;
+ const u=editId?users.find(x=>String(x.id)===String(editId)):null;
+ document.getElementById("userModalTitle").textContent=u?"Edit Muuzaji":"Ongeza Muuzaji";
+ document.getElementById("newUserName").value=u?.username||"";
+ document.getElementById("newUserPass").value=u?.password||"";
+ document.getElementById("newUserPass").placeholder="PIN ya tarakimu 4";
+ document.getElementById("newUserRole").value=u?.role||"user";
+ document.getElementById("userModal").classList.add("show");
+}
 async function saveUser(){
  if(!can("manage_users")){toast("Admin pekee.");return}
  const username=document.getElementById("newUserName").value.trim(),password=String(document.getElementById("newUserPass").value||"").trim(),role=document.getElementById("newUserRole").value;
@@ -1365,7 +1372,7 @@ async function saveUser(){
  if(username.length<3){toast("Username iwe na angalau herufi 3.");return}
  if(!/^\d{4}$/.test(password)){toast("PIN/Password ya muuzaji lazima iwe na tarakimu 4.");return}
  if(users.some(u=>String(u.username||"").trim().toLowerCase()===username.toLowerCase()&&String(u.id)!==String(editingUserId))){toast("Username hii tayari inatumika. Chagua username nyingine.");return}
- const permissions=role==="admin"?["all"]:[...document.querySelectorAll("#permForm [data-perm]:checked")].map(x=>x.dataset.perm);
+ const existingUser=editingUserId?users.find(x=>String(x.id)===String(editingUserId)):null;const permissions=role==="admin"?["all"]:[...(existingUser?.permissions||[])].filter(x=>x!=="all");
  const before=users.map(u=>({...u,permissions:[...(u.permissions||[])]}));
  let targetId=editingUserId;
  if(editingUserId){
@@ -1424,6 +1431,7 @@ function openSellerPin(id,mode="pin"){
  document.getElementById("sellerPinName").value=u.displayName||u.fullName||"";
  document.getElementById("sellerPinUsername").value=u.username||"";
  document.getElementById("sellerPinInput").value="";
+ document.getElementById("sellerPinRole").value=u.role||"user";
  document.getElementById("sellerPinModal").classList.add("show");
  setTimeout(()=>document.getElementById(mode==="edit"?"sellerPinName":"sellerPinInput")?.focus(),50);
 }
@@ -1434,26 +1442,26 @@ async function saveSellerPin(){
  const name=String(document.getElementById("sellerPinName").value||"").trim();
  const username=String(document.getElementById("sellerPinUsername").value||"").trim();
  const pin=String(document.getElementById("sellerPinInput").value||"").trim();
+ const role=document.getElementById("sellerPinRole").value;
  if(!u){toast("Muuzaji hakupatikana.");return}
  if(!name){toast("Weka jina la muuzaji.");return}
  if(username!==String(u.username||"")){toast("Username ya muuzaji haiwezi kubadilishwa hapa.");return}
- if(!/^\d{4}$/.test(pin)){toast("PIN lazima iwe na tarakimu 4.");return}
- const oldName=u.displayName, oldFullName=u.fullName, oldPassword=u.password;
+ if(pin&&!/^\d{4}$/.test(pin)){toast("PIN mpya lazima iwe na tarakimu 4, au acha wazi bila kubadilisha.");return}
+ if(u.role==="admin"&&role!=="admin"){toast("Akaunti ya Admin haiwezi kushushwa kuwa User hapa.");return}
+ const old={displayName:u.displayName,fullName:u.fullName,password:u.password,role:u.role,permissions:[...(u.permissions||[])]};
  u.displayName=name;
- u.password=pin;
+ u.fullName=name;
+ if(pin)u.password=pin;
+ u.role=role;
+ u.permissions=role==="admin"?["all"]:old.permissions.filter(x=>x!=="all");
+ const btn=document.getElementById("sellerPinSaveBtn");if(btn){btn.disabled=true;btn.textContent="Inahifadhi..."}
  const state=await saveAll({renderNow:false});
- if(!state?.ok){
-  if(oldName===undefined)delete u.displayName;else u.displayName=oldName;
-  if(oldFullName===undefined)delete u.fullName;else u.fullName=oldFullName;
-  u.password=oldPassword;
-  toast("Mabadiliko hayajahifadhiwa. Supabase haijathibitisha mabadiliko.");
-  return
- }
+ if(!state?.ok){Object.assign(u,old);if(btn){btn.disabled=false;btn.textContent="Hifadhi Mabadiliko"}toast("Mabadiliko hayajahifadhiwa. Supabase haijathibitisha; jaribu tena.");return}
+ if(btn){btn.disabled=false;btn.textContent="Hifadhi Mabadiliko"}
  closeModal("sellerPinModal");
- renderUserDetail();
- renderUsers();
+ renderUserDetail();renderUsers();
  notify("Taarifa za muuzaji zimehifadhiwa",u.username,"userDetail",u.id);
- toast("Mabadiliko yamehifadhiwa ✓");
+ toast("Mabadiliko yamehifadhiwa Supabase ✓");
 }
 async function toggleUserStatus(id){
  if(!can("manage_users")){toast("Admin pekee.");return}
