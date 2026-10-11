@@ -1390,7 +1390,7 @@ async function saveUser(){
  closeModal("userModal");editingUserId=null;selectedUserDetailId=targetId;setUsersTab("active");renderUsers();openUserDetail(targetId);notify(before.some(u=>String(u.id)===String(targetId))?"User amebadilishwa":"User mpya ameongezwa",username,"userDetail",targetId);toast("Taarifa za user zimehifadhiwa Supabase ✓");
 }
 function renderUsers(){const el=document.getElementById("userListIos");if(!el)return;const list=users.filter(u=>u.role!=="admin" && (usersTab==="active"?u.active!==false:u.active===false)).sort((a,b)=>String(a.username).localeCompare(String(b.username)));if(!list.length){el.innerHTML=`<div class="user-empty">Hakuna wauzaji ${usersTab==="active"?"Active":"Inactive"} kwa sasa.</div>`;return}const first=(list[0].username||"M").charAt(0).toUpperCase();el.innerHTML=`<div class="user-section-letter">${first}</div>`+list.map(u=>`<div class="user-list-row" role="button" tabindex="0" title="Shikilia username kupata chaguo la kufuta" onclick='openUserDetail(${JSON.stringify(String(u.id))})' oncontextmenu='event.preventDefault();confirmDeleteUser(${JSON.stringify(String(u.id))})' onkeydown='if(event.key==="Enter"||event.key===" "){event.preventDefault();openUserDetail(${JSON.stringify(String(u.id))})}'><div class="user-avatar-ios">${esc((u.username||"M").charAt(0).toUpperCase())}</div><div class="user-row-main"><b>Username: ${esc(u.username)}</b><small class="user-status ${u.active===false?'inactive':''}">${u.active===false?'Inactive':'Active'}</small></div><span style="color:#999;font-size:28px">›</span></div>`).join("");}
-function confirmDeleteUser(id){const u=users.find(x=>String(x.id)===String(id));if(!u)return;if(u.role==="admin"){toast("Admin hawezi kufutwa hapa.");return}if(!can("manage_users")){toast("Admin pekee.");return}if(confirm("Futa muuzaji "+u.username+"?\n\nTaarifa zake zitaondolewa kwenye mfumo."))deleteUser(id)}
+function confirmDeleteUser(id){const u=users.find(x=>String(x.id)===String(id));if(!u)return;if(u.role==="admin"){toast("Admin hawezi kufutwa hapa.");return}if(!can("manage_users")){toast("Admin pekee.");return}deleteUser(id)}
 function openUserDetail(id){const u=users.find(x=>String(x.id)===String(id));if(!u){toast("Taarifa za mtumiaji hazikupatikana. Refresh kisha jaribu tena.");return}selectedUserDetailId=u.id;showPage("userDetail",null);renderUserDetail();}
 function renderUserDetail(){
  const u=users.find(x=>String(x.id)===String(selectedUserDetailId));if(!u)return;
@@ -1479,10 +1479,25 @@ async function deleteUser(id){
  const u=users.find(x=>String(x.id)===String(id));if(!u)return;
  if(u.role==="admin"){toast("Admin hawezi kufutwa hapa.");return}
  if(!confirm("Futa user "+u.username+"?\n\nUser huyu ataondolewa kabisa kwenye mfumo."))return;
- const before=users.map(x=>({...x,permissions:[...(x.permissions||[])]}));users=users.filter(x=>String(x.id)!==String(id));
- const state=await saveAll({renderNow:false});
- if(!state?.ok){users=before;renderUsers();toast("User hajafutwa. Supabase haijathibitisha ufutaji.");return}
- editingUserId=null;selectedUserDetailId=null;closeModal("userModal");closeModal("sellerPinModal");setUsersTab("active");notify("User amefutwa",u.username,"users",null);showPage("users",null);toast("User amefutwa Supabase ✓");
+ const before=users.map(x=>({...x,permissions:[...(x.permissions||[])]}));
+ users=users.filter(x=>String(x.id)!==String(id));renderUsers();
+ const state=await saveCloudState();
+ if(!state?.ok){users=before;renderUsers();toast("User hajafutwa. Hifadhi ya Supabase imeshindikana; jaribu tena.");return}
+ try{
+  const {data,error}=await sbClient.from("mpa_app_state").select("payload").eq("scope",cloudStateScope).maybeSingle();
+  if(error)throw error;
+  const savedUsers=Array.isArray(data?.payload?.users)?data.payload.users:[];
+  if(savedUsers.some(x=>String(x.id)===String(id)))throw new Error("Supabase bado ina user huyu baada ya hifadhi.");
+ }catch(e){
+  console.warn("Seller delete verification failed",e);
+  users=before;renderUsers();
+  toast("Supabase haijathibitisha kufutwa kwa user; user amerejeshwa kwenye orodha. Jaribu tena baada ya kukagua muunganisho.");
+  return;
+ }
+ editingUserId=null;selectedUserDetailId=null;closeModal("userModal");closeModal("sellerPinModal");
+ setUsersTab("active");showPage("users",null);
+ notify("User amefutwa",u.username,"users",null);
+ toast("User amefutwa na kuthibitishwa Supabase ✓");
 }
 function deleteEditingUser(){if(!editingUserId)return;deleteUser(editingUserId)}
 async function toggleUserPerm(id,key,on){
