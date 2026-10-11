@@ -174,7 +174,7 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
         <div><strong>Jumla:</strong><strong id="saleGrandTotal">TZS 0</strong></div>
       </div>
       <div class="sale-payrow"><button id="saleUnpaid" class="sale-pay unpaid active" onclick="setSalePayment(false)">Haijalipwa</button><button id="salePaid" class="sale-pay paid" onclick="setSalePayment(true)">Imelipwa</button></div>
-      <button class="btn blue" style="width:100%;margin-top:18px;margin-bottom:105px;padding:16px;font-size:17px;font-weight:900;border-radius:16px" onclick="makeSale()">Hifadhi Mauzo</button>
+      <button id="saveSaleButton" class="btn blue" style="width:100%;margin-top:18px;margin-bottom:105px;padding:16px;font-size:17px;font-weight:900;border-radius:16px" onclick="makeSale()">Hifadhi Mauzo</button>
       </div>
   </section>
 
@@ -299,7 +299,7 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
       <div class="settings-group-title">TAARIFA ZA APP</div>
       <div class="settings-ios-list">
         <button onclick="toast('Taarifa za usalama ziko tayari.')"><span class="setting-icon" style="background:#5d7dff">⇩</span><span class="setting-main">Taarifa za usalama</span><b>›</b></button>
-        <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span>New Version - 261</span><button onclick="forceRefreshApp()">↻ Refresh</button></div>
+        <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span>New Version - V33</span><button onclick="forceRefreshApp()">↻ Refresh</button></div>
         <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span>0767203506</span><button onclick="logout()" style="background:#999!important">Logout</button></div>
       </div>
       <div class="settings-group-title">MWONEKANO</div>
@@ -1109,7 +1109,10 @@ function calculateSaleOrder(){
 }
 function setSalePayment(paid){salePaid=paid;document.getElementById("salePaid")?.classList.toggle("active",paid);document.getElementById("saleUnpaid")?.classList.toggle("active",!paid)}
 async function makeSale(){
- return runOnce("sale-save",async()=>{
+ const saveBtn=document.getElementById("saveSaleButton");
+ if(actionLocks.has("sale-save")){toast("Tafadhali subiri, mauzo bado yanahifadhiwa.");return {ok:false,busy:true};}
+ if(saveBtn){saveBtn.disabled=true;saveBtn.dataset.originalText=saveBtn.textContent;saveBtn.textContent="Inahifadhi...";saveBtn.style.opacity=".65";}
+ try{return await runOnce("sale-save",async()=>{
   if(!can("sell")){toast("Huna ruhusa ya kuuza.");return {ok:false}}
   if(!saleCart.length){toast("Chagua angalau bidhaa moja.");return {ok:false}}
   for(const item of saleCart){const p=products.find(x=>x.id===item.productId);if(!p||item.qty<1||item.qty>p.qty){toast("Stock haitoshi kwa bidhaa fulani.");return {ok:false}}}
@@ -1144,7 +1147,7 @@ async function makeSale(){
    return {ok:true,stateOk:false};
   }
   closeSaleEntry();saleCart=[];render();notify(salePaid?"Mauzo yamelipwa":"Mauzo yamewekwa deni",customer+" • "+money(total),"sales",order.id);toast("Mauzo yamehifadhiwa Supabase ✓");return {ok:true,stateOk:true};
- });
+ });}finally{if(saveBtn){saveBtn.disabled=false;saveBtn.textContent=saveBtn.dataset.originalText||"Hifadhi Mauzo";saveBtn.style.opacity="1";}}
 }
 
 function setSalesTab(tab){salesTab=tab;document.querySelectorAll('.sales-tabs button').forEach(x=>x.classList.remove('active'));document.getElementById(tab==='all'?'salesTabAll':tab==='paid'?'salesTabPaid':'salesTabDebt').classList.add('active');renderSalesHistory()}
@@ -1443,7 +1446,7 @@ document.addEventListener('touchmove',e=>{
   if(dy>75)pullTriggered=true;
 },{passive:true});
 document.addEventListener('touchend',()=>{
-  if(pullTriggered)refreshDataView();
+  if(pullTriggered)forceRefreshApp();
   pullStartY=0;pullTriggered=false;
 },{passive:true});
 document.addEventListener("gesturestart",e=>e.preventDefault(),{passive:false});document.addEventListener("gesturechange",e=>e.preventDefault(),{passive:false});document.addEventListener("gestureend",e=>e.preventDefault(),{passive:false});let lastTouchEnd=0;document.addEventListener("touchend",e=>{const nowt=Date.now();if(nowt-lastTouchEnd<=280)e.preventDefault();lastTouchEnd=nowt},{passive:false});
