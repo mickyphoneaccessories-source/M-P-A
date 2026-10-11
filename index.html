@@ -1399,7 +1399,7 @@ function startSupabaseRealtime(){
    .subscribe();
  }catch(e){console.warn("Realtime setup failed",e)}
  if(mpaSyncTimer)clearInterval(mpaSyncTimer);
- mpaSyncTimer=setInterval(()=>{if(document.visibilityState!=="hidden")refreshRemoteDataFast();},5000);
+ mpaSyncTimer=setInterval(()=>{if(document.visibilityState!=="hidden")refreshRemoteDataFast();},15000);
 }
 
 function render(){
