@@ -365,11 +365,11 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
 <div id="userModal" class="modalback">
  <div class="modal">
   <div class="modalhead"><h2 id="userModalTitle">User mpya</h2><button class="close" onclick="closeModal('userModal')">×</button></div>
-  <div class="field"><label>Username</label><input id="newUserName"></div>
-  <div class="field"><label>Password / PIN</label><input id="newUserPass" value="1234"></div><div class="field"><label>Role</label><select id="newUserRole"><option value="user">User</option><option value="admin">Admin</option></select></div>
+  <div class="field"><label>Username ya muuzaji (isiwe sawa na ya mwingine)</label><input id="newUserName" autocomplete="off"></div>
+  <div class="field"><label>PIN ya tarakimu 4</label><input id="newUserPass" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="Weka PIN ya muuzaji"></div><div class="field"><label>Role</label><select id="newUserRole"><option value="user">User</option><option value="admin">Admin</option></select></div>
   <div class="sectiontitle" style="font-size:16px">Ruhusa</div>
   <div id="permForm" class="permgrid"></div>
-  <button class="btn blue" style="width:100%;margin-top:14px" onclick="saveUser()">Hifadhi User</button>
+  <button class="btn blue" style="width:100%;margin-top:14px" onclick="saveUser()">Hifadhi Muuzaji</button>
   <button id="deleteUserEditBtn" class="btn red" style="width:100%;margin-top:10px;display:none" onclick="deleteEditingUser()">🗑️ &nbsp;Futa User</button>
   <div id="deleteUserHint" class="muted" style="text-align:center;font-size:12px;margin-top:7px;display:none">User huyu ataondolewa kabisa kwenye mfumo.</div>
  </div>
@@ -1357,12 +1357,14 @@ function markNotificationsRead(){if(autoNotifyTimer){clearTimeout(autoNotifyTime
 function renderMovements(){const el=document.getElementById("movementList");if(!el)return;el.innerHTML=movements.length?movements.slice(0,50).map(m=>{const p=products.find(x=>String(x.id)===String(m.productId));return `<div class="tableitem"><div><b>${m.type==="add"?"＋":m.type==="remove"?"−":"🛒"} ${esc(p?.name||"Bidhaa")}</b><div class="muted">${esc(m.note||"")} • ${esc(m.user||"")}</div></div><span>${m.type==="add"?"+":"-"}${esc(String(m.qty??0))}</span></div>`}).join(""):"<div class='empty'>Hakuna movement.</div>"}
 let usersTab="active",selectedUserDetailId=null,editingUserId=null;
 function setUsersTab(tab){usersTab=tab;document.getElementById("usersTabActive")?.classList.toggle("active",tab==="active");document.getElementById("usersTabInactive")?.classList.toggle("active",tab==="inactive");renderUsers();}
-function openUserModal(editId=null){if(!can("manage_users")){toast("Admin pekee.");return}editingUserId=editId;const u=editId?users.find(x=>x.id===editId):null;document.getElementById("userModalTitle").textContent=u?"Edit User":"User mpya";document.getElementById("newUserName").value=u?.username||"";document.getElementById("newUserPass").value=u?.password||"1234";document.getElementById("newUserRole").value=u?.role||"user";document.getElementById("permForm").innerHTML=perms.map(([k,l])=>`<label class="perm"><input type="checkbox" data-perm="${k}" ${u&&(u.role==='admin'||(u.permissions||[]).includes(k))?'checked':''}> ${l}</label>`).join("");const del=document.getElementById("deleteUserEditBtn"),hint=document.getElementById("deleteUserHint");const canRemove=!!u&&u.role!=="admin";if(del){del.style.display=canRemove?"block":"none"}if(hint){hint.style.display=canRemove?"block":"none"}document.getElementById("userModal").classList.add("show");document.getElementById("newUserRole").onchange=function(){const admin=this.value==="admin";document.querySelectorAll("#permForm [data-perm]").forEach(x=>x.checked=admin);if(del){del.style.display=editingUserId&&!admin?"block":"none"}if(hint){hint.style.display=editingUserId&&!admin?"block":"none"}}}
+function openUserModal(editId=null){if(!can("manage_users")){toast("Admin pekee.");return}editingUserId=editId;const u=editId?users.find(x=>String(x.id)===String(editId)):null;document.getElementById("userModalTitle").textContent=u?"Edit User":"User mpya";document.getElementById("newUserName").value=u?.username||"";document.getElementById("newUserPass").value=u?.password||"";document.getElementById("newUserPass").placeholder="PIN ya tarakimu 4";document.getElementById("newUserRole").value=u?.role||"user";document.getElementById("permForm").innerHTML=perms.map(([k,l])=>`<label class="perm"><input type="checkbox" data-perm="${k}" ${u&&(u.role==='admin'||(u.permissions||[]).includes(k))?'checked':''}> ${l}</label>`).join("");const del=document.getElementById("deleteUserEditBtn"),hint=document.getElementById("deleteUserHint");const canRemove=!!u&&u.role!=="admin";if(del){del.style.display=canRemove?"block":"none"}if(hint){hint.style.display=canRemove?"block":"none"}document.getElementById("userModal").classList.add("show");document.getElementById("newUserRole").onchange=function(){const admin=this.value==="admin";document.querySelectorAll("#permForm [data-perm]").forEach(x=>x.checked=admin);if(del){del.style.display=editingUserId&&!admin?"block":"none"}if(hint){hint.style.display=editingUserId&&!admin?"block":"none"}}}
 async function saveUser(){
  if(!can("manage_users")){toast("Admin pekee.");return}
- const username=document.getElementById("newUserName").value.trim(),password=document.getElementById("newUserPass").value||"1234",role=document.getElementById("newUserRole").value;
- if(!username){toast("Weka username.");return}
- if(users.some(u=>u.username===username&&String(u.id)!==String(editingUserId))){toast("Username tayari ipo.");return}
+ const username=document.getElementById("newUserName").value.trim(),password=String(document.getElementById("newUserPass").value||"").trim(),role=document.getElementById("newUserRole").value;
+ if(!username){toast("Weka username ya muuzaji.");return}
+ if(username.length<3){toast("Username iwe na angalau herufi 3.");return}
+ if(!/^\d{4}$/.test(password)){toast("PIN/Password ya muuzaji lazima iwe na tarakimu 4.");return}
+ if(users.some(u=>String(u.username||"").trim().toLowerCase()===username.toLowerCase()&&String(u.id)!==String(editingUserId))){toast("Username hii tayari inatumika. Chagua username nyingine.");return}
  const permissions=role==="admin"?["all"]:[...document.querySelectorAll("#permForm [data-perm]:checked")].map(x=>x.dataset.perm);
  const before=users.map(u=>({...u,permissions:[...(u.permissions||[])]}));
  let targetId=editingUserId;
