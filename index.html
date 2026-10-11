@@ -31,7 +31,12 @@ main{max-width:900px;margin:auto;padding:16px}.page{display:none}.page.active{di
 .bottom{position:fixed;bottom:0;left:0;right:0;height:76px;background:#fff;border-top:1px solid #e4e5e7;display:grid;grid-template-columns:repeat(5,1fr);z-index:40}.bottom button{background:#fff;color:#92959a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px}.bottom button.active{color:var(--blue)}.bi{font-size:23px}
 .card{background:#fff;border:1px solid #eceef1;border-radius:18px;padding:15px;margin-bottom:12px}.row{display:flex;align-items:center;justify-content:space-between;gap:10px}.btn{padding:11px 14px;border-radius:11px;background:#edf0f5}.btn.blue{background:var(--blue);color:#fff}.btn.red{background:#ffe6e9;color:#b51d2d}.btn.green{background:#e3f8ed;color:#117b4b}.btn.small{padding:8px 10px;font-size:13px}.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.three{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .tableitem{display:flex;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #eee}.tableitem:last-child{border-bottom:0}.muted{color:var(--muted);font-size:13px}.badge{display:inline-block;padding:5px 9px;border-radius:20px;background:#eef2ff;color:#3348a7;font-size:12px}.badge.red{background:#ffe6e9;color:#b51d2d}.badge.green{background:#e4f8ed;color:#137c4d}
-.modalback{position:fixed;inset:0;background:#0008;z-index:100;display:none;align-items:flex-end;justify-content:center}.modalback#receiptModal{z-index:220}.modalback#saleDetailModal,.modalback#expenseDetailModal{z-index:210}.modalback.show{display:flex}.modal{width:min(620px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:24px 24px 0 0;padding:20px}.modalhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.close{width:38px;height:38px;border-radius:50%;background:#eee}.preview{width:92px;height:92px;border-radius:14px;object-fit:cover;background:#eee;display:block;margin-bottom:10px}
+.modalback{position:fixed;inset:0;background:#0008;z-index:100;display:none;align-items:flex-end;justify-content:center}.modalback#receiptModal{z-index:220}.modalback#saleDetailModal,.modalback#expenseDetailModal{z-index:210}.modalback.show{display:flex}.modal{width:min(620px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:24px 24px 0 0;padding:20px}.modalhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.seller-pin-modal{padding-bottom:28px}
+.seller-pin-label{display:block;color:#444;font-size:15px;margin:20px 0 12px}
+.seller-pin-input{width:100%;height:62px;border:1px solid #ddd;border-radius:14px;text-align:center;letter-spacing:18px;font-size:28px;box-sizing:border-box;padding-left:18px;background:#fff}
+.seller-pin-help{background:#f8f0d8;color:#6b5b2b;border-radius:16px;padding:15px;margin-top:20px;line-height:1.55}
+.close{width:38px;height:38px;border-radius:50%;background:#eee}.preview{width:92px;height:92px;border-radius:14px;object-fit:cover;background:#eee;display:block;margin-bottom:10px}
 .pricewrap{position:relative}.pricewrap input{padding-right:44px}.eyeprice{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:9px;background:#f0f1f3;color:#333}.eyeprice.hiddenprice{background:#dfe2e7}
 .notice{position:fixed;top:76px;left:50%;transform:translateX(-50%) translateY(-14px);background:#fff;color:#17191d;padding:10px 14px;border-radius:18px;z-index:200;display:none;width:min(430px,calc(100% - 28px));box-shadow:0 14px 40px #0003;border:1px solid #e8e9ed;opacity:0;transition:opacity .22s ease,transform .22s ease}.notice.show{display:flex;opacity:1;transform:translateX(-50%) translateY(0)}.notice-inner{display:flex;align-items:center;gap:11px;width:100%;cursor:pointer}.notice:active{transform:translateY(1px)}.notice-logo{width:43px;height:43px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:#f2f3f5}.notice-copy{min-width:0;flex:1}.notice-title{font-weight:800;font-size:15px;line-height:1.15}.notice-detail{color:#686d76;font-size:13px;margin-top:3px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.notice-bell{width:30px;height:30px;border-radius:10px;background:#eef3ff;display:grid;place-items:center;font-size:15px;flex:0 0 auto}.refresh-indicator{position:fixed;top:74px;left:50%;width:34px;height:34px;transform:translate(-50%,-58px);z-index:190;background:rgba(255,255,255,.96);border:1px solid #e5e7eb;border-radius:50%;box-shadow:0 7px 22px #0002;display:grid;place-items:center;opacity:0;transition:transform .2s ease,opacity .2s ease;pointer-events:none}.refresh-indicator::before{content:"";width:18px;height:18px;border:3px solid #d9dce3;border-top-color:#2450ff;border-radius:50%;animation:mpaSpin .75s linear infinite}.refresh-indicator.show{transform:translate(-50%,0);opacity:1}@keyframes mpaSpin{to{transform:rotate(360deg)}}
 .resetbox{display:none;margin-top:18px;padding:18px;border:1px solid #d6aa00;border-radius:18px;background:#171717;text-align:left}.resetbox h2{margin:0 0 8px;color:#fff;font-size:22px}.resetbox p{margin:0 0 14px;color:#aaa;font-size:14px;line-height:1.4}.resetbox input{width:100%;box-sizing:border-box;padding:14px 15px;border-radius:12px;border:1px solid #ddd;background:#fff;color:#111;font-size:16px;margin-bottom:10px}.resetbtn{width:100%;padding:15px;border:0;border-radius:14px;background:#f3bf00;color:#111;font-weight:800;font-size:16px}.resetcancel{width:100%;padding:12px;border:0;background:transparent;color:#aaa;font-size:14px;margin-top:4px}
@@ -370,6 +375,19 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
  </div>
 </div>
 
+<div id="sellerPinModal" class="modalback">
+ <div class="modal seller-pin-modal">
+  <div class="modalhead"><h2>Weka PIN ya Muuzaji</h2><button class="close" onclick="closeModal('sellerPinModal')">×</button></div>
+  <p class="muted" style="margin:0 0 18px">Weka PIN ya tarakimu 4 ambayo muuzaji atatumia kuingia kwenye mfumo.</p>
+  <div class="field"><label>Jina la Muuzaji</label><input id="sellerPinName" readonly></div>
+  <div class="field"><label>UserName</label><input id="sellerPinUsername" readonly></div>
+  <label class="seller-pin-label" for="sellerPinInput">PIN - Tengeneza PIN ya muuzaji ya kuingilia</label>
+  <input id="sellerPinInput" class="seller-pin-input" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="••••" autocomplete="new-password">
+  <div class="seller-pin-help">Muuzaji atahitaji username yake na PIN hii ili kuingia kwenye mfumo.</div>
+  <button class="btn blue" style="width:100%;margin-top:18px" onclick="saveSellerPin()">Hifadhi PIN</button>
+ </div>
+</div>
+
 <div id="goalModal" class="modalback"><div class="modal"><div class="modalhead"><h2>🎯 Lengo la Mauzo</h2><button class="close" onclick="closeModal('goalModal')">×</button></div><div class="field"><label id="goalInputLabel">Lengo la mwezi (TZS)</label><input id="goalInput" type="number" min="0" placeholder="Mfano 10000000"></div><button class="btn blue" style="width:100%" onclick="saveGoal()">Hifadhi Lengo</button></div></div>
 <div id="pinModal" class="modalback"><div class="modal"><div class="modalhead"><h2>🔐 Change PIN</h2><button class="close" onclick="closeModal('pinModal')">×</button></div><div class="field"><label>PIN mpya</label><input id="newPin" type="password" inputmode="numeric" maxlength="8" placeholder="PIN"></div><div class="field"><label>Rudia PIN</label><input id="newPin2" type="password" inputmode="numeric" maxlength="8" placeholder="PIN"></div><button class="btn blue" style="width:100%" onclick="changePin()">Hifadhi PIN</button></div></div>
 <div id="expenseDetailModal" class="modalback"><div class="modal sale-detail-wrap"><div id="expenseDetailContent"></div></div></div>
@@ -463,6 +481,7 @@ function monthLabel(d=now()){return new Date(d).toLocaleDateString("sw-TZ",{mont
 function currentGoalTarget(){const k=monthKey();const v=Number(monthlyGoals?.[k]);return v>0?v:10000000;}
 let users=[];
 let userPermissionDraft=null, userPermissionDraftId=null, userPermissionDirty=false;
+window.sellerPinTargetId=null;
 let cloudStateLoaded=false, cloudSavePromise=Promise.resolve(), cloudStateScope="MICKY-MPA-MAIN", deletedSaleIds=[], deletedExpenseIds=[], deletedProductIds=[];
 const DEFAULT_USERS=[
  {id:crypto.randomUUID(),username:"admin",password:"1234",role:"admin",permissions:["all"],active:true},
@@ -1366,7 +1385,7 @@ function renderUserDetail(){
  const u=users.find(x=>String(x.id)===String(selectedUserDetailId));if(!u)return;
  const uid=JSON.stringify(String(u.id));const permissions=Array.isArray(u.permissions)?u.permissions:[];
  document.getElementById("userDetailTitle").textContent="Muuzaji";
- document.getElementById("userDetailProfile").innerHTML=`<div class="profile-row"><span class="picon">👤</span><span class="plabel">Jina la Muuzaji</span><span class="pvalue">${esc(u.displayName||u.fullName||u.username)}</span></div><div class="profile-row"><span class="picon">🔑</span><span class="plabel">UserName</span><span class="pvalue">${esc(u.username)}</span></div><div class="profile-row"><span class="picon">☎</span><span class="plabel">PIN YA MUUZAJI</span><button class="btn blue small" onclick="toast('Kuweka PIN ya kuingia kutahitaji kuunganishwa na uthibitishaji wa Supabase.');">Weka PIN</button></div><div class="profile-row"><span class="picon">🛡</span><span class="plabel">MIPAKA YENYE RUHUSA</span><span class="pvalue">${u.role==='admin'?'ALL':permissions.length}</span></div><div class="profile-row"><span class="picon">◉</span><span class="plabel">STATUS YA MUUZAJI - <span style="color:${u.active===false?'#c33':'#08a52a'}">${u.active===false?'Inactive':'Active'}</span></span><button class="status-switch ${u.active===false?'off':''}" onclick='toggleUserStatus(${uid})' aria-label="Badili status ya ${esc(u.username)}"><i></i></button></div>`;
+ document.getElementById("userDetailProfile").innerHTML=`<div class="profile-row"><span class="picon">👤</span><span class="plabel">Jina la Muuzaji</span><span class="pvalue">${esc(u.displayName||u.fullName||u.username)}</span></div><div class="profile-row"><span class="picon">🔑</span><span class="plabel">UserName</span><span class="pvalue">${esc(u.username)}</span></div><div class="profile-row"><span class="picon">☎</span><span class="plabel">PIN YA MUUZAJI</span><button class="btn blue small" onclick='openSellerPin(${uid})'>Weka PIN</button></div><div class="profile-row"><span class="picon">🛡</span><span class="plabel">MIPAKA YENYE RUHUSA</span><span class="pvalue">${u.role==='admin'?'ALL':permissions.length}</span></div><div class="profile-row"><span class="picon">◉</span><span class="plabel">STATUS YA MUUZAJI - <span style="color:${u.active===false?'#c33':'#08a52a'}">${u.active===false?'Inactive':'Active'}</span></span><button class="status-switch ${u.active===false?'off':''}" onclick='toggleUserStatus(${uid})' aria-label="Badili status ya ${esc(u.username)}"><i></i></button></div>`;
  if(String(userPermissionDraftId)!==String(u.id)||!Array.isArray(userPermissionDraft)){userPermissionDraft=[...permissions];userPermissionDraftId=u.id;userPermissionDirty=false;}
  const groups=[
  ['Mauzo','Ruhusa upande wa mauzo',[
@@ -1391,7 +1410,41 @@ function renderUserDetail(){
 function togglePermissionGroup(id){const el=document.getElementById(id);if(!el)return;const opening=el.style.display==='none';el.style.display=opening?'block':'none';const idx=id.replace('permgroup','');const c=document.getElementById('permchev'+idx);if(c)c.textContent=opening?'⌃':'⌄';}
 function stageUserPerm(id,key,on){if(!can('manage_users')){toast('Admin pekee.');renderUserDetail();return}const u=users.find(x=>String(x.id)===String(id));if(!u||u.role==='admin')return;if(String(userPermissionDraftId)!==String(u.id))userPermissionDraft=[...(u.permissions||[])];userPermissionDraftId=u.id;userPermissionDraft=(userPermissionDraft||[]).filter(x=>x!==key);if(on)userPermissionDraft.push(key);userPermissionDraft=[...new Set(userPermissionDraft)];userPermissionDirty=true;const unsaved=document.getElementById('permUnsaved');if(unsaved)unsaved.style.display='block';const btn=document.getElementById('saveUserPermissionsBtn');if(btn){btn.disabled=false;btn.textContent='Hifadhi Mabadiliko'}document.querySelectorAll('#userDetailPerms .perm-group-row').forEach((row,idx)=>{const groupLabels=[['sell','delete_own_sales','view_sales','delete_sales','record_backdated_sales','delete_backdated_sales','refund_sales','view_goals'],['view_products','create_products','add_stock','view_product_prices','delete_products','edit_product_qty_price','edit_products','view_stock_movements'],['pay_debts','view_debts','create_debts','edit_debts','delete_debts','view_other_users_debts'],['manage_expenses','delete_own_expenses','view_expenses','delete_expenses','delete_backdated_expenses','refund_expenses'],['view_daily_report','view_sales_report','view_debts_report','view_products_report','view_customers_report','view_profit_report','view_suppliers_report'],['analytics_sales','analytics_profit','analytics_products','analytics_expenses','analytics_customers','analytics_suppliers'],['manage_users','manage_goals','manage_settings','manage_branches','view_expense_history']];const keys=groupLabels[idx]||[];const count=keys.filter(k=>userPermissionDraft.includes(k)).length;const span=row.querySelector('span');if(span)span.textContent=span.textContent.replace(/\(\d+\)$/,'('+count+')');const badge=row.querySelector('.perm-count');if(badge)badge.textContent=count+'/'+keys.length;});}
 async function saveUserPermissions(id){if(!can('manage_users')){toast('Admin pekee.');return}const u=users.find(x=>String(x.id)===String(id));if(!u||u.role==='admin')return;const before=[...(u.permissions||[])],draft=[...new Set(userPermissionDraft||[])];u.permissions=draft;const btn=document.getElementById('saveUserPermissionsBtn');if(btn){btn.disabled=true;btn.textContent='Inahifadhi...'}const state=await saveAll({renderNow:false});if(!state?.ok){u.permissions=before;userPermissionDraft=[...before];userPermissionDirty=false;renderUserDetail();toast('Ruhusa hazijahifadhiwa. Supabase haijathibitisha mabadiliko; jaribu tena.');return}userPermissionDraft=[...draft];userPermissionDraftId=u.id;userPermissionDirty=false;renderUserDetail();notify('Ruhusa zimehifadhiwa',u.username+' • Mabadiliko ya ruhusa yamehifadhiwa.','userDetail',u.id);toast('Ruhusa zimehifadhiwa Supabase ✓');}
-function editCurrentUserDetail(){const u=users.find(x=>String(x.id)===String(selectedUserDetailId));if(!u)return;openUserModal(u.id);}
+function editCurrentUserDetail(){
+ const u=users.find(x=>String(x.id)===String(selectedUserDetailId));if(!u)return;
+ closeModal("userModal");
+ selectedUserDetailId=u.id;
+ showPage("userDetail",null);
+ renderUserDetail();
+ const card=document.getElementById("userDetailPerms");
+ if(card)card.scrollIntoView({behavior:"smooth",block:"start"});
+} 
+function openSellerPin(id){
+ if(!can("manage_users")){toast("Admin pekee.");return}
+ const u=users.find(x=>String(x.id)===String(id));if(!u){toast("Muuzaji hakupatikana.");return}
+ window.sellerPinTargetId=u.id;
+ document.getElementById("sellerPinName").value=u.displayName||u.fullName||u.username||"";
+ document.getElementById("sellerPinUsername").value=u.username||"";
+ document.getElementById("sellerPinInput").value="";
+ document.getElementById("sellerPinModal").classList.add("show");
+ setTimeout(()=>document.getElementById("sellerPinInput")?.focus(),50);
+}
+async function saveSellerPin(){
+ if(!can("manage_users")){toast("Admin pekee.");return}
+ const id=window.sellerPinTargetId;
+ const u=users.find(x=>String(x.id)===String(id));
+ const pin=String(document.getElementById("sellerPinInput").value||"").trim();
+ if(!u){toast("Muuzaji hakupatikana.");return}
+ if(!/^\\d{4}$/.test(pin)){toast("PIN lazima iwe na tarakimu 4.");return}
+ const old=u.password;
+ u.password=pin;
+ const state=await saveAll({renderNow:false});
+ if(!state?.ok){u.password=old;toast("PIN haijahifadhiwa. Supabase haijathibitisha mabadiliko.");return}
+ closeModal("sellerPinModal");
+ renderUserDetail();
+ notify("PIN ya muuzaji imebadilishwa",u.username,"userDetail",u.id);
+ toast("PIN imehifadhiwa ✓");
+}
 async function toggleUserStatus(id){
  if(!can("manage_users")){toast("Admin pekee.");return}
  const u=users.find(x=>String(x.id)===String(id));if(!u||u.role==="admin")return;
