@@ -304,7 +304,7 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
       <div class="settings-group-title">TAARIFA ZA APP</div>
       <div class="settings-ios-list">
         <button onclick="toast('Taarifa za usalama ziko tayari.')"><span class="setting-icon" style="background:#5d7dff">⇩</span><span class="setting-main">Taarifa za usalama</span><b>›</b></button>
-        <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span id="appVersionLabel">New Version - V39</span><button onclick="forceRefreshApp()">↻ Refresh</button></div>
+        <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span id="appVersionLabel">New Version - V40</span><button onclick="forceRefreshApp()">↻ Refresh</button></div>
         <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span>0767203506</span><button onclick="logout()" style="background:#999!important">Logout</button></div>
       </div>
       <div class="settings-group-title">MWONEKANO</div>
@@ -392,8 +392,8 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
 <div id="saleDetailModal" class="modalback"><div class="modal sale-detail-wrap"><div id="saleDetailContent"></div></div></div>
 <div id="receiptModal" class="modalback"><div class="modal sale-detail-wrap"><div id="receiptContent"></div></div></div>
 <script>
-// M-P-A v39: dynamic release label + clearer user-delete persistence diagnostics.
-const MPA_APP_VERSION = "V39";
+// M-P-A v40: retry Supabase app-state writes when a concurrent tab/device overwrites the write token.
+const MPA_APP_VERSION = "V40";
 function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="New Version - "+MPA_APP_VERSION;}
  
 
@@ -713,40 +713,51 @@ async function loadCloudState(){
 }
 async function saveCloudState(){
  if(!sbClient||!authProfile)return {ok:false,skipped:true};
- // Serialize writes within this tab. Before writing, merge cloud deletion tombstones
- // so an older/stale tab cannot accidentally resurrect a deleted user/product/sale.
+ // Queue writes in this tab and retry if another open tab/device overwrites the state
+ // between the upsert and the verification read.
  const job=cloudSavePromise.then(async()=>{
-  const latest=await sbClient.from("mpa_app_state").select("payload").eq("scope",cloudStateScope).maybeSingle();
-  if(latest.error)throw latest.error;
-  const remoteState=(latest.data?.payload&&typeof latest.data.payload==="object")?latest.data.payload:{};
-  deletedUserIds=[...new Set([...deletedUserIds,...(Array.isArray(remoteState.deletedUserIds)?remoteState.deletedUserIds.map(String):[])])];
-  deletedProductIds=[...new Set([...deletedProductIds,...(Array.isArray(remoteState.deletedProductIds)?remoteState.deletedProductIds.map(String):[])])];
-  deletedSaleIds=[...new Set([...deletedSaleIds,...(Array.isArray(remoteState.deletedSaleIds)?remoteState.deletedSaleIds.map(String):[])])];
-  deletedExpenseIds=[...new Set([...deletedExpenseIds,...(Array.isArray(remoteState.deletedExpenseIds)?remoteState.deletedExpenseIds.map(String):[])])];
-  users=users.filter(u=>!deletedUserIds.includes(String(u.id)));
-  products=products.filter(p=>!deletedProductIds.includes(String(p.id||p.supabaseId)));
-  sales=sales.filter(x=>!deletedSaleIds.includes(String(x.id))&&!deletedSaleIds.includes(String(x.supabaseId)));
-  expenses=expenses.filter(x=>!deletedExpenseIds.includes(String(x.id)));
-  const payload={products,sales,customers,expenses,movements,notifications:notifications.slice(0,200),users,goalTarget:currentGoalTarget(),monthlyGoals,branches,activeBranch,storeName,language,fontSize,deletedSaleIds,deletedExpenseIds,deletedProductIds,deletedUserIds};
-  const stamp=now().toISOString();
-  payload.__mpaWriteToken=stamp;
-  const {error}=await sbClient.from("mpa_app_state").upsert({scope:cloudStateScope,payload,updated_by:authProfile.id,updated_at:stamp},{onConflict:"scope"});
-  if(error)throw error;
-  // Read-after-write verification: do not report a save unless Supabase returns our version.
-  const verify=await sbClient.from("mpa_app_state").select("payload,updated_at").eq("scope",cloudStateScope).maybeSingle();
-  if(verify.error)throw verify.error;
-  if(!verify.data?.payload||String(verify.data.payload.__mpaWriteToken||"")!==stamp)throw new Error("Supabase haikuthibitisha hifadhi mpya; huenda kuna kifaa/tab nyingine inayoandika taarifa za zamani.");
-  const saved=verify.data.payload;
-  const savedDeletedUsers=Array.isArray(saved.deletedUserIds)?saved.deletedUserIds.map(String):[];
-  if(deletedUserIds.some(id=>!savedDeletedUsers.includes(String(id))))throw new Error("Supabase haijahifadhi alama za user waliofutwa.");
-  return {ok:true};
- }).catch(e=>{
-  console.warn("Supabase app state save/verification failed",e);
-  const code=e?.code?" ("+String(e.code).slice(0,40)+")":"";
-  const raw=String(e?.message||"");
-  const safeDetail=raw&&raw.length<180&&!/[<>]{2}/.test(raw)?" • "+raw:"";
-  toast("Hifadhi ya Supabase haijathibitishwa"+code+safeDetail+". Mabadiliko hayatahesabiwa kuwa yamehifadhiwa.");
-  return {ok:false,error:e};
+  let lastError=null;
+  for(let attempt=1;attempt<=3;attempt++){
+   try{
+    const latest=await sbClient.from("mpa_app_state").select("payload").eq("scope",cloudStateScope).maybeSingle();
+    if(latest.error)throw latest.error;
+    const remoteState=(latest.data?.payload&&typeof latest.data.payload==="object")?latest.data.payload:{};
+    // Keep deletion tombstones from both the current tab and the latest cloud row.
+    deletedUserIds=[...new Set([...deletedUserIds,...(Array.isArray(remoteState.deletedUserIds)?remoteState.deletedUserIds.map(String):[])])];
+    deletedProductIds=[...new Set([...deletedProductIds,...(Array.isArray(remoteState.deletedProductIds)?remoteState.deletedProductIds.map(String):[])])];
+    deletedSaleIds=[...new Set([...deletedSaleIds,...(Array.isArray(remoteState.deletedSaleIds)?remoteState.deletedSaleIds.map(String):[])])];
+    deletedExpenseIds=[...new Set([...deletedExpenseIds,...(Array.isArray(remoteState.deletedExpenseIds)?remoteState.deletedExpenseIds.map(String):[])])];
+    users=users.filter(u=>!deletedUserIds.includes(String(u.id)));
+    products=products.filter(p=>!deletedProductIds.includes(String(p.id||p.supabaseId)));
+    sales=sales.filter(x=>!deletedSaleIds.includes(String(x.id))&&!deletedSaleIds.includes(String(x.supabaseId)));
+    expenses=expenses.filter(x=>!deletedExpenseIds.includes(String(x.id)));
+    const payload={products,sales,customers,expenses,movements,notifications:notifications.slice(0,200),users,goalTarget:currentGoalTarget(),monthlyGoals,branches,activeBranch,storeName,language,fontSize,deletedSaleIds,deletedExpenseIds,deletedProductIds,deletedUserIds};
+    // Add a unique token for read-after-write verification.
+    const stamp=now().toISOString()+"-"+Math.random().toString(36).slice(2,10);
+    payload.__mpaWriteToken=stamp;
+    const {error:writeError}=await sbClient.from("mpa_app_state").upsert({scope:cloudStateScope,payload,updated_by:authProfile.id,updated_at:now().toISOString()},{onConflict:"scope"});
+    if(writeError)throw writeError;
+    const verify=await sbClient.from("mpa_app_state").select("payload,updated_at").eq("scope",cloudStateScope).maybeSingle();
+    if(verify.error)throw verify.error;
+    const saved=verify.data?.payload;
+    const savedToken=String(saved?.__mpaWriteToken||"");
+    const savedDeletedUsers=Array.isArray(saved?.deletedUserIds)?saved.deletedUserIds.map(String):[];
+    if(savedToken===stamp && deletedUserIds.every(id=>savedDeletedUsers.includes(String(id))))return {ok:true,attempt};
+    lastError=new Error("Hifadhi imeandikwa lakini taarifa imebadilishwa na tab/kifaa kingine kabla ya uthibitisho (jaribio "+attempt+"/3).");
+   }catch(e){
+    lastError=e;
+    // Permission/schema errors will not improve by retrying.
+    const code=String(e?.code||"");
+    if(["42501","42P01","42703","PGRST205","PGRST204"].includes(code))break;
+   }
+   if(attempt<3)await new Promise(resolve=>setTimeout(resolve,150*attempt));
+  }
+  console.warn("Supabase app state save/verification failed",lastError);
+  const code=lastError?.code?" ("+String(lastError.code).slice(0,40)+")":"";
+  const raw=String(lastError?.message||"");
+  const safeDetail=raw&&raw.length<220&&!/[<>]{2}/.test(raw)?" • "+raw:"";
+  toast("Hifadhi ya Supabase haijathibitishwa baada ya majaribio 3"+code+safeDetail+". Funga tab/kifaa kingine kinachotumia toleo la zamani, kisha jaribu tena.");
+  return {ok:false,error:lastError};
  });
  cloudSavePromise=job.catch(()=>({ok:false}));
  return job;
