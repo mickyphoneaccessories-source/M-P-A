@@ -732,32 +732,43 @@ function openNotification(id){
    setTimeout(()=>{const el=document.querySelector(`[data-expense-id="${CSS.escape(String(item.targetId))}"]`);if(el)el.scrollIntoView({behavior:"smooth",block:"center"})},80);
  }
 }
+function playNotificationSignal(){
+ try{if(navigator.vibrate)navigator.vibrate([180,90,180]);}catch(e){}
+ // Sound is played when browser audio policy allows it (normally after the user's first interaction).
+ try{const Ctx=window.AudioContext||window.webkitAudioContext;if(Ctx){const ctx=new Ctx();const play=()=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type="sine";o.frequency.value=880;g.gain.setValueAtTime(0.0001,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.12,ctx.currentTime+0.025);g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.22);o.connect(g);g.connect(ctx.destination);o.start();o.stop(ctx.currentTime+0.23);o.onended=()=>ctx.close().catch(()=>{});};if(ctx.state==="suspended")ctx.resume().then(play).catch(()=>{});else play();}}catch(e){}
+}
+function conciseNotificationTitle(title){
+ const t=String(title||'').toLowerCase();
+ if(t.includes('mauzo'))return t.includes('futwa')?'Mauzo yamefutwa':'Kuna mauzo mapya';
+ if(t.includes('bidhaa'))return t.includes('futwa')?'Bidhaa imefutwa':(t.includes('hariri')?'Bidhaa imebadilishwa':'Bidhaa imeongezwa');
+ if(t.includes('matumizi'))return t.includes('futwa')?'Matumizi yamefutwa':'Matumizi mapya yameongezwa';
+ if(t.includes('stock'))return 'Stock imebadilika';
+ if(t.includes('mteja'))return 'Mteja mpya ameongezwa';
+ return String(title||'Mabadiliko yamefanyika');
+}
 function notify(title,detail,targetPage,targetId){
- const item={id:Date.now()+Math.random(),title:String(title||"Mabadiliko yamefanyika"),detail:String(detail||"Mabadiliko yamefanyika kwenye mfumo."),user:currentUser(),date:now().toISOString(),read:false,targetPage:targetPage||"notifications",targetId:targetId??null};
+ const shortTitle=conciseNotificationTitle(title);
+ const item={id:Date.now()+Math.random(),title:shortTitle,detail:'Taarifa mpya ya M-P-A',user:currentUser(),date:now().toISOString(),read:false,targetPage:targetPage||"notifications",targetId:targetId??null};
  notifications.unshift(item);
  notifications=notifications.slice(0,200);
  saveCloudState();
  updateNotifDot();
  renderNotifications();
- // On-screen notification is the primary notification and must appear immediately after a successful action.
+ playNotificationSignal();
  const n=document.getElementById("notice");
  if(n){
-   n.classList.remove("show");
-   n.style.display="flex";
-   n.innerHTML=`<div class="notice-inner" role="button" tabindex="0" onclick="openNotification('${String(item.id).replace(/'/g,"\\'")}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openNotification('${String(item.id).replace(/'/g,"\\'")}')}"><img class="notice-logo" src="logo.png" alt="M-P-A"><div class="notice-copy"><div class="notice-title">${esc(item.title)}</div><div class="notice-detail">${esc(item.detail)}</div></div><div class="notice-bell">🔔</div></div>`;
-   void n.offsetWidth;
-   requestAnimationFrame(()=>n.classList.add("show"));
-   clearTimeout(n._timer);
+   n.classList.remove("show");n.style.display="flex";
+   n.innerHTML=`<div class="notice-inner" role="button" tabindex="0" onclick="openNotification('${String(item.id).replace(/'/g,"\\'")}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openNotification('${String(item.id).replace(/'/g,"\\'")}')}"><img class="notice-logo" src="logo.png" alt="M-P-A"><div class="notice-copy"><div class="notice-title">${esc(item.title)}</div><div class="notice-detail">Taarifa mpya ya M-P-A</div></div><div class="notice-bell">🔔</div></div>`;
+   void n.offsetWidth;requestAnimationFrame(()=>n.classList.add("show"));clearTimeout(n._timer);
    n._timer=setTimeout(()=>{n.classList.remove("show");setTimeout(()=>{if(!n.classList.contains("show"))n.style.display="none"},240)},5000);
  }
- // Optional system notification, if the user has granted browser permission.
  if("Notification" in window && Notification.permission==="granted"){
-   try{
-     const bn=new Notification(item.title,{body:item.detail,icon:"./logo.png",badge:"./logo.png",tag:"mpa-action-"+item.id,renotify:true});
+   try{const bn=new Notification(item.title,{body:item.detail,icon:"./logo.png",badge:"./logo.png",tag:"mpa-action-"+item.id,renotify:true});
      bn.onclick=()=>{try{window.focus()}catch(e){};openNotification(item.id);try{bn.close()}catch(e){}};
    }catch(e){}
  }
 }
+
 function updateNotifDot(){
  const dot=document.getElementById("notifDot"); if(!dot)return;
  const count=notifications.filter(n=>!n.read).length;
@@ -1412,6 +1423,23 @@ async function refreshRemoteDataFast(){
  }catch(e){console.warn("Fast Supabase refresh failed",e)}
  finally{mpaSyncBusy=false}
 }
+let lastSeenRemoteNotificationIds=new Set();
+async function scheduleRemoteNotificationRefresh(){
+ if(!sbClient||!authProfile)return;
+ const before=new Set(notifications.map(n=>String(n.id)));
+ try{
+  const result=await loadCloudState();
+  if(result&&result.ok===false)return;
+  renderNotifications();updateNotifDot();
+  const fresh=notifications.filter(n=>!before.has(String(n.id))&&String(n.user||'')!==String(currentUser()));
+  for(const item of fresh){
+   playNotificationSignal();
+   if('Notification' in window&&Notification.permission==='granted'){
+    try{const bn=new Notification(conciseNotificationTitle(item.title),{body:'Taarifa mpya ya M-P-A',icon:'./logo.png',badge:'./logo.png',tag:'mpa-remote-'+item.id,renotify:true});bn.onclick=()=>{try{window.focus()}catch(e){};openNotification(item.id);try{bn.close()}catch(e){}};}catch(e){}
+   }
+  }
+ }catch(e){console.warn('Remote notifications refresh failed',e)}
+}
 function startSupabaseRealtime(){
  if(!sbClient||!authProfile)return;
  try{
@@ -1420,6 +1448,7 @@ function startSupabaseRealtime(){
    .on("postgres_changes",{event:"*",schema:"public",table:"products"},scheduleRemoteRefresh)
    .on("postgres_changes",{event:"*",schema:"public",table:"sales"},scheduleRemoteRefresh)
    .on("postgres_changes",{event:"*",schema:"public",table:"sale_items"},scheduleRemoteRefresh)
+   .on("postgres_changes",{event:"*",schema:"public",table:"mpa_app_state"},scheduleRemoteNotificationRefresh)
    .subscribe();
  }catch(e){console.warn("Realtime setup failed",e)}
  // Supabase Realtime is the live-sync mechanism. A polling timer here caused
@@ -1465,10 +1494,11 @@ document.addEventListener('touchstart',e=>{
 document.addEventListener('touchmove',e=>{
   if(!pullStartY||window.scrollY>5||!e.touches?.length)return;
   const dy=e.touches[0].clientY-pullStartY;
-  if(dy>75)pullTriggered=true;
+  if(dy>75){pullTriggered=true;const indicator=document.getElementById('refreshIndicator');if(indicator)indicator.classList.add('show');}
 },{passive:true});
 document.addEventListener('touchend',()=>{
-  if(pullTriggered)forceRefreshApp();
+  if(pullTriggered)refreshDataView();
+  else if(!pullBusy)document.getElementById('refreshIndicator')?.classList.remove('show');
   pullStartY=0;pullTriggered=false;
 },{passive:true});
 document.addEventListener("gesturestart",e=>e.preventDefault(),{passive:false});document.addEventListener("gesturechange",e=>e.preventDefault(),{passive:false});document.addEventListener("gestureend",e=>e.preventDefault(),{passive:false});let lastTouchEnd=0;document.addEventListener("touchend",e=>{const nowt=Date.now();if(nowt-lastTouchEnd<=280)e.preventDefault();lastTouchEnd=nowt},{passive:false});
