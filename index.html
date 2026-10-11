@@ -377,14 +377,14 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
 
 <div id="sellerPinModal" class="modalback">
  <div class="modal seller-pin-modal">
-  <div class="modalhead"><h2>Weka PIN ya Muuzaji</h2><button class="close" onclick="closeModal('sellerPinModal')">×</button></div>
+  <div class="modalhead"><h2 id="sellerPinModalTitle">Edit Muuzaji</h2><button class="close" onclick="closeModal(\'sellerPinModal\')">×</button></div>
   <p class="muted" style="margin:0 0 18px">Weka PIN ya tarakimu 4 ambayo muuzaji atatumia kuingia kwenye mfumo.</p>
-  <div class="field"><label>Jina la Muuzaji</label><input id="sellerPinName" readonly></div>
-  <div class="field"><label>UserName</label><input id="sellerPinUsername" readonly></div>
+  <div class="field"><label>Jina la Muuzaji</label><input id="sellerPinName" type="text" placeholder="Andika jina la muuzaji" autocomplete="off"></div>
+  <div class="field"><label>UserName</label><input id="sellerPinUsername" readonly aria-readonly="true"><small class="muted">Username imechukuliwa kwenye akaunti ya muuzaji; hapa haibadilishwi.</small></div>
   <label class="seller-pin-label" for="sellerPinInput">PIN - Tengeneza PIN ya muuzaji ya kuingilia</label>
   <input id="sellerPinInput" class="seller-pin-input" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="••••" autocomplete="new-password">
   <div class="seller-pin-help">Muuzaji atahitaji username yake na PIN hii ili kuingia kwenye mfumo.</div>
-  <button class="btn blue" style="width:100%;margin-top:18px" onclick="saveSellerPin()">Hifadhi PIN</button>
+  <button class="btn blue" id="sellerPinSaveBtn" style="width:100%;margin-top:18px" onclick="saveSellerPin()">Hifadhi Mabadiliko</button>
  </div>
 </div>
 
@@ -1412,38 +1412,46 @@ function stageUserPerm(id,key,on){if(!can('manage_users')){toast('Admin pekee.')
 async function saveUserPermissions(id){if(!can('manage_users')){toast('Admin pekee.');return}const u=users.find(x=>String(x.id)===String(id));if(!u||u.role==='admin')return;const before=[...(u.permissions||[])],draft=[...new Set(userPermissionDraft||[])];u.permissions=draft;const btn=document.getElementById('saveUserPermissionsBtn');if(btn){btn.disabled=true;btn.textContent='Inahifadhi...'}const state=await saveAll({renderNow:false});if(!state?.ok){u.permissions=before;userPermissionDraft=[...before];userPermissionDirty=false;renderUserDetail();toast('Ruhusa hazijahifadhiwa. Supabase haijathibitisha mabadiliko; jaribu tena.');return}userPermissionDraft=[...draft];userPermissionDraftId=u.id;userPermissionDirty=false;renderUserDetail();notify('Ruhusa zimehifadhiwa',u.username+' • Mabadiliko ya ruhusa yamehifadhiwa.','userDetail',u.id);toast('Ruhusa zimehifadhiwa Supabase ✓');}
 function editCurrentUserDetail(){
  const u=users.find(x=>String(x.id)===String(selectedUserDetailId));if(!u)return;
- closeModal("userModal");
- selectedUserDetailId=u.id;
- showPage("userDetail",null);
- renderUserDetail();
- const card=document.getElementById("userDetailPerms");
- if(card)card.scrollIntoView({behavior:"smooth",block:"start"});
+ openSellerPin(u.id,"edit");
 } 
-function openSellerPin(id){
+function openSellerPin(id,mode="pin"){
  if(!can("manage_users")){toast("Admin pekee.");return}
  const u=users.find(x=>String(x.id)===String(id));if(!u){toast("Muuzaji hakupatikana.");return}
  window.sellerPinTargetId=u.id;
- document.getElementById("sellerPinName").value=u.displayName||u.fullName||u.username||"";
+ document.getElementById("sellerPinModalTitle").textContent=mode==="edit"?"Edit Muuzaji":"Weka PIN ya Muuzaji";
+ document.getElementById("sellerPinName").value=u.displayName||u.fullName||"";
  document.getElementById("sellerPinUsername").value=u.username||"";
  document.getElementById("sellerPinInput").value="";
  document.getElementById("sellerPinModal").classList.add("show");
- setTimeout(()=>document.getElementById("sellerPinInput")?.focus(),50);
+ setTimeout(()=>document.getElementById(mode==="edit"?"sellerPinName":"sellerPinInput")?.focus(),50);
 }
 async function saveSellerPin(){
  if(!can("manage_users")){toast("Admin pekee.");return}
  const id=window.sellerPinTargetId;
  const u=users.find(x=>String(x.id)===String(id));
+ const name=String(document.getElementById("sellerPinName").value||"").trim();
+ const username=String(document.getElementById("sellerPinUsername").value||"").trim();
  const pin=String(document.getElementById("sellerPinInput").value||"").trim();
  if(!u){toast("Muuzaji hakupatikana.");return}
- if(!/^\\d{4}$/.test(pin)){toast("PIN lazima iwe na tarakimu 4.");return}
- const old=u.password;
+ if(!name){toast("Weka jina la muuzaji.");return}
+ if(username!==String(u.username||"")){toast("Username ya muuzaji haiwezi kubadilishwa hapa.");return}
+ if(!/^\d{4}$/.test(pin)){toast("PIN lazima iwe na tarakimu 4.");return}
+ const oldName=u.displayName, oldFullName=u.fullName, oldPassword=u.password;
+ u.displayName=name;
  u.password=pin;
  const state=await saveAll({renderNow:false});
- if(!state?.ok){u.password=old;toast("PIN haijahifadhiwa. Supabase haijathibitisha mabadiliko.");return}
+ if(!state?.ok){
+  if(oldName===undefined)delete u.displayName;else u.displayName=oldName;
+  if(oldFullName===undefined)delete u.fullName;else u.fullName=oldFullName;
+  u.password=oldPassword;
+  toast("Mabadiliko hayajahifadhiwa. Supabase haijathibitisha mabadiliko.");
+  return
+ }
  closeModal("sellerPinModal");
  renderUserDetail();
- notify("PIN ya muuzaji imebadilishwa",u.username,"userDetail",u.id);
- toast("PIN imehifadhiwa ✓");
+ renderUsers();
+ notify("Taarifa za muuzaji zimehifadhiwa",u.username,"userDetail",u.id);
+ toast("Mabadiliko yamehifadhiwa ✓");
 }
 async function toggleUserStatus(id){
  if(!can("manage_users")){toast("Admin pekee.");return}
