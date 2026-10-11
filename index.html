@@ -480,7 +480,7 @@ function currentGoalTarget(){const k=monthKey();const v=Number(monthlyGoals?.[k]
 let users=[];
 let userPermissionDraft=null, userPermissionDraftId=null, userPermissionDirty=false;
 window.sellerPinTargetId=null;
-let cloudStateLoaded=false, cloudSavePromise=Promise.resolve(), cloudStateScope="MICKY-MPA-MAIN", deletedSaleIds=[], deletedExpenseIds=[], deletedProductIds=[];
+let cloudStateLoaded=false, cloudSavePromise=Promise.resolve(), cloudStateScope="MICKY-MPA-MAIN", deletedSaleIds=[], deletedExpenseIds=[], deletedProductIds=[], deletedUserIds=[];
 const DEFAULT_USERS=[
  {id:crypto.randomUUID(),username:"admin",password:"1234",role:"admin",permissions:["all"],active:true},
  {id:crypto.randomUUID(),username:"user",password:"1234",role:"user",permissions:["view_products","sell","add_stock","remove_stock","view_sales","view_reports","view_expenses","manage_expenses","view_expense_history"],active:true}
@@ -674,6 +674,7 @@ async function loadCloudState(){
    deletedSaleIds=Array.isArray(st.deletedSaleIds)?st.deletedSaleIds.map(String):[];
    deletedExpenseIds=Array.isArray(st.deletedExpenseIds)?st.deletedExpenseIds.map(String):[];
    deletedProductIds=Array.isArray(st.deletedProductIds)?st.deletedProductIds.map(String):[];
+   deletedUserIds=Array.isArray(st.deletedUserIds)?st.deletedUserIds.map(String):[];
    if(Array.isArray(st.sales)) sales=st.sales.filter(x=>!deletedSaleIds.includes(String(x.id))&&!deletedSaleIds.includes(String(x.supabaseId)));
    if(Array.isArray(st.products)) products=st.products.filter(x=>!deletedProductIds.includes(String(x.id||x.supabaseId)));
    customers=Array.isArray(st.customers)?st.customers:[];
@@ -681,7 +682,7 @@ async function loadCloudState(){
    movements=Array.isArray(st.movements)?st.movements:[];
    notifications=Array.isArray(st.notifications)?st.notifications:[];
    branches=Array.isArray(st.branches)?st.branches:[];
-   users=Array.isArray(st.users)?st.users:[];
+   users=Array.isArray(st.users)?st.users.filter(u=>!deletedUserIds.includes(String(u.id))):[];
    goalTarget=Number(st.goalTarget||10000000);
    monthlyGoals=(st.monthlyGoals&&typeof st.monthlyGoals==="object"&&!Array.isArray(st.monthlyGoals))?{...st.monthlyGoals}:{};
    // Migrate the previous single goal into the current month only.
@@ -707,13 +708,41 @@ async function loadCloudState(){
 }
 async function saveCloudState(){
  if(!sbClient||!authProfile)return {ok:false,skipped:true};
- // Build the payload only when this queued write starts. Building it before
- // the queue runs can let an older snapshot overwrite a newer delete/edit.
+ // Serialize writes within this tab. Before writing, merge cloud deletion tombstones
+ // so an older/stale tab cannot accidentally resurrect a deleted user/product/sale.
  const job=cloudSavePromise.then(async()=>{
-  const payload={products,sales,customers,expenses,movements,notifications:notifications.slice(0,200),users,goalTarget:currentGoalTarget(),monthlyGoals,branches,activeBranch,storeName,language,fontSize,deletedSaleIds,deletedExpenseIds,deletedProductIds};
-  const {error}=await sbClient.from("mpa_app_state").upsert({scope:cloudStateScope,payload,updated_by:authProfile.id,updated_at:now().toISOString()},{onConflict:"scope"});
-  if(error)throw error;return {ok:true};
- }).catch(e=>{console.warn("Supabase app state save failed",e);const code=e?.code?" ("+String(e.code).slice(0,40)+")":"";const raw=String(e?.message||"");const looksLikeHtml=/<\s*!doctype\s+html|<\s*html[\s>]|<\s*head[\s>]|<\s*body[\s>]/i.test(raw);const safeDetail=looksLikeHtml?" • Seva imerudisha ukurasa wa HTML badala ya jibu la data.":(raw && raw.length<180 && !/[<>]{2}/.test(raw)?" • "+raw:"");toast("Sync ya taarifa za ziada imeshindikana"+code+safeDetail+" Angalia muunganisho na mipangilio ya Supabase; hifadhi haijathibitishwa.");return {ok:false,error:e};});
+  const latest=await sbClient.from("mpa_app_state").select("payload").eq("scope",cloudStateScope).maybeSingle();
+  if(latest.error)throw latest.error;
+  const remoteState=(latest.data?.payload&&typeof latest.data.payload==="object")?latest.data.payload:{};
+  deletedUserIds=[...new Set([...deletedUserIds,...(Array.isArray(remoteState.deletedUserIds)?remoteState.deletedUserIds.map(String):[])])];
+  deletedProductIds=[...new Set([...deletedProductIds,...(Array.isArray(remoteState.deletedProductIds)?remoteState.deletedProductIds.map(String):[])])];
+  deletedSaleIds=[...new Set([...deletedSaleIds,...(Array.isArray(remoteState.deletedSaleIds)?remoteState.deletedSaleIds.map(String):[])])];
+  deletedExpenseIds=[...new Set([...deletedExpenseIds,...(Array.isArray(remoteState.deletedExpenseIds)?remoteState.deletedExpenseIds.map(String):[])])];
+  users=users.filter(u=>!deletedUserIds.includes(String(u.id)));
+  products=products.filter(p=>!deletedProductIds.includes(String(p.id||p.supabaseId)));
+  sales=sales.filter(x=>!deletedSaleIds.includes(String(x.id))&&!deletedSaleIds.includes(String(x.supabaseId)));
+  expenses=expenses.filter(x=>!deletedExpenseIds.includes(String(x.id)));
+  const payload={products,sales,customers,expenses,movements,notifications:notifications.slice(0,200),users,goalTarget:currentGoalTarget(),monthlyGoals,branches,activeBranch,storeName,language,fontSize,deletedSaleIds,deletedExpenseIds,deletedProductIds,deletedUserIds};
+  const stamp=now().toISOString();
+  payload.__mpaWriteToken=stamp;
+  const {error}=await sbClient.from("mpa_app_state").upsert({scope:cloudStateScope,payload,updated_by:authProfile.id,updated_at:stamp},{onConflict:"scope"});
+  if(error)throw error;
+  // Read-after-write verification: do not report a save unless Supabase returns our version.
+  const verify=await sbClient.from("mpa_app_state").select("payload,updated_at").eq("scope",cloudStateScope).maybeSingle();
+  if(verify.error)throw verify.error;
+  if(!verify.data?.payload||String(verify.data.payload.__mpaWriteToken||"")!==stamp)throw new Error("Supabase haikuthibitisha hifadhi mpya; huenda kuna kifaa/tab nyingine inayoandika taarifa za zamani.");
+  const saved=verify.data.payload;
+  const savedDeletedUsers=Array.isArray(saved.deletedUserIds)?saved.deletedUserIds.map(String):[];
+  if(deletedUserIds.some(id=>!savedDeletedUsers.includes(String(id))))throw new Error("Supabase haijahifadhi alama za user waliofutwa.");
+  return {ok:true};
+ }).catch(e=>{
+  console.warn("Supabase app state save/verification failed",e);
+  const code=e?.code?" ("+String(e.code).slice(0,40)+")":"";
+  const raw=String(e?.message||"");
+  const safeDetail=raw&&raw.length<180&&!/[<>]{2}/.test(raw)?" • "+raw:"";
+  toast("Hifadhi ya Supabase haijathibitishwa"+code+safeDetail+". Mabadiliko hayatahesabiwa kuwa yamehifadhiwa.");
+  return {ok:false,error:e};
+ });
  cloudSavePromise=job.catch(()=>({ok:false}));
  return job;
 }
@@ -926,7 +955,7 @@ function showPage(id,btn){
  if(["reports","analyticsSales","analyticsProfit","analyticsProducts","analyticsExpenses","analyticsCustomers","settings","purchases","deleted","stockTools","notifications","users","userDetail"].includes(id))document.getElementById("navMore")?.classList.add("active");
  if(id==="expenses")document.getElementById("navExpenses")?.classList.add("active");
  if((id==="users"||id==="userDetail")&&!can("manage_users")){toast("Huna ruhusa ya kusimamia users.");showPage("home",document.getElementById("navHome"));return}
- window.scrollTo(0,0);if(id==="sales"&&!salesDayUserSelected)ensureSalesDayIsToday(true);render();
+ try{sessionStorage.setItem("mpaCurrentPage",id)}catch(e){}window.scrollTo(0,0);if(id==="sales"&&!salesDayUserSelected)ensureSalesDayIsToday(true);render();
 }
 function clearProductForm(){
  selectedImage="";
@@ -1480,18 +1509,21 @@ async function deleteUser(id){
  if(u.role==="admin"){toast("Admin hawezi kufutwa hapa.");return}
  if(!confirm("Futa user "+u.username+"?\n\nUser huyu ataondolewa kabisa kwenye mfumo."))return;
  const before=users.map(x=>({...x,permissions:[...(x.permissions||[])]}));
+ const beforeDeletedUserIds=[...deletedUserIds];
+ deletedUserIds=[...new Set([...deletedUserIds,String(id)])];
  users=users.filter(x=>String(x.id)!==String(id));renderUsers();
  const state=await saveCloudState();
- if(!state?.ok){users=before;renderUsers();toast("User hajafutwa. Hifadhi ya Supabase imeshindikana; jaribu tena.");return}
+ if(!state?.ok){users=before;deletedUserIds=beforeDeletedUserIds;renderUsers();toast("User hajafutwa. Supabase haijathibitisha hifadhi; jaribu tena.");return}
  try{
   const {data,error}=await sbClient.from("mpa_app_state").select("payload").eq("scope",cloudStateScope).maybeSingle();
   if(error)throw error;
   const savedUsers=Array.isArray(data?.payload?.users)?data.payload.users:[];
-  if(savedUsers.some(x=>String(x.id)===String(id)))throw new Error("Supabase bado ina user huyu baada ya hifadhi.");
+  const savedDeleted=Array.isArray(data?.payload?.deletedUserIds)?data.payload.deletedUserIds.map(String):[];
+  if(savedUsers.some(x=>String(x.id)===String(id))||!savedDeleted.includes(String(id)))throw new Error("Supabase haijahifadhi uthibitisho wa ufutaji wa user.");
  }catch(e){
   console.warn("Seller delete verification failed",e);
-  users=before;renderUsers();
-  toast("Supabase haijathibitisha kufutwa kwa user; user amerejeshwa kwenye orodha. Jaribu tena baada ya kukagua muunganisho.");
+  users=before;deletedUserIds=beforeDeletedUserIds;renderUsers();
+  toast("Supabase haijathibitisha kufutwa kwa user; mabadiliko yamerudishwa. Jaribu tena baada ya kukagua muunganisho.");
   return;
  }
  editingUserId=null;selectedUserDetailId=null;closeModal("userModal");closeModal("sellerPinModal");
@@ -1717,7 +1749,17 @@ window.addEventListener("load",async()=>{
        const email=(session.user.email||"").trim().toLowerCase();
        const role=KNOWN_LOGIN_ROLES[email]||prof?.role||"user";
        authProfile={...(prof||{}),id:session.user.id,username:prof?.username||session.user.email?.split("@")[0]||"user",role,permissions:role==="admin"?["all"]:[...new Set([...(Array.isArray(prof?.permissions)?prof.permissions:[]),...DEFAULT_USER_PERMISSIONS])],active:prof?.active!==false};
-       if(authProfile.active!==false){document.getElementById("login").style.display="none";document.getElementById("app").style.display="block";await loadCloudState();await syncProductsFromSupabase({silent:false});await syncSalesFromSupabase({silent:false});startSupabaseRealtime();}}
+       if(authProfile.active!==false){document.getElementById("login").style.display="none";document.getElementById("app").style.display="block";await loadCloudState();await syncProductsFromSupabase({silent:true});await syncSalesFromSupabase({silent:true});startSupabaseRealtime();
+       // Re-open the last page after refresh; sessionStorage stores navigation only, never business records.
+       try{
+        let savedPage=sessionStorage.getItem("mpaCurrentPage")||"home";
+        if(savedPage==="userDetail")savedPage="users";
+        const savedEl=document.getElementById(savedPage);
+        if(!savedEl||!savedEl.classList.contains("page"))savedPage="home";
+        const navMap={home:"navHome",products:"navProducts",sales:"navSales",expenses:"navExpenses",settings:"navMore"};
+        showPage(savedPage,document.getElementById(navMap[savedPage]||"navMore"));
+       }catch(e){showPage("home",document.getElementById("navHome"));}
+}}
    }catch(e){console.warn("Session restore failed",e)}
 }
  // Login na session vinadhibitiwa na Supabase Auth pekee.
