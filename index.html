@@ -1006,13 +1006,19 @@ async function addProduct(){
   const remote=await syncProductToSupabase(p);
   if(!remote.ok){
    p.pendingSync=true;
-   // Hifadhi pia kwenye authenticated Supabase app-state ili refresh isiiote bidhaa hii.
-   await saveCloudState();
+   // Fallback is only considered durable if the app-state write is verified too.
+   const fallback=await saveCloudState();
    renderProducts();
    render();
-   const msg=remote.error?.message?String(remote.error.message):"Supabase haikupokea ombi";
+   const msg=remote.error?.message?String(remote.error.message):"Supabase haikupokea ombi la products";
    const code=remote.error?.code?String(remote.error.code):"";
-   toast("Bidhaa imeonekana mara moja na imehifadhiwa kwenye mfumo wa cloud; sync ya Products itaendelea kujaribu"+(code?" ["+code+"]":"")+".");
+   if(!fallback?.ok){
+    products=products.filter(x=>String(x.id)!==String(p.id));
+    renderProducts();render();
+    toast("Bidhaa haijahifadhiwa. Products: "+msg.slice(0,150)+"; App state: "+String(fallback?.error?.message||"hifadhi haikuthibitishwa").slice(0,120));
+    return {ok:false,error:remote.error,fallbackError:fallback?.error};
+   }
+   toast("Jedwali products halikukubali bidhaa, lakini hifadhi mbadala imethibitishwa. Kosa: "+msg.slice(0,170)+(code?" ["+code+"]":"")+".");
    return {ok:true,pendingSync:true,error:remote.error}
   }
   p.pendingSync=false;
@@ -1513,7 +1519,13 @@ async function deleteUser(id){
  deletedUserIds=[...new Set([...deletedUserIds,String(id)])];
  users=users.filter(x=>String(x.id)!==String(id));renderUsers();
  const state=await saveCloudState();
- if(!state?.ok){users=before;deletedUserIds=beforeDeletedUserIds;renderUsers();toast("User hajafutwa. Supabase haijathibitisha hifadhi; jaribu tena.");return}
+  if(!state?.ok){
+   users=before;deletedUserIds=beforeDeletedUserIds;renderUsers();
+   const detail=String(state?.error?.message||"Sababu haijaripotiwa").slice(0,180);
+   const code=state?.error?.code?" ["+String(state.error.code).slice(0,30)+"]":"";
+   toast("User hajafutwa; hifadhi ya Supabase imeshindwa"+code+": "+detail);
+   return
+  }
  try{
   const {data,error}=await sbClient.from("mpa_app_state").select("payload").eq("scope",cloudStateScope).maybeSingle();
   if(error)throw error;
@@ -1523,7 +1535,9 @@ async function deleteUser(id){
  }catch(e){
   console.warn("Seller delete verification failed",e);
   users=before;deletedUserIds=beforeDeletedUserIds;renderUsers();
-  toast("Supabase haijathibitisha kufutwa kwa user; mabadiliko yamerudishwa. Jaribu tena baada ya kukagua muunganisho.");
+  const detail=String(e?.message||"Sababu haijaripotiwa").slice(0,180);
+  const code=e?.code?" ["+String(e.code).slice(0,30)+"]":"";
+  toast("Ufutaji haujathibitishwa; mabadiliko yamerudishwa"+code+": "+detail);
   return;
  }
  editingUserId=null;selectedUserDetailId=null;closeModal("userModal");closeModal("sellerPinModal");
