@@ -304,7 +304,7 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
       <div class="settings-group-title">TAARIFA ZA APP</div>
       <div class="settings-ios-list">
         <button onclick="toast('Taarifa za usalama ziko tayari.')"><span class="setting-icon" style="background:#5d7dff">⇩</span><span class="setting-main">Taarifa za usalama</span><b>›</b></button>
-        <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span>New Version - V34</span><button onclick="forceRefreshApp()">↻ Refresh</button></div>
+        <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span id="appVersionLabel">New Version - V39</span><button onclick="forceRefreshApp()">↻ Refresh</button></div>
         <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span>0767203506</span><button onclick="logout()" style="background:#999!important">Logout</button></div>
       </div>
       <div class="settings-group-title">MWONEKANO</div>
@@ -392,8 +392,12 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
 <div id="saleDetailModal" class="modalback"><div class="modal sale-detail-wrap"><div id="saleDetailContent"></div></div></div>
 <div id="receiptModal" class="modalback"><div class="modal sale-detail-wrap"><div id="receiptContent"></div></div></div>
 <script>
-// M-P-A v38: sequential refresh prevents stale mpa_app_state overwriting products table results. 
+// M-P-A v39: dynamic release label + clearer user-delete persistence diagnostics.
+const MPA_APP_VERSION = "V39";
+function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="New Version - "+MPA_APP_VERSION;}
+ 
 
+renderAppVersion();
 function parseMoney(v){return Number(String(v??"").replace(/[^\d.-]/g,""))||0}
 function formatMoneyInput(el){
   const raw=String(el.value||"").replace(/[^\d]/g,"");
@@ -1524,7 +1528,7 @@ async function deleteUser(id){
    users=before;deletedUserIds=beforeDeletedUserIds;renderUsers();
    const detail=String(state?.error?.message||"Sababu haijaripotiwa").slice(0,180);
    const code=state?.error?.code?" ["+String(state.error.code).slice(0,30)+"]":"";
-   toast("User hajafutwa; hifadhi ya Supabase imeshindwa"+code+": "+detail);
+   toast("USER DELETE ERROR: Supabase imekataa kuhifadhi mpa_app_state"+code+": "+detail);
    return
   }
  try{
@@ -1538,7 +1542,7 @@ async function deleteUser(id){
   users=before;deletedUserIds=beforeDeletedUserIds;renderUsers();
   const detail=String(e?.message||"Sababu haijaripotiwa").slice(0,180);
   const code=e?.code?" ["+String(e.code).slice(0,30)+"]":"";
-  toast("Ufutaji haujathibitishwa; mabadiliko yamerudishwa"+code+": "+detail);
+  toast("USER DELETE NOT VERIFIED: Supabase haijathibitisha mpa_app_state"+code+": "+detail);
   return;
  }
  editingUserId=null;selectedUserDetailId=null;closeModal("userModal");closeModal("sellerPinModal");
