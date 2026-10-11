@@ -1,4 +1,4 @@
-const CACHE="mpa-v40-retry-supabase-state-writes-20261011-1";
+const CACHE="mpa-v41-fix-realtime-state-overwrite-20261011-1";
 const ASSETS=["./","./index.html","./logo.png","./icon.svg","./manifest.webmanifest","./service-worker.js"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));

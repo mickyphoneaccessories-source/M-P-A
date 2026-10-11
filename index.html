@@ -304,7 +304,7 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
       <div class="settings-group-title">TAARIFA ZA APP</div>
       <div class="settings-ios-list">
         <button onclick="toast('Taarifa za usalama ziko tayari.')"><span class="setting-icon" style="background:#5d7dff">⇩</span><span class="setting-main">Taarifa za usalama</span><b>›</b></button>
-        <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span id="appVersionLabel">New Version - V40</span><button onclick="forceRefreshApp()">↻ Refresh</button></div>
+        <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span id="appVersionLabel">New Version - V41</span><button onclick="forceRefreshApp()">↻ Refresh</button></div>
         <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span>0767203506</span><button onclick="logout()" style="background:#999!important">Logout</button></div>
       </div>
       <div class="settings-group-title">MWONEKANO</div>
@@ -392,8 +392,8 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
 <div id="saleDetailModal" class="modalback"><div class="modal sale-detail-wrap"><div id="saleDetailContent"></div></div></div>
 <div id="receiptModal" class="modalback"><div class="modal sale-detail-wrap"><div id="receiptContent"></div></div></div>
 <script>
-// M-P-A v40: retry Supabase app-state writes when a concurrent tab/device overwrites the write token.
-const MPA_APP_VERSION = "V40";
+// M-P-A v41: do not reload the entire app state on realtime app-state events; only merge notifications.
+const MPA_APP_VERSION = "V41";
 function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="New Version - "+MPA_APP_VERSION;}
  
 
@@ -1645,12 +1645,25 @@ async function refreshRemoteDataFast(){
  finally{mpaSyncBusy=false}
 }
 let lastSeenRemoteNotificationIds=new Set();
-async function scheduleRemoteNotificationRefresh(){
+async function scheduleRemoteNotificationRefresh(eventPayload){
  if(!sbClient||!authProfile)return;
+ // IMPORTANT: mpa_app_state contains the full application snapshot. Reloading it on every
+ // realtime event can overwrite freshly synced products/users with an older snapshot from
+ // another tab/device. Only read and merge notifications here; full state loads happen at login.
  const before=new Set(notifications.map(n=>String(n.id)));
  try{
-  const result=await loadCloudState();
-  if(result&&result.ok===false)return;
+  let remoteNotifications=eventPayload?.new?.payload?.notifications;
+  if(!Array.isArray(remoteNotifications)){
+   const {data,error}=await sbClient.from("mpa_app_state").select("payload").eq("scope",cloudStateScope).maybeSingle();
+   if(error)throw error;
+   remoteNotifications=data?.payload?.notifications;
+  }
+  if(!Array.isArray(remoteNotifications))return;
+  const merged=new Map();
+  for(const item of remoteNotifications){if(item&&item.id!=null)merged.set(String(item.id),item)}
+  // Keep this tab's in-memory copy (including read state and just-created notifications).
+  for(const item of notifications){if(item&&item.id!=null)merged.set(String(item.id),item)}
+  notifications=[...merged.values()].sort((a,b)=>new Date(b.date||0)-new Date(a.date||0)).slice(0,200);
   renderNotifications();updateNotifDot();
   const fresh=notifications.filter(n=>!before.has(String(n.id))&&String(n.user||'')!==String(currentUser()));
   for(const item of fresh){
