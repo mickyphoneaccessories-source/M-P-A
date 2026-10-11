@@ -1115,9 +1115,16 @@ async function makeSale(){
  try{return await runOnce("sale-save",async()=>{
   if(!can("sell")){toast("Huna ruhusa ya kuuza.");return {ok:false}}
   if(!saleCart.length){toast("Chagua angalau bidhaa moja.");return {ok:false}}
-  for(const item of saleCart){const p=products.find(x=>x.id===item.productId);if(!p||item.qty<1||item.qty>p.qty){toast("Stock haitoshi kwa bidhaa fulani.");return {ok:false}}}
+  // Collapse duplicate entries for the same product before calculating totals or reducing stock.
+  const normalizedCart=new Map();
+  for(const item of saleCart){const key=String(item.productId);const prior=normalizedCart.get(key);if(!prior||Number(item.qty||0)>Number(prior.qty||0))normalizedCart.set(key,{...item,qty:Number(item.qty||0)});}
+  saleCart=[...normalizedCart.values()];
+  for(const item of saleCart){const p=products.find(x=>String(x.id)===String(item.productId));if(!p||item.qty<1||item.qty>p.qty){toast("Stock haitoshi kwa bidhaa fulani.");return {ok:false}}}
   const {subtotal,discount,total}=calculateSaleOrder(),customer=document.getElementById("saleCustomer").value.trim()||"Mteja",saleDate=document.getElementById("saleDate").value||dateKey(now()),note=document.getElementById("saleNote").value.trim();
-  const items=saleCart.map(item=>{const p=products.find(x=>x.id===item.productId);const line=p.price*item.qty;return {productId:p.id,product:p.name,qty:item.qty,price:p.price,buy:p.buy,lineTotal:line}});
+  const uniqueCart=new Map();
+  for(const item of saleCart){const key=String(item.productId);const prev=uniqueCart.get(key);if(!prev||Number(item.qty||0)>Number(prev.qty||0))uniqueCart.set(key,{...item,qty:Number(item.qty||0)});}
+  const items=[...uniqueCart.values()].map(item=>{const p=products.find(x=>String(x.id)===String(item.productId));const line=p.price*item.qty;return {productId:p.id,product:p.name,qty:item.qty,price:p.price,buy:p.buy,lineTotal:line}});
+  if(!items.length){toast("Chagua angalau bidhaa moja.");return {ok:false}}
   const profit=items.reduce((a,x)=>a+(x.price-x.buy)*x.qty,0)-discount;
   const oldQty=new Map();
   items.forEach(x=>{const p=products.find(y=>y.id===x.productId);oldQty.set(p.id,p.qty);p.qty-=x.qty;movements.unshift({id:crypto.randomUUID(),productId:p.id,type:"sale",qty:x.qty,user:currentUser(),note:"Mauzo",date:new Date(saleDate+"T12:00:00").toISOString()})});
@@ -1208,7 +1215,10 @@ async function deleteSale(id){
  return runOnce("sale-delete",async()=>{
   if(!(currentUserObj()?.role==="admin")&&!can('delete_sales')){toast('Huna ruhusa ya kufuta mauzo.');return {ok:false}}
   const s=sales.find(x=>String(x.id)===String(id));if(!s)return {ok:false};
-  const items=s.items||[{productId:s.productId,qty:s.qty||0}];
+  const rawItems=s.items||[{productId:s.productId,qty:s.qty||0}];
+  const restoreMap=new Map();
+  for(const i of rawItems){const key=String(i.productId||"");const old=restoreMap.get(key);if(key&&(!old||Number(i.qty||0)>Number(old.qty||0)))restoreMap.set(key,{...i,qty:Number(i.qty||0)});}
+  const items=[...restoreMap.values()];
   if(!items.length||items.some(i=>!i.productId||Number(i.qty||0)<=0)){toast('Mauzo haya hayana taarifa salama za kurudisha stock.');return {ok:false}}
   if(!confirm('Futa Mauzo Haya?\n\nStock ya bidhaa zilizouzwa itarudishwa. Takwimu za mauzo pia zitapungua.'))return {ok:false,cancelled:true};
   const del=await deleteSaleFromSupabase(s);if(!del.ok){toast('Mauzo hayajafutwa. Supabase haikupokea ombi.');return del}
@@ -1244,7 +1254,7 @@ async function deleteTodaySales(){
   const today=dateKey(now()),todays=sales.filter(s=>dateKey(s.date)===today);if(!todays.length){toast("Hakuna mauzo ya leo.");return {ok:false}}
   if(!confirm("Futa mauzo yote ya leo? Stock itarudishwa."))return {ok:false,cancelled:true};
   for(const s of todays){const r=await deleteSaleFromSupabase(s);if(!r.ok){toast("Mauzo hayajafutwa. Supabase haikupokea ombi.");return r}}
-  for(const s of todays){for(const i of(s.items||[{productId:s.productId,qty:s.qty}])){const p=products.find(x=>String(x.id)===String(i.productId));if(p){p.qty+=Number(i.qty||0);movements.unshift({id:crypto.randomUUID(),productId:p.id,type:"add",qty:Number(i.qty||0),user:currentUser(),note:"Stock imerudishwa baada ya kufuta mauzo",date:now().toISOString()});await syncProductToSupabase(p)}}}
+  for(const s of todays){const restoreMap=new Map();for(const i of(s.items||[{productId:s.productId,qty:s.qty}])){const key=String(i.productId||"");const old=restoreMap.get(key);if(key&&(!old||Number(i.qty||0)>Number(old.qty||0)))restoreMap.set(key,{...i,qty:Number(i.qty||0)});}for(const i of restoreMap.values()){const p=products.find(x=>String(x.id)===String(i.productId));if(p){p.qty+=Number(i.qty||0);movements.unshift({id:crypto.randomUUID(),productId:p.id,type:"add",qty:Number(i.qty||0),user:currentUser(),note:"Stock imerudishwa baada ya kufuta mauzo",date:now().toISOString()});await syncProductToSupabase(p)}}}
   const deletedKeys=todays.flatMap(s=>[String(s.supabaseId||s.id),String(s.id)]);deletedSaleIds=[...new Set([...deletedSaleIds,...deletedKeys])];sales=sales.filter(s=>dateKey(s.date)!==today&&!deletedKeys.includes(String(s.supabaseId||s.id))&&!deletedKeys.includes(String(s.id)));const state=await saveAll({renderNow:false});renderSalesHistory();renderProducts();render();if(!state?.ok){toast("Mauzo yameondolewa kwenye skrini, lakini Supabase haijathibitisha kuhifadhi ufutaji. Angalia ruhusa/RLS.");return state}const verify=await sbClient.from('mpa_app_state').select('payload').eq('scope',cloudStateScope).maybeSingle();const persistedIds=Array.isArray(verify.data?.payload?.deletedSaleIds)?verify.data.payload.deletedSaleIds.map(String):[];if(verify.error||deletedKeys.some(k=>!persistedIds.includes(k))){toast("Supabase haijathibitisha kuhifadhi ufutaji wa mauzo yote ya leo. Angalia ruhusa/RLS.");return {ok:false,error:verify.error||new Error('One or more sale deletion markers were not persisted')}}notify("Mauzo ya leo yamefutwa","Stock imerudishwa kwenye bidhaa husika.","sales",null);toast("Mauzo ya leo yamefutwa na Supabase imethibitisha ✓");return state;
  });
 }
@@ -1380,13 +1390,25 @@ function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&l
 let mpaRealtimeChannel=null;
 let mpaSyncTimer=null;
 let mpaSyncBusy=false;
+let mpaRealtimeDebounce=null;
+function scheduleRemoteRefresh(){
+ if(mpaRealtimeDebounce)clearTimeout(mpaRealtimeDebounce);
+ mpaRealtimeDebounce=setTimeout(()=>refreshRemoteDataFast(),1200);
+}
 async function refreshRemoteDataFast(){
  if(!sbClient||!authProfile||mpaSyncBusy)return;
  mpaSyncBusy=true;
  try{
   await syncProductsFromSupabase({silent:true});
   await syncSalesFromSupabase({silent:true});
-  render();
+  // Do not redraw the whole app while a sale form is open: preserve the in-progress order.
+  const saleFormOpen=!document.getElementById("saleEntryView")?.classList.contains("hidden");
+  if(!saleFormOpen){
+   const activePage=document.querySelector(".page.active")?.id||"home";
+   render();
+   document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+   document.getElementById(activePage)?.classList.add("active");
+  }
  }catch(e){console.warn("Fast Supabase refresh failed",e)}
  finally{mpaSyncBusy=false}
 }
@@ -1395,14 +1417,14 @@ function startSupabaseRealtime(){
  try{
   if(mpaRealtimeChannel){sbClient.removeChannel(mpaRealtimeChannel);mpaRealtimeChannel=null;}
   mpaRealtimeChannel=sbClient.channel("mpa-live-sync")
-   .on("postgres_changes",{event:"*",schema:"public",table:"products"},()=>refreshRemoteDataFast())
-   .on("postgres_changes",{event:"*",schema:"public",table:"sales"},()=>refreshRemoteDataFast())
-   .on("postgres_changes",{event:"*",schema:"public",table:"sale_items"},()=>refreshRemoteDataFast())
-   .on("postgres_changes",{event:"*",schema:"public",table:"mpa_app_state"},()=>refreshRemoteDataFast())
+   .on("postgres_changes",{event:"*",schema:"public",table:"products"},scheduleRemoteRefresh)
+   .on("postgres_changes",{event:"*",schema:"public",table:"sales"},scheduleRemoteRefresh)
+   .on("postgres_changes",{event:"*",schema:"public",table:"sale_items"},scheduleRemoteRefresh)
    .subscribe();
  }catch(e){console.warn("Realtime setup failed",e)}
- if(mpaSyncTimer)clearInterval(mpaSyncTimer);
- mpaSyncTimer=setInterval(()=>{if(document.visibilityState!=="hidden")refreshRemoteDataFast();},15000);
+ // Supabase Realtime is the live-sync mechanism. A polling timer here caused
+ // continuous redraws while the user was working, so no periodic refresh is started.
+ if(mpaSyncTimer){clearInterval(mpaSyncTimer);mpaSyncTimer=null;}
 }
 
 function render(){

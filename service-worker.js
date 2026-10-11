@@ -1,4 +1,4 @@
-const CACHE="mpa-v33-fix-goal-null-render-20261009-1";
+const CACHE="mpa-v33-sale-refresh-dedupe-20261011-1";
 const ASSETS=["./","./index.html","./logo.png","./icon.svg","./manifest.webmanifest","./service-worker.js"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));
