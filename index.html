@@ -392,6 +392,7 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
 <div id="saleDetailModal" class="modalback"><div class="modal sale-detail-wrap"><div id="saleDetailContent"></div></div></div>
 <div id="receiptModal" class="modalback"><div class="modal sale-detail-wrap"><div id="receiptContent"></div></div></div>
 <script>
+// M-P-A v38: sequential refresh prevents stale mpa_app_state overwriting products table results. 
 
 function parseMoney(v){return Number(String(v??"").replace(/[^\d.-]/g,""))||0}
 function formatMoneyInput(el){
@@ -1687,15 +1688,17 @@ async function refreshDataView(){
   const el=document.getElementById('refreshIndicator');el?.classList.add('show');
   let timedOut=false;
   try{
-   // Run independent reads together so pull-to-refresh can finish within 3 seconds where the network allows.
-   const jobs=Promise.allSettled([
-    loadCloudState(),
-    syncProductsFromSupabase({silent:true}),
-    syncSalesFromSupabase({silent:true})
-   ]);
-   await Promise.race([jobs,new Promise(resolve=>window.setTimeout(()=>{timedOut=true;resolve(null)},2500))]);
+   // IMPORTANT: app-state and normalized products both assign to `products`.
+   // They must run sequentially; Promise.all allowed the older 14-item app-state
+   // payload to overwrite the 15-item products-table result after refresh.
+   const stateResult=await loadCloudState();
+   if(stateResult?.ok===false) throw (stateResult.error||new Error('App state haikupakiwa.'));
+   const productsResult=await syncProductsFromSupabase({silent:true});
+   if(productsResult?.ok===false) throw (productsResult.error||new Error('Bidhaa hazikusawazishwa.'));
+   const salesResult=await syncSalesFromSupabase({silent:true});
+   if(salesResult?.ok===false) console.warn('Sales refresh did not complete',salesResult.error);
    refreshCurrentPage();
-   if(timedOut)toast('Refresh imechukua muda zaidi ya sekunde 3; angalia muunganisho wa Supabase.');
+   if(Date.now()-started>3000)toast('Refresh imekamilika baada ya zaidi ya sekunde 3; angalia muunganisho wa Supabase.');
   }catch(e){console.warn('refreshDataView',e);toast('Refresh haijakamilika. Angalia muunganisho kisha jaribu tena.');}
   const remaining=Math.max(0,3000-(Date.now()-started));
   window.setTimeout(()=>{el?.classList.remove('show');pullBusy=false},remaining);
