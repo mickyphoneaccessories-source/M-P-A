@@ -1,4 +1,4 @@
-const CACHE="mpa-v43-faster-cloud-save-20261012-1";
+const CACHE="mpa-v43-refresh-path-match-20261012-2";
 const ASSETS=["./","./index.html","./logo.png","./icon.svg","./manifest.webmanifest","./service-worker.js"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));
