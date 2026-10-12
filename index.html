@@ -735,11 +735,15 @@ async function saveCloudState(){
     // Add a unique token for read-after-write verification.
     const stamp=now().toISOString()+"-"+Math.random().toString(36).slice(2,10);
     payload.__mpaWriteToken=stamp;
-    const {error:writeError}=await sbClient.from("mpa_app_state").upsert({scope:cloudStateScope,payload,updated_by:authProfile.id,updated_at:now().toISOString()},{onConflict:"scope"});
+    // Return the row from the write itself instead of making a second verification
+    // request. The previous read-after-write added latency to every save and could
+    // observe another device's newer write after this write had already succeeded.
+    const {data:writtenRow,error:writeError}=await sbClient.from("mpa_app_state")
+      .upsert({scope:cloudStateScope,payload,updated_by:authProfile.id,updated_at:now().toISOString()},{onConflict:"scope"})
+      .select("payload,updated_at").maybeSingle();
     if(writeError)throw writeError;
-    const verify=await sbClient.from("mpa_app_state").select("payload,updated_at").eq("scope",cloudStateScope).maybeSingle();
-    if(verify.error)throw verify.error;
-    const saved=verify.data?.payload;
+    if(!writtenRow)throw new Error("Supabase haikurudisha rekodi iliyohifadhiwa; hifadhi haijathibitishwa.");
+    const saved=writtenRow.payload;
     const savedToken=String(saved?.__mpaWriteToken||"");
     const savedDeletedUsers=Array.isArray(saved?.deletedUserIds)?saved.deletedUserIds.map(String):[];
     if(savedToken===stamp && deletedUserIds.every(id=>savedDeletedUsers.includes(String(id))))return {ok:true,attempt};
