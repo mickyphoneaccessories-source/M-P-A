@@ -74,7 +74,7 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
     <div class="field"><label>Username / Email</label><input id="username" placeholder="Andika username au email"></div>
     <div class="field"><label>Password</label><input id="password" type="password" placeholder="Password"></div>
     <button class="goldbtn" id="loginBtn" onclick="login()">Ingia kwenye mfumo</button>
-    <div class="hint" id="loginHint">Kwa account ya Supabase tumia email + password. Username ya M-P-A itaonekana baada ya kuingia.</div>
+    <div class="hint" id="loginHint">Kwa User tumia username na PIN uliyopewa na Admin. Admin anaingia kwa email na password yake.</div>
     <div id="resetBox" class="resetbox">
       <h2>Badilisha password</h2>
       <p>Weka password mpya ya Admin yako. Usitumie password yako ya zamani.</p>
@@ -304,7 +304,7 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
       <div class="settings-group-title">TAARIFA ZA APP</div>
       <div class="settings-ios-list">
         <button onclick="toast('Taarifa za usalama ziko tayari.')"><span class="setting-icon" style="background:#5d7dff">⇩</span><span class="setting-main">Taarifa za usalama</span><b>›</b></button>
-        <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span id="appVersionLabel">New Version - V43</span><button onclick="forceRefreshApp()">↻ Refresh</button></div>
+        <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span id="appVersionLabel">New Version - V41</span><button onclick="forceRefreshApp()">↻ Refresh</button></div>
         <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span>0767203506</span><button onclick="logout()" style="background:#999!important">Logout</button></div>
       </div>
       <div class="settings-group-title">MWONEKANO</div>
@@ -393,7 +393,7 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
 <div id="receiptModal" class="modalback"><div class="modal sale-detail-wrap"><div id="receiptContent"></div></div></div>
 <script>
 // M-P-A v41: do not reload the entire app state on realtime app-state events; only merge notifications.
-const MPA_APP_VERSION = "V43";
+const MPA_APP_VERSION = "V44";
 function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="New Version - "+MPA_APP_VERSION;}
  
 
@@ -731,7 +731,8 @@ async function saveCloudState(){
     products=products.filter(p=>!deletedProductIds.includes(String(p.id||p.supabaseId)));
     sales=sales.filter(x=>!deletedSaleIds.includes(String(x.id))&&!deletedSaleIds.includes(String(x.supabaseId)));
     expenses=expenses.filter(x=>!deletedExpenseIds.includes(String(x.id)));
-    const payload={products,sales,customers,expenses,movements,notifications:notifications.slice(0,200),users,goalTarget:currentGoalTarget(),monthlyGoals,branches,activeBranch,storeName,language,fontSize,deletedSaleIds,deletedExpenseIds,deletedProductIds,deletedUserIds};
+    const safeUsers=users.map(({password,...u})=>({...u}));
+    const payload={products,sales,customers,expenses,movements,notifications:notifications.slice(0,200),users:safeUsers,goalTarget:currentGoalTarget(),monthlyGoals,branches,activeBranch,storeName,language,fontSize,deletedSaleIds,deletedExpenseIds,deletedProductIds,deletedUserIds};
     // Add a unique token for read-after-write verification.
     const stamp=now().toISOString()+"-"+Math.random().toString(36).slice(2,10);
     payload.__mpaWriteToken=stamp;
@@ -888,73 +889,58 @@ const KNOWN_LOGIN_ROLES={
 };
 const DEFAULT_USER_PERMISSIONS=["view_products","sell","add_stock","remove_stock","view_sales","view_reports","view_expenses","manage_expenses","view_expense_history"];
 
+async function callSellerAuth(body){
+ if(!sbClient)throw new Error("Supabase haijaunganishwa.");
+ const {data,error}=await sbClient.functions.invoke("mpa-user-auth",{body});
+ if(error)throw new Error(error.message||"Edge Function ya user imeshindwa.");
+ if(data?.error)throw new Error(String(data.error));
+ return data;
+}
+
 async function login(){
  const u=document.getElementById("username").value.trim(),p=document.getElementById("password").value;
- if(!u||!p){alert("Weka username/email na password.");return}
+ if(!u||!p){alert("Weka username na password/PIN.");return}
  document.getElementById("login").style.display="block";
  document.getElementById("app").style.display="none";
  authProfile=null;
  if(!sbClient){alert("Supabase haijaunganishwa. Login imesitishwa.");return}
-
- // 1) Supabase Auth pekee ndiyo inathibitisha email/password.
  try{await sbClient.auth.signOut()}catch(e){}
- const email=u.includes("@")?u:(u+"@mpa.local");
- let data,error;
+ let data=null,error=null,email=u.includes("@")?u:(u+"@mpa.local");
  try{
-   const result=await sbClient.auth.signInWithPassword({email,password:p});
-   data=result.data; error=result.error;
+   if(loginRole==="user"&&!u.includes("@")){
+     // User login is verified server-side; the 4-digit PIN is never used as an Auth password directly.
+     const result=await callSellerAuth({action:"login",username:u,pin:p});
+     if(!result?.session?.access_token||!result?.session?.refresh_token)throw new Error("Login server haikurudisha session.");
+     const set=await sbClient.auth.setSession({access_token:result.session.access_token,refresh_token:result.session.refresh_token});
+     if(set.error)throw set.error;
+     data={user:set.data?.user||result.user||null,session:set.data?.session||result.session};
+     if(!data.user){const current=await sbClient.auth.getUser();data.user=current.data?.user||null;}
+   }else{
+     const result=await sbClient.auth.signInWithPassword({email,password:p});
+     data=result.data;error=result.error;
+   }
  }catch(e){
-   console.warn("Supabase sign-in error",e);
-   alert("Login haikufanikiwa. Angalia email na password yako.");
+   console.warn("M-P-A sign-in error",e);
+   try{await sbClient.auth.signOut()}catch(_e){}
+   alert(loginRole==="user"&&!u.includes("@")?"Username/PIN si sahihi au akaunti haijaandaliwa. Admin afungue Weka PIN kwa user huyo, aweke PIN na kuhifadhi tena.":"Login haikufanikiwa. Angalia email na password ya Admin.");
    return;
  }
- if(error||!data?.user){
-   try{await sbClient.auth.signOut()}catch(e){}
-   alert("Username/email au password si sahihi.");
-   return;
- }
-
- // 2) Auth imefanikiwa. Soma profile; kama RLS haijaruhusu kusoma,
- //    tumia role iliyofungwa kwenye email bila kumtoa mtumiaji nje.
+ if(error||!data?.user){try{await sbClient.auth.signOut()}catch(e){}alert("Username/email au password si sahihi.");return}
  const normalizedEmail=(data.user.email||email||"").trim().toLowerCase();
  const expectedRole=KNOWN_LOGIN_ROLES[normalizedEmail]||null;
- let prof=null, profileError=null;
- try{
-   const result=await sbClient.from("profiles").select("*").eq("id",data.user.id).maybeSingle();
-   prof=result.data||null; profileError=result.error||null;
- }catch(e){profileError=e}
- if(profileError) console.warn("Profile lookup warning",profileError);
-
- const fallbackRole=expectedRole||prof?.role||"user";
- authProfile={
-   ...(prof||{}),
-   id:data.user.id,
-   username:prof?.username||data.user.email?.split("@")[0]||u,
-   role:expectedRole||prof?.role||fallbackRole,
-   permissions:fallbackRole==="admin"?["all"]:[...new Set([...(Array.isArray(prof?.permissions)?prof.permissions:[]),...DEFAULT_USER_PERMISSIONS])],
-   active:prof?.active!==false
- };
-
- if(authProfile.active===false){
-   await sbClient.auth.signOut(); authProfile=null;
-   alert("Account hii imezimwa na Admin.");
-   return;
- }
- if(loginRole!==authProfile.role){
-   await sbClient.auth.signOut(); authProfile=null;
-   alert(loginRole==="admin"?"Chagua User kwenye login kwa account hii.":"Chagua Admin kwenye login kwa account hii.");
-   return;
- }
-
- document.getElementById("login").style.display="none";
- document.getElementById("app").style.display="block";
- // Muhimu: kosa la render si kosa la password. Usimrudishe mtumiaji login.
- try{await loadCloudState();render();toast("Karibu "+currentUser()+" ✓");await syncProductsFromSupabase({silent:true});await syncSalesFromSupabase({silent:true});startSupabaseRealtime();}
- catch(e){console.error("M-P-A render/sync error after successful login",e);}
+ let prof=null,profileError=null;
+ try{const result=await sbClient.from("profiles").select("*").eq("id",data.user.id).maybeSingle();prof=result.data||null;profileError=result.error||null;}catch(e){profileError=e}
+ if(profileError)console.warn("Profile lookup warning",profileError);
+ const metadata=data.user.user_metadata||{};
+ const fallbackRole=expectedRole||prof?.role||metadata.role||"user";
+ authProfile={...(prof||{}),id:data.user.id,username:prof?.username||metadata.username||data.user.email?.split("@")[0]||u,role:expectedRole||prof?.role||metadata.role||fallbackRole,permissions:fallbackRole==="admin"?["all"]:(Array.isArray(prof?.permissions)?[...new Set(prof.permissions)]:Array.isArray(metadata.permissions)?[...new Set(metadata.permissions)]:[...DEFAULT_USER_PERMISSIONS]),active:prof?.active!==false&&metadata.active!==false};
+ if(authProfile.active===false){await sbClient.auth.signOut();authProfile=null;alert("Account hii imezimwa na Admin.");return}
+ if(loginRole!==authProfile.role){await sbClient.auth.signOut();authProfile=null;alert(loginRole==="admin"?"Chagua User kwenye login kwa account hii.":"Chagua Admin kwenye login kwa account hii.");return}
+ document.getElementById("login").style.display="none";document.getElementById("app").style.display="block";
+ try{await loadCloudState();await syncProductsFromSupabase({silent:true});await syncSalesFromSupabase({silent:true});startSupabaseRealtime();}catch(e){console.error("M-P-A render/sync error after successful login",e)}
 }
+
 async function forceRefreshApp(){
-  // Both the Settings button and pull-to-refresh use this exact update path.
-  try{const activePage=document.querySelector(".page.active")?.id||"home";sessionStorage.setItem("mpaCurrentPage",activePage);}catch(e){}
   try{
     if("serviceWorker" in navigator){
       const regs=await navigator.serviceWorker.getRegistrations();
@@ -1418,8 +1404,8 @@ function openUserModal(editId=null){
  const u=editId?users.find(x=>String(x.id)===String(editId)):null;
  document.getElementById("userModalTitle").textContent=u?"Edit Muuzaji":"Ongeza Muuzaji";
  document.getElementById("newUserName").value=u?.username||"";
- document.getElementById("newUserPass").value=u?.password||"";
- document.getElementById("newUserPass").placeholder="PIN ya tarakimu 4";
+ document.getElementById("newUserPass").value="";
+ document.getElementById("newUserPass").placeholder=u?"Acha wazi kama hutaki kubadilisha PIN":"PIN ya tarakimu 4";
  document.getElementById("newUserRole").value=u?.role||"user";
  document.getElementById("userModal").classList.add("show");
 }
@@ -1427,25 +1413,21 @@ async function saveUser(){
  if(!can("manage_users")){toast("Admin pekee.");return}
  const username=document.getElementById("newUserName").value.trim(),password=String(document.getElementById("newUserPass").value||"").trim(),role=document.getElementById("newUserRole").value;
  if(!username){toast("Weka username ya muuzaji.");return}
- if(username.length<3){toast("Username iwe na angalau herufi 3.");return}
- if(!/^\d{4}$/.test(password)){toast("PIN/Password ya muuzaji lazima iwe na tarakimu 4.");return}
+ if(!/^[a-zA-Z0-9._-]{3,40}$/.test(username)){toast("Username iwe herufi/namba bila nafasi; ruhusiwa . _ - (herufi 3 hadi 40). ");return}
+ if((!editingUserId&&!/^\d{4}$/.test(password))||(password&&!/^\d{4}$/.test(password))){toast("PIN mpya lazima iwe na tarakimu 4.");return}
  if(users.some(u=>String(u.username||"").trim().toLowerCase()===username.toLowerCase()&&String(u.id)!==String(editingUserId))){toast("Username hii tayari inatumika. Chagua username nyingine.");return}
  const existingUser=editingUserId?users.find(x=>String(x.id)===String(editingUserId)):null;const permissions=role==="admin"?["all"]:[...(existingUser?.permissions||[])].filter(x=>x!=="all");
- const before=users.map(u=>({...u,permissions:[...(u.permissions||[])]}));
- let targetId=editingUserId;
- if(editingUserId){
-  const u=users.find(x=>String(x.id)===String(editingUserId));
-  if(!u){toast("User hakupatikana.");return}
-  if(u.role==="admin"&&role!=="admin"){toast("Akaunti ya Admin haiwezi kubadilishwa kuwa User hapa.");return}
-  Object.assign(u,{username,password,role,permissions});
- }else{
-  const nu={id:crypto.randomUUID(),username,password,role,permissions,active:true,createdAt:now().toISOString()};
-  users.push(nu);targetId=nu.id;
- }
+ const before=users.map(u=>({...u,permissions:[...(u.permissions||[])]}));let targetId=editingUserId;
+ if(editingUserId){const u=users.find(x=>String(x.id)===String(editingUserId));if(!u){toast("User hakupatikana.");return}if(u.role==="admin"&&role!=="admin"){toast("Akaunti ya Admin haiwezi kubadilishwa kuwa User hapa.");return}Object.assign(u,{username,...(password?{password}:{}),role,permissions});}
+ else{const nu={id:crypto.randomUUID(),username,password,role,permissions,active:true,createdAt:now().toISOString()};users.push(nu);targetId=nu.id;}
+ const target=users.find(x=>String(x.id)===String(targetId));
+ try{await callSellerAuth({action:"upsert",username,pin:password||undefined,displayName:target?.displayName||target?.fullName||username,role,permissions,active:target?.active!==false});}
+ catch(e){users=before;renderUsers();toast("Akaunti ya Supabase haikuandaliwa: "+String(e.message||e).slice(0,150)+". Kama ni user wa zamani, ingiza PIN yake ili kuunganisha akaunti.");return}
  const state=await saveAll({renderNow:false});
- if(!state?.ok){users=before;renderUsers();if(document.getElementById("userDetail")?.classList.contains("active"))renderUserDetail();toast("User hakuhifadhiwa. Supabase haijathibitisha mabadiliko; jaribu tena.");return}
- closeModal("userModal");editingUserId=null;selectedUserDetailId=targetId;setUsersTab("active");renderUsers();openUserDetail(targetId);notify(before.some(u=>String(u.id)===String(targetId))?"User amebadilishwa":"User mpya ameongezwa",username,"userDetail",targetId);toast("Taarifa za user zimehifadhiwa Supabase ✓");
+ if(!state?.ok){users=before;renderUsers();toast("Akaunti imeandaliwa lakini hifadhi ya taarifa za mfumo haikuthibitishwa. Refresh na hakiki kabla ya kurudia.");return}
+ closeModal("userModal");editingUserId=null;selectedUserDetailId=targetId;setUsersTab("active");renderUsers();openUserDetail(targetId);notify(before.some(u=>String(u.id)===String(targetId))?"User amebadilishwa":"User mpya ameongezwa",username,"userDetail",targetId);toast("User na akaunti ya kuingia vimehifadhiwa ✓");
 }
+
 function renderUsers(){const el=document.getElementById("userListIos");if(!el)return;const list=users.filter(u=>u.role!=="admin" && (usersTab==="active"?u.active!==false:u.active===false)).sort((a,b)=>String(a.username).localeCompare(String(b.username)));if(!list.length){el.innerHTML=`<div class="user-empty">Hakuna wauzaji ${usersTab==="active"?"Active":"Inactive"} kwa sasa.</div>`;return}const first=(list[0].username||"M").charAt(0).toUpperCase();el.innerHTML=`<div class="user-section-letter">${first}</div>`+list.map(u=>`<div class="user-list-row" role="button" tabindex="0" title="Shikilia username kupata chaguo la kufuta" onclick='openUserDetail(${JSON.stringify(String(u.id))})' oncontextmenu='event.preventDefault();confirmDeleteUser(${JSON.stringify(String(u.id))})' onkeydown='if(event.key==="Enter"||event.key===" "){event.preventDefault();openUserDetail(${JSON.stringify(String(u.id))})}'><div class="user-avatar-ios">${esc((u.username||"M").charAt(0).toUpperCase())}</div><div class="user-row-main"><b>Username: ${esc(u.username)}</b><small class="user-status ${u.active===false?'inactive':''}">${u.active===false?'Inactive':'Active'}</small></div><span style="color:#999;font-size:28px">›</span></div>`).join("");}
 function confirmDeleteUser(id){const u=users.find(x=>String(x.id)===String(id));if(!u)return;if(u.role==="admin"){toast("Admin hawezi kufutwa hapa.");return}if(!can("manage_users")){toast("Admin pekee.");return}deleteUser(id)}
 function openUserDetail(id){const u=users.find(x=>String(x.id)===String(id));if(!u){toast("Taarifa za mtumiaji hazikupatikana. Refresh kisha jaribu tena.");return}selectedUserDetailId=u.id;showPage("userDetail",null);renderUserDetail();}
@@ -1544,8 +1526,10 @@ async function saveSellerPin(){
  u.role=role;
  u.permissions=role==="admin"?["all"]:old.permissions.filter(x=>x!=="all");
  const btn=document.getElementById("sellerPinSaveBtn");if(btn){btn.disabled=true;btn.textContent="Inahifadhi..."}
+ try{await callSellerAuth({action:"upsert",username,pin:pin||undefined,displayName:name,role,permissions:u.permissions,active:u.active!==false});}
+ catch(e){Object.assign(u,old);if(btn){btn.disabled=false;btn.textContent="Hifadhi Mabadiliko"}toast("Akaunti ya kuingia haikuandaliwa: "+String(e.message||e).slice(0,140)+". Weka PIN mpya ya tarakimu 4 kwa user wa zamani.");return}
  const state=await saveAll({renderNow:false});
- if(!state?.ok){Object.assign(u,old);if(btn){btn.disabled=false;btn.textContent="Hifadhi Mabadiliko"}toast("Mabadiliko hayajahifadhiwa. Supabase haijathibitisha; jaribu tena.");return}
+ if(!state?.ok){Object.assign(u,old);if(btn){btn.disabled=false;btn.textContent="Hifadhi Mabadiliko"}toast("Akaunti imesasishwa lakini Supabase haijathibitisha hifadhi ya mfumo. Refresh na hakiki.");return}
  if(btn){btn.disabled=false;btn.textContent="Hifadhi Mabadiliko"}
  closeModal("sellerPinModal");
  renderUserDetail();renderUsers();
@@ -1776,7 +1760,7 @@ document.addEventListener('touchmove',e=>{
   if(dy>75){pullTriggered=true;const indicator=document.getElementById('refreshIndicator');if(indicator)indicator.classList.add('show');}
 },{passive:true});
 document.addEventListener('touchend',()=>{
-  if(pullTriggered)forceRefreshApp();
+  if(pullTriggered)refreshDataView();
   else if(!pullBusy)document.getElementById('refreshIndicator')?.classList.remove('show');
   pullStartY=0;pullTriggered=false;
 },{passive:true});
