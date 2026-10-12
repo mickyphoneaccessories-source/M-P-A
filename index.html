@@ -68,11 +68,11 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
     <h1>MICKY M-P-A</h1>
     <p class="sub">Phone Accessories & Home Decoration</p>
     <div class="tabs">
-      <button id="adminTab" class="active" onclick="setLogin('admin')">Admin</button>
-      <button id="userTab" onclick="setLogin('user')">User</button>
+      <button id="adminTab" onclick="setLogin('admin')">Admin</button>
+      <button id="userTab" class="active" onclick="setLogin('user')">User</button>
     </div>
-    <div class="field"><label>Username / Email</label><input id="username" placeholder="Andika username au email"></div>
-    <div class="field"><label>Password</label><input id="password" type="password" placeholder="Password"></div>
+    <div class="field"><label id="usernameLabel">Username ya muuzaji</label><input id="username" autocomplete="username" placeholder="Andika username ya muuzaji"></div>
+    <div class="field"><label id="passwordLabel">PIN ya tarakimu 4</label><input id="password" type="password" autocomplete="current-password" inputmode="numeric" maxlength="64" placeholder="PIN ya tarakimu 4"></div>
     <button class="goldbtn" id="loginBtn" onclick="login()">Ingia kwenye mfumo</button>
     <div class="hint" id="loginHint">Kwa User tumia username na PIN uliyopewa na Admin. Admin anaingia kwa email na password yake.</div>
     <div id="resetBox" class="resetbox">
@@ -475,7 +475,7 @@ const mpaAuthStorage={
   }
 };
 const sbClient=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:mpaAuthStorage}}):null;
-let authProfile=null, loginRole="admin", productTab="in", selectedStockId=null, selectedImage="";
+let authProfile=null, loginRole="user", productTab="in", selectedStockId=null, selectedImage="";
 // M-P-A V21: Supabase is the ONLY persistent application datastore.
 let products=[], sales=[], customers=[], expenses=[], movements=[], notifications=[];
 let goalTarget=10000000, monthlyGoals={}, branches=[], activeBranch="", storeName="Micky Phone Accessories", language="sw", fontSize=100;
@@ -847,7 +847,19 @@ function requestBrowserNotifications(){
  if(!("Notification" in window)){toast("Browser hii haitumii notifications.");return}
  Notification.requestPermission().then(x=>toast(x==="granted"?"Notifications zimeruhusiwa ✓":"Notifications hazijaruhusiwa."));
 }
-function setLogin(role){loginRole=role;document.getElementById("adminTab").classList.toggle("active",role==="admin");document.getElementById("userTab").classList.toggle("active",role==="user")}
+function setLogin(role){
+ loginRole=role;
+ document.getElementById("adminTab").classList.toggle("active",role==="admin");
+ document.getElementById("userTab").classList.toggle("active",role==="user");
+ const userMode=role==="user";
+ document.getElementById("usernameLabel").textContent=userMode?"Username ya muuzaji":"Email ya Admin";
+ document.getElementById("username").placeholder=userMode?"Andika username ya muuzaji":"Andika email ya Admin";
+ document.getElementById("username").autocomplete=userMode?"username":"email";
+ document.getElementById("passwordLabel").textContent=userMode?"PIN ya tarakimu 4":"Password ya Admin";
+ document.getElementById("password").placeholder=userMode?"PIN ya tarakimu 4":"Password ya Admin";
+ document.getElementById("password").inputMode=userMode?"numeric":"text";
+ document.getElementById("loginHint").textContent=userMode?"Muuzaji: tumia username na PIN ya tarakimu 4 uliyopewa na Admin.":"Admin: tumia email na password yako ya Admin.";
+}
 function isPasswordRecoveryLink(){return /type=recovery/i.test(location.hash||"")||/type=recovery/i.test(location.search||"")}
 function showPasswordReset(){
  document.getElementById("login").style.display="block";
@@ -1785,7 +1797,8 @@ function startSalesDayWatcher(){
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState!=="hidden"){lastSalesDate=dateKey(now());if(!salesDayUserSelected&&!document.getElementById("salesDay")?.value)ensureSalesDayIsToday();}});
 
 window.addEventListener("load",async()=>{
- // Anza kwenye login; app ionyeshwe tu baada ya Supabase session kuthibitishwa.
+ // Anza kwenye login ya muuzaji (Username + PIN); Admin anaweza kuchagua kichupo cha Admin.
+ setLogin("user");
  document.getElementById("login").style.display="block";
  document.getElementById("app").style.display="none";
  if("serviceWorker" in navigator)navigator.serviceWorker.register("./service-worker.js").then(r=>r.update()).catch(()=>{});
