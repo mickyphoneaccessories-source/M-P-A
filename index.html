@@ -557,7 +557,7 @@ async function syncProductsFromSupabase({silent=false}={}){
   // Pakua bidhaa kwa kurasa ili orodha isiishie kwenye page limit ya API.
   const rows=[]; const pageSize=500; let pageFrom=0;
   while(true){
-    const {data:remote,error}=await sbClient.from('products').select('*').order('created_at',{ascending:true}).range(pageFrom,pageFrom+pageSize-1);
+    const {data:remote,error}=await sbClient.from('products').select('*').range(pageFrom,pageFrom+pageSize-1);
     if(error)throw error;
     const batch=Array.isArray(remote)?remote:[]; rows.push(...batch);
     if(batch.length<pageSize)break;
@@ -597,7 +597,7 @@ async function syncProductsFromSupabase({silent=false}={}){
   if(!silent)toast('Bidhaa zimesawazishwa na Supabase ✓');
   return {ok:true,count:products.length};
  }catch(e){
-  console.warn('Supabase products load failed',e);
+  console.error('Supabase products load failed; product list may still be stale:',e);
   // Keep the Supabase app-state copy visible; never blank the Products page because a refresh failed.
   if(!silent){
    const code=e?.code?String(e.code):''; const msg=e?.message?String(e.message):'';
