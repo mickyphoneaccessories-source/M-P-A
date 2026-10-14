@@ -556,7 +556,7 @@ async function syncProductsFromSupabase({silent=false}={}){
  try{
   // V50: Toleo jipya la product pagination; cache/version imepandishwa ili kulazimisha update.
   // select('*') inaweza kuvuta picha/data nzito na kusababisha PostgreSQL 57014 timeout.
-  const rows=[]; const pageSize=10; let pageFrom=0;
+  const rows=[]; const pageSize=5; let pageFrom=0;
   const productColumns='id,name,category,buy_price,sell_price,stock_qty,min_stock,image_url,created_at,updated_at';
   // Keep each query small and avoid COUNT(*) on every page: exact counts can time out
   // on large/RLS-filtered tables. Stable primary-key ordering makes range pages repeatable.
@@ -604,11 +604,14 @@ async function syncProductsFromSupabase({silent=false}={}){
   const remoteIdSet=new Set(remoteProducts.map(x=>String(x.id)));
   deletedProductIds=deletedProductIds.filter(id=>!remoteIdSet.has(String(id)));
   const mergedProducts=[...remoteProducts];
+  // V53: The normalized Supabase products table is authoritative after a complete
+  // successful read. Only retain local products that were already explicitly marked
+  // pendingSync; do not resurrect stale app-state snapshots as phantom products.
   for(const local of products){
     const key=String(local.supabaseId||local.id);
     if(deletedProductIds.includes(key)) continue;
     const exists=remoteProducts.some(x=>String(x.id)===key||String(x.supabaseId)===key);
-    if(!exists) { local.pendingSync=true; mergedProducts.push(local); }
+    if(!exists && local.pendingSync===true) mergedProducts.push(local);
   }
   products=mergedProducts;
   for(const local of pending.slice(0,20)){
@@ -765,7 +768,9 @@ async function loadCloudState(){
   return {ok:true};
  }catch(e){
   console.warn("Supabase app state load failed",e);
-  toast("Data za mfumo hazikupatikana Supabase. Angalia RLS ya mpa_app_state.");
+  const code=e?.code?String(e.code):"";
+  const msg=e?.message?String(e.message):"";
+  toast("Data za mfumo hazikupatikana Supabase"+(code?" ("+code+")":"")+(msg?" • "+msg:"")+". Angalia ruhusa/RLS na muda wa ombi.");
   return {ok:false,error:e};
  }
 }
@@ -1011,7 +1016,7 @@ async function login(){
 }
 
 async function forceRefreshApp(){
-  // V52: The Settings Update button must not hard-reload the page.
+  // V53: The Settings Update button must not hard-reload the page.
   // A hard reload first restores the stale products array from mpa_app_state (23 rows),
   // then a products-table timeout leaves that stale list on screen. Refresh the live
   // normalized tables in-place so the currently displayed complete product list is preserved
@@ -1023,16 +1028,16 @@ async function forceRefreshApp(){
     toast("Inasasisha bidhaa kutoka Supabase…");
     const pr=await syncProductsFromSupabase({silent:true});
     let sr=null;
-    try{sr=await syncSalesFromSupabase({silent:true});}catch(e){console.warn("V52 sales refresh failed",e)}
+    try{sr=await syncSalesFromSupabase({silent:true});}catch(e){console.warn("V53 sales refresh failed",e)}
     refreshCurrentPage();
     if(pr?.ok){toast("Update imekamilika. Bidhaa "+products.length+" zinaonekana ✓");}
     else{
       const e=pr?.error||new Error("Supabase haikukamilisha usomaji wa bidhaa.");
-      console.warn("V52 kept current product list because refresh failed",e);
-      toast("Supabase imeshindwa kujibu. Orodha iliyo kwenye skrini imehifadhiwa; jaribu tena baadaye.");
+      console.warn("V53 kept current product list because refresh failed",e);
+      toast("Update haijakamilika"+(e?.code?" ("+String(e.code)+")":"")+". Orodha iliyopo imehifadhiwa; angalia Supabase/RLS kisha jaribu tena.");
     }
   }catch(e){
-    console.warn("V52 in-place update failed",e);
+    console.warn("V53 in-place update failed",e);
     refreshCurrentPage();
     toast("Update haijakamilika. Orodha iliyopo haijafutwa.");
   }finally{pullBusy=false;}
@@ -1478,7 +1483,7 @@ function renderLists(){
  renderExpensePage();
 }
 function renderNotifications(){const el=document.getElementById("notificationList");if(!el)return;el.innerHTML=notifications.length?notifications.slice(0,100).map(n=>`<div class="tableitem notif-card ${n.read?"":"unread"}" data-notification-id="${esc(n.id)}" onclick="openNotification('${String(n.id).replace(/'/g,"\\'")}')"><img class="notif-logo" src="logo.png" alt="M-P-A"><div><b>${esc(n.title)}</b><div>${esc(n.detail)}</div><div class="muted">${esc(n.user||"")} • ${niceDate(n.date)} ${timeNow(n.date)}</div></div></div>`).join(""):"<div class='empty'>Hakuna notification.</div>"}
-async function markNotificationsRead(){if(autoNotifyTimer){clearTimeout(autoNotifyTimer);autoNotifyTimer=null}const previous=notifications.map(n=>({id:n.id,read:!!n.read}));notifications.forEach(n=>n.read=true);renderNotifications();updateNotifDot();try{const result=await saveCloudState();if(result?.ok===false)throw (result.error||new Error("Hifadhi ya arifa haikukamilika."));toast("Arifa zote zimewekwa kuwa zimesomwa ✓");}catch(e){console.warn("M-P-A notification read-all save failed",e);const prior=new Map(previous.map(x=>[String(x.id),x.read]));notifications.forEach(n=>{n.read=prior.get(String(n.id))??false});renderNotifications();updateNotifDot();toast("Arifa zimeshindwa kuhifadhiwa. Jaribu tena ukiwa na intaneti.");}}
+async function markNotificationsRead(){if(autoNotifyTimer){clearTimeout(autoNotifyTimer);autoNotifyTimer=null}const previous=notifications.map(n=>({id:n.id,read:!!n.read}));notifications.forEach(n=>n.read=true);renderNotifications();updateNotifDot();try{const result=await saveCloudState();if(result?.ok===false)throw (result.error||new Error("Hifadhi ya arifa haikukamilika."));toast("Arifa zote zimewekwa kuwa zimesomwa ✓");}catch(e){console.warn("M-P-A notification read-all save failed",e);const prior=new Map(previous.map(x=>[String(x.id),x.read]));notifications.forEach(n=>{n.read=prior.get(String(n.id))??false});renderNotifications();updateNotifDot();toast("Arifa hazijahifadhiwa Supabase"+(e?.code?" ("+String(e.code)+")":"")+(e?.message?" • "+String(e.message):"")+". Angalia RLS ya mpa_app_state.");}}
 function renderMovements(){const el=document.getElementById("movementList");if(!el)return;el.innerHTML=movements.length?movements.slice(0,50).map(m=>{const p=products.find(x=>String(x.id)===String(m.productId));return `<div class="tableitem"><div><b>${m.type==="add"?"＋":m.type==="remove"?"−":"🛒"} ${esc(p?.name||"Bidhaa")}</b><div class="muted">${esc(m.note||"")} • ${esc(m.user||"")}</div></div><span>${m.type==="add"?"+":"-"}${esc(String(m.qty??0))}</span></div>`}).join(""):"<div class='empty'>Hakuna movement.</div>"}
 let usersTab="active",selectedUserDetailId=null,editingUserId=null;
 function setUsersTab(tab){usersTab=tab;document.getElementById("usersTabActive")?.classList.toggle("active",tab==="active");document.getElementById("usersTabInactive")?.classList.toggle("active",tab==="inactive");renderUsers();}
