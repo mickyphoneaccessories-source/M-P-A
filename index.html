@@ -422,7 +422,7 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
 <div id="receiptModal" class="modalback"><div class="modal sale-detail-wrap"><div id="receiptContent"></div></div></div>
 <script>
 // M-P-A v41: do not reload the entire app state on realtime app-state events; only merge notifications.
-const MPA_APP_VERSION = "V54";
+const MPA_APP_VERSION = "V56";
 function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="New Version - "+MPA_APP_VERSION;}
  
 
@@ -554,7 +554,7 @@ function applyRemoteProduct(row){return {id:row.id,supabaseId:row.id,name:row.na
 async function syncProductsFromSupabase({silent=false}={}){
  if(!sbClient||!authProfile)return {ok:false,skipped:true};
  try{
-  // V55: Tumia kurasa zenye ukubwa wa wastani ili kupunguza maombi mengi ya Supabase.
+  // V56: Tumia kurasa zenye ukubwa wa wastani ili kupunguza maombi mengi ya Supabase.
   // select('*') inaweza kuvuta picha/data nzito na kusababisha PostgreSQL 57014 timeout.
   const rows=[]; const pageSize=20; let pageFrom=0;
   const productColumns='id,name,category,buy_price,sell_price,stock_qty,min_stock,image_url,created_at,updated_at';
@@ -572,11 +572,12 @@ async function syncProductsFromSupabase({silent=false}={}){
         break;
       }catch(pageError){
         lastPageError=pageError;
-        console.warn('M-P-A V54 product page retry', {pageFrom,attempt,error:pageError});
+        console.error('M-P-A V56 product page request failed', {pageFrom, pageTo:pageFrom+pageSize-1, attempt, error:pageError, code:pageError?.code, details:pageError?.details, hint:pageError?.hint});
         if(attempt<2) await new Promise(resolve=>setTimeout(resolve,400));
       }
     }
     if(lastPageError)throw lastPageError;
+    console.info('M-P-A V56 product page received', {pageFrom, requested:pageSize, received:pageData.length, totalSoFar:rows.length+pageData.length});
     if(pageData.length===0)break;
     for(const row of pageData){
       const id=String(row?.id??'');
@@ -590,11 +591,11 @@ async function syncProductsFromSupabase({silent=false}={}){
   // Do not wipe a locally restored Supabase app-state cache just because the dedicated table
   // temporarily returns an empty result (common while RLS/realtime is settling).
   if(rows.length===0 && products.length>0){
-    // V55: A successful-but-empty SELECT can also mean RLS/filtering or a temporary
+    // V56: A successful-but-empty SELECT can also mean RLS/filtering or a temporary
     // backend issue. Never report this as a successful sync or replace a non-empty list.
     const emptyReadError=new Error('Supabase imerudisha bidhaa 0 wakati mfumo una bidhaa '+products.length+'. Orodha haijabadilishwa ili kuzuia kupotea kwa bidhaa; kagua RLS/connection.');
     emptyReadError.code='MPA_EMPTY_REMOTE_READ';
-    console.warn('V55 refused suspicious empty products result; current list preserved');
+    console.error('M-P-A V56 suspicious empty products result; current list preserved', {remoteCount:rows.length, localCount:products.length, authenticated:!!authProfile, userId:authProfile?.id||null});
     if(!silent)toast(emptyReadError.message);
     return {ok:false,error:emptyReadError,count:products.length,usedFallback:true};
   }
@@ -1015,7 +1016,7 @@ async function login(){
 }
 
 async function forceRefreshApp(){
-  // V55: one controlled refresh pipeline for app-state plus normalized products/sales.
+  // V56: one controlled refresh pipeline for app-state plus normalized products/sales.
   // Preserve the current section and avoid a hard page reload while Supabase is queried.
   if(pullBusy){toast("Usasishaji unaendelea; subiri kidogo.");return;}
   pullBusy=true;
@@ -1041,10 +1042,13 @@ async function forceRefreshApp(){
       if(!stateResult?.ok)failed.push("taarifa za ziada");
       if(!productResult?.ok)failed.push("bidhaa");
       if(productResult?.ok&&!salesResult?.ok)failed.push("mauzo");
-      toast("Usasishaji haujakamilika kwa "+failed.join(", ")+". Data ya sasa haijafutwa; angalia connection/RLS ya Supabase.");
+      const pe=productResult?.error;
+      const detail=pe ? ((pe.code ? String(pe.code)+" — " : "") + (pe.message ? String(pe.message) : "Hitilafu ya kusoma bidhaa")) : "";
+      console.error("M-P-A V56 refresh diagnostics", {stateResult, productResult, salesResult, visibleProductCount:products.length, userId:authProfile?.id||null});
+      toast("Usasishaji haujakamilika kwa "+failed.join(", ")+(detail?": "+detail:"")+". Data haijafutwa.");
     }
   }catch(e){
-    console.error("V55 full refresh failed",e);
+    console.error("M-P-A V56 full refresh failed",{message:e?.message,code:e?.code,details:e?.details,hint:e?.hint,status:e?.status,error:e});
     refreshCurrentPage();
     toast("Usasishaji haujakamilika. Data ya sasa haijafutwa.");
   }finally{pullBusy=false;}
