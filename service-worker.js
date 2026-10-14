@@ -1,4 +1,4 @@
-const CACHE="mpa-v54-product-sync-notifications-20261014-1";
+const CACHE="mpa-v55-full-sync-safe-refresh-20261014-1";
 const ASSETS=["./","./index.html","./logo.png","./icon.svg","./manifest.webmanifest","./service-worker.js"];
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));
