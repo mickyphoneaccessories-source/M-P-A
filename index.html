@@ -336,7 +336,7 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
       <div class="settings-group-title">TAARIFA ZA APP</div>
       <div class="settings-ios-list">
         <button onclick="toast('Taarifa za usalama ziko tayari.')"><span class="setting-icon" style="background:#5d7dff">⇩</span><span class="setting-main">Taarifa za usalama</span><b>›</b></button>
-        <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span id="appVersionLabel">New Version - V50</span><button onclick="forceRefreshApp()">↻ Update</button></div>
+        <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span id="appVersionLabel">New Version - V52</span><button onclick="forceRefreshApp()">↻ Update</button></div>
         <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span>0767203506</span><button onclick="logout()" style="background:#999!important">Logout</button></div>
       </div>
       <div class="settings-group-title">MWONEKANO</div>
@@ -1011,17 +1011,31 @@ async function login(){
 }
 
 async function forceRefreshApp(){
+  // V52: The Settings Update button must not hard-reload the page.
+  // A hard reload first restores the stale products array from mpa_app_state (23 rows),
+  // then a products-table timeout leaves that stale list on screen. Refresh the live
+  // normalized tables in-place so the currently displayed complete product list is preserved
+  // if Supabase times out. A new deployment is picked up by normal network-first navigation.
+  if(pullBusy){toast("Usasishaji unaendelea; subiri kidogo.");return;}
+  pullBusy=true;
+  const started=Date.now();
   try{
-    if("serviceWorker" in navigator){
-      const regs=await navigator.serviceWorker.getRegistrations();
-      for(const reg of regs){ try{await reg.update();}catch(e){} }
+    toast("Inasasisha bidhaa kutoka Supabase…");
+    const pr=await syncProductsFromSupabase({silent:true});
+    let sr=null;
+    try{sr=await syncSalesFromSupabase({silent:true});}catch(e){console.warn("V52 sales refresh failed",e)}
+    refreshCurrentPage();
+    if(pr?.ok){toast("Update imekamilika. Bidhaa "+products.length+" zinaonekana ✓");}
+    else{
+      const e=pr?.error||new Error("Supabase haikukamilisha usomaji wa bidhaa.");
+      console.warn("V52 kept current product list because refresh failed",e);
+      toast("Supabase imeshindwa kujibu. Orodha iliyo kwenye skrini imehifadhiwa; jaribu tena baadaye.");
     }
-    if("caches" in window){
-      const keys=await caches.keys();
-      await Promise.all(keys.filter(k=>k.startsWith("mpa-")).map(k=>caches.delete(k)));
-    }
-  }catch(e){}
-  location.reload(true);
+  }catch(e){
+    console.warn("V52 in-place update failed",e);
+    refreshCurrentPage();
+    toast("Update haijakamilika. Orodha iliyopo haijafutwa.");
+  }finally{pullBusy=false;}
 }
 async function logout(){if(sbClient){try{await sbClient.auth.signOut()}catch(e){}}authProfile=null;location.reload()}
 function showPage(id,btn){
@@ -1814,13 +1828,9 @@ async function refreshDataView(){
   const el=document.getElementById('refreshIndicator');el?.classList.add('show');
   let stateError=null,productsResult=null,salesResult=null;
   try{
-   // App-state can be a large JSON payload and may hit Supabase statement_timeout.
-   // Never let that optional fallback prevent loading the authoritative products table.
-   try{
-    const stateResult=await loadCloudState();
-    if(stateResult?.ok===false)stateError=stateResult.error||new Error('App state haikupakiwa.');
-   }catch(e){stateError=e;console.warn('M-P-A app-state refresh failed; continuing with normalized tables',e);}
-   // Always continue to normalized products even if mpa_app_state timed out.
+   // V52: Do not reload mpa_app_state during refresh. It contains an older product snapshot
+   // (23 items in this installation) and overwrites the complete live list before the
+   // normalized products query can time out. Refresh normalized tables directly instead.
    productsResult=await syncProductsFromSupabase({silent:true});
    if(productsResult?.ok===false)throw (productsResult.error||new Error('Bidhaa hazikusawazishwa.'));
    salesResult=await syncSalesFromSupabase({silent:true});
