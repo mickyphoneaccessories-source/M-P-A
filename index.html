@@ -556,41 +556,35 @@ async function syncProductsFromSupabase({silent=false}={}){
  try{
   // V50: Toleo jipya la product pagination; cache/version imepandishwa ili kulazimisha update.
   // select('*') inaweza kuvuta picha/data nzito na kusababisha PostgreSQL 57014 timeout.
-  const rows=[]; const pageSize=20; let pageFrom=0; let expectedCount=null;
+  const rows=[]; const pageSize=10; let pageFrom=0;
   const productColumns='id,name,category,buy_price,sell_price,stock_qty,min_stock,image_url,created_at,updated_at';
-  // Use a stable order for range pagination. Without order(), rows can move between
-  // pages and some products may be skipped. Exact count also helps detect a short page.
-  while(true){
+  // Keep each query small and avoid COUNT(*) on every page: exact counts can time out
+  // on large/RLS-filtered tables. Stable primary-key ordering makes range pages repeatable.
+  const seenRemoteIds=new Set();
+  for(let pageNumber=0;pageNumber<500;pageNumber++){
     let pageData=null; let lastPageError=null;
-    for(let attempt=1;attempt<=3;attempt++){
+    for(let attempt=1;attempt<=4;attempt++){
       try{
-        const result=await sbClient.from('products').select(productColumns,{count:'exact'}).order('id',{ascending:true}).range(pageFrom,pageFrom+pageSize-1);
+        const result=await sbClient.from('products').select(productColumns).order('id',{ascending:true}).range(pageFrom,pageFrom+pageSize-1);
         if(result.error)throw result.error;
         pageData=Array.isArray(result.data)?result.data:[];
-        if(Number.isFinite(result.count))expectedCount=result.count;
         lastPageError=null;
         break;
       }catch(pageError){
         lastPageError=pageError;
-        console.warn('M-P-A V50 product page retry', {pageFrom,attempt,error:pageError});
-        if(attempt<3) await new Promise(resolve=>setTimeout(resolve,350*attempt));
+        console.warn('M-P-A V51 product page retry', {pageFrom,attempt,error:pageError});
+        if(attempt<4) await new Promise(resolve=>setTimeout(resolve,500*attempt));
       }
     }
     if(lastPageError)throw lastPageError;
     if(pageData.length===0)break;
-    rows.push(...pageData);
-    pageFrom+=pageData.length;
-    if(expectedCount!==null && rows.length>=expectedCount)break;
-    if(pageData.length<pageSize && expectedCount===null)break;
-    if(pageData.length<pageSize && expectedCount!==null && rows.length<expectedCount){
-      // A short page despite a larger count indicates inconsistent API visibility;
-      // stop safely instead of looping forever, and log the discrepancy.
-      console.warn('M-P-A product pagination count mismatch',{expectedCount,loaded:rows.length,pageFrom});
-      break;
+    for(const row of pageData){
+      const id=String(row?.id??'');
+      if(id && !seenRemoteIds.has(id)){seenRemoteIds.add(id);rows.push(row);}
     }
-  }
-  if(expectedCount!==null && rows.length<expectedCount){
-    console.warn('M-P-A product list incomplete according to Supabase count',{expectedCount,loaded:rows.length});
+    pageFrom+=pageData.length;
+    if(pageData.length<pageSize)break;
+    if(pageNumber===499)throw new Error('Bidhaa ni nyingi kuliko kikomo cha kurasa 500; tafadhali wasiliana na msaada.');
   }
   const pending=products.filter(x=>x?.pendingSync);
   // Do not wipe a locally restored Supabase app-state cache just because the dedicated table
@@ -1470,7 +1464,7 @@ function renderLists(){
  renderExpensePage();
 }
 function renderNotifications(){const el=document.getElementById("notificationList");if(!el)return;el.innerHTML=notifications.length?notifications.slice(0,100).map(n=>`<div class="tableitem notif-card ${n.read?"":"unread"}" data-notification-id="${esc(n.id)}" onclick="openNotification('${String(n.id).replace(/'/g,"\\'")}')"><img class="notif-logo" src="logo.png" alt="M-P-A"><div><b>${esc(n.title)}</b><div>${esc(n.detail)}</div><div class="muted">${esc(n.user||"")} • ${niceDate(n.date)} ${timeNow(n.date)}</div></div></div>`).join(""):"<div class='empty'>Hakuna notification.</div>"}
-function markNotificationsRead(){if(autoNotifyTimer){clearTimeout(autoNotifyTimer);autoNotifyTimer=null}notifications.forEach(n=>n.read=true);saveCloudState();renderNotifications();updateNotifDot()}
+async function markNotificationsRead(){if(autoNotifyTimer){clearTimeout(autoNotifyTimer);autoNotifyTimer=null}const previous=notifications.map(n=>({id:n.id,read:!!n.read}));notifications.forEach(n=>n.read=true);renderNotifications();updateNotifDot();try{const result=await saveCloudState();if(result?.ok===false)throw (result.error||new Error("Hifadhi ya arifa haikukamilika."));toast("Arifa zote zimewekwa kuwa zimesomwa ✓");}catch(e){console.warn("M-P-A notification read-all save failed",e);const prior=new Map(previous.map(x=>[String(x.id),x.read]));notifications.forEach(n=>{n.read=prior.get(String(n.id))??false});renderNotifications();updateNotifDot();toast("Arifa zimeshindwa kuhifadhiwa. Jaribu tena ukiwa na intaneti.");}}
 function renderMovements(){const el=document.getElementById("movementList");if(!el)return;el.innerHTML=movements.length?movements.slice(0,50).map(m=>{const p=products.find(x=>String(x.id)===String(m.productId));return `<div class="tableitem"><div><b>${m.type==="add"?"＋":m.type==="remove"?"−":"🛒"} ${esc(p?.name||"Bidhaa")}</b><div class="muted">${esc(m.note||"")} • ${esc(m.user||"")}</div></div><span>${m.type==="add"?"+":"-"}${esc(String(m.qty??0))}</span></div>`}).join(""):"<div class='empty'>Hakuna movement.</div>"}
 let usersTab="active",selectedUserDetailId=null,editingUserId=null;
 function setUsersTab(tab){usersTab=tab;document.getElementById("usersTabActive")?.classList.toggle("active",tab==="active");document.getElementById("usersTabInactive")?.classList.toggle("active",tab==="inactive");renderUsers();}
