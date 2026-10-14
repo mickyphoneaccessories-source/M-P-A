@@ -336,7 +336,7 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
       <div class="settings-group-title">TAARIFA ZA APP</div>
       <div class="settings-ios-list">
         <button onclick="toast('Taarifa za usalama ziko tayari.')"><span class="setting-icon" style="background:#5d7dff">⇩</span><span class="setting-main">Taarifa za usalama</span><b>›</b></button>
-        <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span id="appVersionLabel">New Version - V55</span><button onclick="forceRefreshApp()">↻ Update</button></div>
+        <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span id="appVersionLabel">New Version - V57</span><button onclick="forceRefreshApp()">↻ Update</button></div>
         <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span>0767203506</span><button onclick="logout()" style="background:#999!important">Logout</button></div>
       </div>
       <div class="settings-group-title">MWONEKANO</div>
@@ -422,7 +422,7 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
 <div id="receiptModal" class="modalback"><div class="modal sale-detail-wrap"><div id="receiptContent"></div></div></div>
 <script>
 // M-P-A v41: do not reload the entire app state on realtime app-state events; only merge notifications.
-const MPA_APP_VERSION = "V56";
+const MPA_APP_VERSION = "V57";
 function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="New Version - "+MPA_APP_VERSION;}
  
 
@@ -556,14 +556,14 @@ async function syncProductsFromSupabase({silent=false}={}){
  try{
   // V56: Tumia kurasa zenye ukubwa wa wastani ili kupunguza maombi mengi ya Supabase.
   // select('*') inaweza kuvuta picha/data nzito na kusababisha PostgreSQL 57014 timeout.
-  const rows=[]; const pageSize=20; let pageFrom=0;
+  const rows=[]; const pageSize=5; let pageFrom=0;
   const productColumns='id,name,category,buy_price,sell_price,stock_qty,min_stock,image_url,created_at,updated_at';
   // Keep each query small and avoid COUNT(*) on every page: exact counts can time out
   // on large/RLS-filtered tables. Stable primary-key ordering makes range pages repeatable.
   const seenRemoteIds=new Set();
   for(let pageNumber=0;pageNumber<500;pageNumber++){
     let pageData=null; let lastPageError=null;
-    for(let attempt=1;attempt<=2;attempt++){
+    for(let attempt=1;attempt<=4;attempt++){
       try{
         const result=await sbClient.from('products').select(productColumns).order('id',{ascending:true}).range(pageFrom,pageFrom+pageSize-1);
         if(result.error)throw result.error;
@@ -572,12 +572,12 @@ async function syncProductsFromSupabase({silent=false}={}){
         break;
       }catch(pageError){
         lastPageError=pageError;
-        console.error('M-P-A V56 product page request failed', {pageFrom, pageTo:pageFrom+pageSize-1, attempt, error:pageError, code:pageError?.code, details:pageError?.details, hint:pageError?.hint});
-        if(attempt<2) await new Promise(resolve=>setTimeout(resolve,400));
+        console.error('M-P-A V57 product page request failed', {pageFrom, pageTo:pageFrom+pageSize-1, attempt, error:pageError, code:pageError?.code, details:pageError?.details, hint:pageError?.hint});
+        if(attempt<4) await new Promise(resolve=>setTimeout(resolve,600*attempt));
       }
     }
     if(lastPageError)throw lastPageError;
-    console.info('M-P-A V56 product page received', {pageFrom, requested:pageSize, received:pageData.length, totalSoFar:rows.length+pageData.length});
+    console.info('M-P-A V57 product page received', {pageFrom, requested:pageSize, received:pageData.length, totalSoFar:rows.length+pageData.length});
     if(pageData.length===0)break;
     for(const row of pageData){
       const id=String(row?.id??'');
@@ -595,7 +595,7 @@ async function syncProductsFromSupabase({silent=false}={}){
     // backend issue. Never report this as a successful sync or replace a non-empty list.
     const emptyReadError=new Error('Supabase imerudisha bidhaa 0 wakati mfumo una bidhaa '+products.length+'. Orodha haijabadilishwa ili kuzuia kupotea kwa bidhaa; kagua RLS/connection.');
     emptyReadError.code='MPA_EMPTY_REMOTE_READ';
-    console.error('M-P-A V56 suspicious empty products result; current list preserved', {remoteCount:rows.length, localCount:products.length, authenticated:!!authProfile, userId:authProfile?.id||null});
+    console.error('M-P-A V57 suspicious empty products result; current list preserved', {remoteCount:rows.length, localCount:products.length, authenticated:!!authProfile, userId:authProfile?.id||null});
     if(!silent)toast(emptyReadError.message);
     return {ok:false,error:emptyReadError,count:products.length,usedFallback:true};
   }
@@ -664,7 +664,7 @@ async function deleteSaleFromSupabase(s){
  if(!sbClient||!authProfile)return {ok:false,skipped:true,error:new Error('Supabase session haipo.')};
  const saleId=String(s.supabaseId??s.id);
  let lastError=null;
- for(let attempt=1;attempt<=2;attempt++){
+ for(let attempt=1;attempt<=4;attempt++){
   try{
    const {error:itemError}=await sbClient.from('sale_items').delete().eq('sale_id',saleId);
    if(itemError)throw itemError;
@@ -1044,11 +1044,11 @@ async function forceRefreshApp(){
       if(productResult?.ok&&!salesResult?.ok)failed.push("mauzo");
       const pe=productResult?.error;
       const detail=pe ? ((pe.code ? String(pe.code)+" — " : "") + (pe.message ? String(pe.message) : "Hitilafu ya kusoma bidhaa")) : "";
-      console.error("M-P-A V56 refresh diagnostics", {stateResult, productResult, salesResult, visibleProductCount:products.length, userId:authProfile?.id||null});
+      console.error("M-P-A V57 refresh diagnostics", {stateResult, productResult, salesResult, visibleProductCount:products.length, userId:authProfile?.id||null});
       toast("Usasishaji haujakamilika kwa "+failed.join(", ")+(detail?": "+detail:"")+". Data haijafutwa.");
     }
   }catch(e){
-    console.error("M-P-A V56 full refresh failed",{message:e?.message,code:e?.code,details:e?.details,hint:e?.hint,status:e?.status,error:e});
+    console.error("M-P-A V57 full refresh failed",{message:e?.message,code:e?.code,details:e?.details,hint:e?.hint,status:e?.status,error:e});
     refreshCurrentPage();
     toast("Usasishaji haujakamilika. Data ya sasa haijafutwa.");
   }finally{pullBusy=false;}
