@@ -313,11 +313,14 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
       </div>
       <div class="settings-group-title">ZIADA</div>
       <div class="settings-ios-list">
-        <button onclick="document.getElementById('storeNameInput')?.focus()"><span class="setting-icon" style="background:#ff2b83">🛍</span><span class="setting-main">Maduka yangu Mengine <small>- Branches</small></span><b>›</b></button>
-        <button onclick="toast('Stoo Zangu: sehemu ya stoo na branches.')"><span class="setting-icon" style="background:#b400ff">⌂</span><span class="setting-main">Stoo Zangu</span><b>›</b></button>
+        <button type="button" onclick="toggleSettingsPanel('branchesPanel')"><span class="setting-icon" style="background:#ff2b83">🛍</span><span class="setting-main">Maduka yangu Mengine <small>- Branches</small></span><b>›</b></button>
+        <button type="button" onclick="toggleSettingsPanel('storePanel')"><span class="setting-icon" style="background:#b400ff">⌂</span><span class="setting-main">Stoo Zangu</span><b>›</b></button>
         <button onclick="toast('Malipo - Banking: itaunganishwa hapa.')"><span class="setting-icon" style="background:#9fc1ff">▣</span><span class="setting-main">Malipo <small>- Banking</small></span><b>›</b></button>
         <button onclick="toast('Alika Wafanyabiashara: tumia Ongeza Muuzaji.')"><span class="setting-icon" style="background:#2450ff">♟</span><span class="setting-main">Alika Wafanyabiashara</span><b>›</b></button>
-        <button onclick="document.getElementById('langSw')?.scrollIntoView({behavior:'smooth'})"><span class="setting-icon" style="background:#111">◎</span><span class="setting-main">Badilisha Lugha <small id="settingsLanguageValue">Swahili</small></span><b>›</b></button>
+        <button type="button" onclick="toggleSettingsPanel('languagePanel')"><span class="setting-icon" style="background:#111">◎</span><span class="setting-main">Badilisha Lugha <small id="settingsLanguageValue">Swahili</small></span><b>›</b></button>
+        <div id="languagePanel" class="settings-inline settings-subpanel" hidden><b>Lugha / Language</b><div class="langgrid"><button id="langSw" class="btn langbtn active" onclick="setLanguage('sw')">🇹🇿 Kiswahili</button><button id="langEn" class="btn langbtn" onclick="setLanguage('en')">🇬🇧 English</button></div></div>
+        <div id="storePanel" class="settings-inline settings-subpanel" hidden><b>Stoo Zangu / Store</b><div class="field"><label>Jina la Store</label><input id="storeNameInput" placeholder="Micky Phone Accessories"></div><button class="btn blue" onclick="saveStore()">Hifadhi Store</button></div>
+        <div id="branchesPanel" class="settings-inline settings-subpanel" hidden><b>Maduka yangu Mengine / Branches</b><div class="sectiontitle" style="font-size:16px">Branches</div><div class="two"><input id="branchName" class="field" style="margin:0" placeholder="Jina la branch"><button class="btn" onclick="addBranch()">＋ Add Branch</button></div><div id="branchList"></div><div class="field" style="margin-top:12px"><label>Branch inayotumika</label><select id="activeBranchSelect" onchange="setActiveBranch(this.value)"><option value="">Main Store</option></select></div></div>
       </div>
       <div class="settings-group-title">USALAMA</div>
       <div class="settings-ios-list">
@@ -339,10 +342,6 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
       <div class="settings-group-title">MWONEKANO</div>
       <div class="settings-ios-list">
         <div class="settings-inline"><b>Ukubwa wa maandishi</b><p class="muted">Ongeza au punguza ukubwa wa maandishi kwenye mfumo mzima.</p><div class="font-controls"><button class="btn" onclick="changeFontSize(-1)">A−</button><div><b id="fontSizeLabel">100%</b><input id="fontSizeRange" type="range" min="85" max="120" step="5" value="100" oninput="setFontSize(this.value)"></div><button class="btn" onclick="changeFontSize(1)">A＋</button></div></div>
-        <button class="settings-action-row" type="button" onclick="toggleSettingsPanel('languagePanel')"><span class="setting-icon" style="background:#111">◎</span><span class="setting-main">Lugha / Language</span><b>›</b></button>
-        <div id="languagePanel" class="settings-inline settings-subpanel" hidden><b>Lugha / Language</b><div class="langgrid"><button id="langSw" class="btn langbtn active" onclick="setLanguage('sw')">🇹🇿 Kiswahili</button><button id="langEn" class="btn langbtn" onclick="setLanguage('en')">🇬🇧 English</button></div></div>
-        <button class="settings-action-row" type="button" onclick="toggleSettingsPanel('storeBranchesPanel')"><span class="setting-icon" style="background:#ff2990">🛍️</span><span class="setting-main">Store & Branches</span><b>›</b></button>
-        <div id="storeBranchesPanel" class="settings-inline settings-subpanel" hidden><b>Store & Branches</b><div class="field"><label>Jina la Store</label><input id="storeNameInput" placeholder="Micky Phone Accessories"></div><button class="btn blue" onclick="saveStore()">Hifadhi Store</button><div class="sectiontitle" style="font-size:16px">Branches</div><div class="two"><input id="branchName" class="field" style="margin:0" placeholder="Jina la branch"><button class="btn" onclick="addBranch()">＋ Add Branch</button></div><div id="branchList"></div><div class="field" style="margin-top:12px"><label>Branch inayotumika</label><select id="activeBranchSelect" onchange="setActiveBranch(this.value)"><option value="">Main Store</option></select></div></div>
       </div>
       <div class="settings-group-title">DATA</div>
       <div class="settings-ios-list">
