@@ -141,7 +141,7 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
   <section id="products" class="page">
     <div class="searchrow"><div class="searchbox">🔎 <input id="productSearch" oninput="renderProducts()" placeholder="Tafuta bidhaa"></div><button class="filterbtn" onclick="toggleProductFilter()">⚱️</button></div>
     <div id="productFilter" class="card hidden"><div class="two"><div class="field"><label>Category</label><select id="filterCategory" onchange="renderProducts()"><option value="">Zote</option></select></div><div class="field"><label>Panga</label><select id="sortProducts" onchange="renderProducts()"><option value="name">Jina</option><option value="stock">Stock</option><option value="price">Bei</option></select></div></div></div>
-    <div class="pills"><button id="tabIn" class="active" onclick="setProductTab('in')">Zilizopo</button><button id="tabLow" onclick="setProductTab('low')">Karibia kuisha</button><button id="tabOut" onclick="setProductTab('out')">Zilizoisha</button></div>
+    <div class="pills"><button id="tabAll" class="active" onclick="setProductTab('all')">Bidhaa zote</button><button id="tabIn" onclick="setProductTab('in')">Zilizopo</button><button id="tabLow" onclick="setProductTab('low')">Karibia kuisha</button><button id="tabOut" onclick="setProductTab('out')">Zilizoisha</button></div>
     <div class="summary3"><div class="sum"><small>Bidhaa</small><b id="sumProducts">0</b></div><div class="sum"><small>Thamani ya kununua</small><b id="sumBuy">0</b></div><div class="sum"><small>Thamani ya kuuza</small><b id="sumSell">0</b></div></div>
     <div id="productList" class="productlist"></div>
     <button class="addfloat" onclick="openProductModal()">＋ Bidhaa Mpya</button>
@@ -504,7 +504,7 @@ const mpaAuthStorage={
   }
 };
 const sbClient=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:mpaAuthStorage}}):null;
-let authProfile=null, loginRole="user", productTab="in", selectedStockId=null, selectedImage="";
+let authProfile=null, loginRole="user", productTab="all", selectedStockId=null, selectedImage="";
 // M-P-A V21: Supabase is the ONLY persistent application datastore.
 let products=[], sales=[], customers=[], expenses=[], movements=[], notifications=[];
 let goalTarget=10000000, monthlyGoals={}, branches=[], activeBranch="", storeName="Micky Phone Accessories", language="sw", fontSize=100;
@@ -554,9 +554,15 @@ function applyRemoteProduct(row){return {id:row.id,supabaseId:row.id,name:row.na
 async function syncProductsFromSupabase({silent=false}={}){
  if(!sbClient||!authProfile)return {ok:false,skipped:true};
  try{
-  const {data:remote,error}=await sbClient.from('products').select('*').order('created_at',{ascending:true});
-  if(error)throw error;
-  const rows=Array.isArray(remote)?remote:[];
+  // Pakua bidhaa kwa kurasa ili orodha isiishie kwenye page limit ya API.
+  const rows=[]; const pageSize=500; let pageFrom=0;
+  while(true){
+    const {data:remote,error}=await sbClient.from('products').select('*').order('created_at',{ascending:true}).range(pageFrom,pageFrom+pageSize-1);
+    if(error)throw error;
+    const batch=Array.isArray(remote)?remote:[]; rows.push(...batch);
+    if(batch.length<pageSize)break;
+    pageFrom+=pageSize;
+  }
   const pending=products.filter(x=>x?.pendingSync);
   // Do not wipe a locally restored Supabase app-state cache just because the dedicated table
   // temporarily returns an empty result (common while RLS/realtime is settling).
@@ -1149,11 +1155,11 @@ function renderProductHistory(id){
  const rows=movements.filter(m=>m.productId===id).slice(0,12);
  document.getElementById("productHistory").innerHTML="<b>Historia ya stock</b>"+(rows.length?rows.map(m=>`<div class="tableitem"><div><b>${m.type==="add"?"＋ Ongeza":m.type==="remove"?"− Punguza":"🛒 Mauzo"}</b><div class="muted">${m.note||""} • ${m.user}</div></div><span>${m.type==="add"?"+":"-"}${m.qty}<br><small>${niceDate(m.date)} ${timeNow(m.date)}</small></span></div>`).join(""):"<div class='empty'>Hakuna historia.</div>")
 }
-function setProductTab(t){productTab=t;document.querySelectorAll(".pills button").forEach(x=>x.classList.remove("active"));document.getElementById(t==="in"?"tabIn":t==="low"?"tabLow":"tabOut").classList.add("active");renderProducts()}
+function setProductTab(t){productTab=t;document.querySelectorAll(".pills button").forEach(x=>x.classList.remove("active"));document.getElementById(t==="all"?"tabAll":t==="in"?"tabIn":t==="low"?"tabLow":"tabOut").classList.add("active");renderProducts()}
 function renderProducts(){
  const q=(document.getElementById("productSearch")?.value||"").toLowerCase(),cat=document.getElementById("filterCategory")?.value||"",sort=document.getElementById("sortProducts")?.value||"name";
  let arr=products.filter(p=>(!q||(p.name+" "+p.category).toLowerCase().includes(q))&&(!cat||p.category===cat));
- arr=arr.filter(p=>productTab==="in"?p.qty>0:productTab==="low"?p.qty>0&&p.qty<=3:p.qty<=0);
+ arr=arr.filter(p=>productTab==="all"?true:productTab==="in"?p.qty>0:productTab==="low"?p.qty>0&&p.qty<=3:p.qty<=0);
  arr.sort((a,b)=>sort==="stock"?b.qty-a.qty:sort==="price"?b.price-a.price:a.name.localeCompare(b.name));
  const list=document.getElementById("productList");
  list.innerHTML=arr.length?arr.map(p=>`<div class="productrow" data-product-id="${p.id}" onclick="openStock(${JSON.stringify(p.id)})"><img class="pimg" src="${p.image||'icon.svg'}" alt=""><div class="pinfo"><b>${esc(p.name)}</b><small>${p.qty} in stock${p.category?" • "+esc(p.category):""}</small></div><div class="pprice"><b>${Number(p.price||0).toLocaleString("en-US")}</b><small>TZS</small><div style="margin-top:6px;display:flex;gap:5px;justify-content:flex-end" onclick="event.stopPropagation()"><button type="button" class="btn small" onclick="event.preventDefault();event.stopPropagation();editProduct(this.closest('[data-product-id]').dataset.productId)">Edit</button>${can("delete_products")?`<button type="button" class="btn small red" onclick="event.preventDefault();event.stopPropagation();deleteProduct(this.closest('[data-product-id]').dataset.productId)">Futa</button>`:""}</div></div></div>`).join(""):"<div class='empty'>Hakuna bidhaa kwenye kundi hili.</div>";
