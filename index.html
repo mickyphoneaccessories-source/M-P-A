@@ -336,7 +336,7 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
       <div class="settings-group-title">TAARIFA ZA APP</div>
       <div class="settings-ios-list">
         <button onclick="toast('Taarifa za usalama ziko tayari.')"><span class="setting-icon" style="background:#5d7dff">⇩</span><span class="setting-main">Taarifa za usalama</span><b>›</b></button>
-        <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span id="appVersionLabel">New Version - V52</span><button onclick="forceRefreshApp()">↻ Update</button></div>
+        <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span id="appVersionLabel">New Version - V54</span><button onclick="forceRefreshApp()">↻ Update</button></div>
         <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span>0767203506</span><button onclick="logout()" style="background:#999!important">Logout</button></div>
       </div>
       <div class="settings-group-title">MWONEKANO</div>
@@ -422,7 +422,7 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
 <div id="receiptModal" class="modalback"><div class="modal sale-detail-wrap"><div id="receiptContent"></div></div></div>
 <script>
 // M-P-A v41: do not reload the entire app state on realtime app-state events; only merge notifications.
-const MPA_APP_VERSION = "V50";
+const MPA_APP_VERSION = "V54";
 function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="New Version - "+MPA_APP_VERSION;}
  
 
@@ -554,7 +554,7 @@ function applyRemoteProduct(row){return {id:row.id,supabaseId:row.id,name:row.na
 async function syncProductsFromSupabase({silent=false}={}){
  if(!sbClient||!authProfile)return {ok:false,skipped:true};
  try{
-  // V50: Toleo jipya la product pagination; cache/version imepandishwa ili kulazimisha update.
+  // V54: Tumia pagination ndogo na thibitisha toleo linaloonyeshwa kwenye Settings.
   // select('*') inaweza kuvuta picha/data nzito na kusababisha PostgreSQL 57014 timeout.
   const rows=[]; const pageSize=5; let pageFrom=0;
   const productColumns='id,name,category,buy_price,sell_price,stock_qty,min_stock,image_url,created_at,updated_at';
@@ -572,7 +572,7 @@ async function syncProductsFromSupabase({silent=false}={}){
         break;
       }catch(pageError){
         lastPageError=pageError;
-        console.warn('M-P-A V51 product page retry', {pageFrom,attempt,error:pageError});
+        console.warn('M-P-A V54 product page retry', {pageFrom,attempt,error:pageError});
         if(attempt<4) await new Promise(resolve=>setTimeout(resolve,500*attempt));
       }
     }
@@ -604,7 +604,7 @@ async function syncProductsFromSupabase({silent=false}={}){
   const remoteIdSet=new Set(remoteProducts.map(x=>String(x.id)));
   deletedProductIds=deletedProductIds.filter(id=>!remoteIdSet.has(String(id)));
   const mergedProducts=[...remoteProducts];
-  // V53: The normalized Supabase products table is authoritative after a complete
+  // V54: The normalized Supabase products table is authoritative after a complete
   // successful read. Only retain local products that were already explicitly marked
   // pendingSync; do not resurrect stale app-state snapshots as phantom products.
   for(const local of products){
@@ -1016,7 +1016,7 @@ async function login(){
 }
 
 async function forceRefreshApp(){
-  // V53: The Settings Update button must not hard-reload the page.
+  // V54: The Settings Update button must not hard-reload the page.
   // A hard reload first restores the stale products array from mpa_app_state (23 rows),
   // then a products-table timeout leaves that stale list on screen. Refresh the live
   // normalized tables in-place so the currently displayed complete product list is preserved
@@ -1028,16 +1028,16 @@ async function forceRefreshApp(){
     toast("Inasasisha bidhaa kutoka Supabase…");
     const pr=await syncProductsFromSupabase({silent:true});
     let sr=null;
-    try{sr=await syncSalesFromSupabase({silent:true});}catch(e){console.warn("V53 sales refresh failed",e)}
+    try{sr=await syncSalesFromSupabase({silent:true});}catch(e){console.warn("V54 sales refresh failed",e)}
     refreshCurrentPage();
     if(pr?.ok){toast("Update imekamilika. Bidhaa "+products.length+" zinaonekana ✓");}
     else{
       const e=pr?.error||new Error("Supabase haikukamilisha usomaji wa bidhaa.");
-      console.warn("V53 kept current product list because refresh failed",e);
+      console.warn("V54 kept current product list because refresh failed",e);
       toast("Update haijakamilika"+(e?.code?" ("+String(e.code)+")":"")+". Orodha iliyopo imehifadhiwa; angalia Supabase/RLS kisha jaribu tena.");
     }
   }catch(e){
-    console.warn("V53 in-place update failed",e);
+    console.warn("V54 in-place update failed",e);
     refreshCurrentPage();
     toast("Update haijakamilika. Orodha iliyopo haijafutwa.");
   }finally{pullBusy=false;}
@@ -1833,7 +1833,7 @@ async function refreshDataView(){
   const el=document.getElementById('refreshIndicator');el?.classList.add('show');
   let stateError=null,productsResult=null,salesResult=null;
   try{
-   // V52: Do not reload mpa_app_state during refresh. It contains an older product snapshot
+   // V54: Do not reload mpa_app_state during refresh. It contains an older product snapshot
    // (23 items in this installation) and overwrites the complete live list before the
    // normalized products query can time out. Refresh normalized tables directly instead.
    productsResult=await syncProductsFromSupabase({silent:true});
