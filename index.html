@@ -422,7 +422,7 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
 <div id="receiptModal" class="modalback"><div class="modal sale-detail-wrap"><div id="receiptContent"></div></div></div>
 <script>
 // M-P-A v41: do not reload the entire app state on realtime app-state events; only merge notifications.
-const MPA_APP_VERSION = "V59";
+const MPA_APP_VERSION = "V60";
 function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="New Version - "+MPA_APP_VERSION;}
  
 
@@ -1063,16 +1063,16 @@ async function forceRefreshApp(){
       if(productResult?.ok&&!salesResult?.ok)failed.push("mauzo");
       const pe=productResult?.error;
       const detail=pe ? ((pe.code ? String(pe.code)+" — " : "") + (pe.message ? String(pe.message) : "Hitilafu ya kusoma bidhaa")) : "";
-      console.error("M-P-A V58 refresh diagnostics", {stateResult, productResult, salesResult, visibleProductCount:products.length, userId:authProfile?.id||null});
+      console.error("M-P-A V60 refresh diagnostics", {stateResult, productResult, salesResult, visibleProductCount:products.length, userId:authProfile?.id||null});
       toast("Usasishaji haujakamilika kwa "+failed.join(", ")+(detail?": "+detail:"")+". Data haijafutwa.");
     }
   }catch(e){
-    console.error("M-P-A V58 full refresh failed",{message:e?.message,code:e?.code,details:e?.details,hint:e?.hint,status:e?.status,error:e});
+    console.error("M-P-A V60 full refresh failed",{message:e?.message,code:e?.code,details:e?.details,hint:e?.hint,status:e?.status,error:e});
     refreshCurrentPage();
     toast("Usasishaji haujakamilika. Data ya sasa haijafutwa.");
   }finally{pullBusy=false;}
 }
-// V59: iPhone pull-down refresh. Only activates when the page is already at the top.
+// V60: iPhone pull-down refresh. Only activates when the page is already at the top.
 (function setupPullDownRefresh(){
  let startY=0, startX=0, tracking=false, triggered=false;
  const threshold=85;
@@ -1907,7 +1907,7 @@ async function refreshDataView(){
 
 // V55: Disabled swipe-down-to-refresh. Accidental pull gestures previously triggered
 // partial sync while the user was scrolling, which could make sections look inconsistent.
-document.addEventListener("gesturestart",e=>e.preventDefault(),{passive:false});document.addEventListener("gesturechange",e=>e.preventDefault(),{passive:false});document.addEventListener("gestureend",e=>e.preventDefault(),{passive:false});let lastTouchEnd=0;document.addEventListener("touchend",e=>{const nowt=Date.now();if(nowt-lastTouchEnd<=280)e.preventDefault();lastTouchEnd=nowt},{passive:false});
+// V60: Leave native iOS Safari gesture handling enabled; refresh is handled by the guarded pull-down listener below.
 let salesDayWatcher=null;
 let lastSalesDate=dateKey(now());
 function startSalesDayWatcher(){
