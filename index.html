@@ -336,7 +336,7 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
       <div class="settings-group-title">TAARIFA ZA APP</div>
       <div class="settings-ios-list">
         <button onclick="toast('Taarifa za usalama ziko tayari.')"><span class="setting-icon" style="background:#5d7dff">⇩</span><span class="setting-main">Taarifa za usalama</span><b>›</b></button>
-        <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span id="appVersionLabel">New Version - V58</span><button onclick="forceRefreshApp()">↻ Update</button></div>
+        <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span id="appVersionLabel">New Version - V59</span><button onclick="forceRefreshApp()">↻ Update</button></div>
         <div class="settings-version" style="display:flex;align-items:center;justify-content:space-between"><span>0767203506</span><button onclick="logout()" style="background:#999!important">Logout</button></div>
       </div>
       <div class="settings-group-title">MWONEKANO</div>
@@ -422,7 +422,7 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
 <div id="receiptModal" class="modalback"><div class="modal sale-detail-wrap"><div id="receiptContent"></div></div></div>
 <script>
 // M-P-A v41: do not reload the entire app state on realtime app-state events; only merge notifications.
-const MPA_APP_VERSION = "V58";
+const MPA_APP_VERSION = "V59";
 function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="New Version - "+MPA_APP_VERSION;}
  
 
@@ -1072,6 +1072,27 @@ async function forceRefreshApp(){
     toast("Usasishaji haujakamilika. Data ya sasa haijafutwa.");
   }finally{pullBusy=false;}
 }
+// V59: iPhone pull-down refresh. Only activates when the page is already at the top.
+(function setupPullDownRefresh(){
+ let startY=0, startX=0, tracking=false, triggered=false;
+ const threshold=85;
+ document.addEventListener("touchstart",function(e){
+  if(!e.touches||e.touches.length!==1)return;
+  if((window.scrollY||document.documentElement.scrollTop||0)>2)return;
+  startY=e.touches[0].clientY; startX=e.touches[0].clientX; tracking=true; triggered=false;
+ },{passive:true});
+ document.addEventListener("touchmove",function(e){
+  if(!tracking||!e.touches||e.touches.length!==1)return;
+  const dy=e.touches[0].clientY-startY, dx=e.touches[0].clientX-startX;
+  if(Math.abs(dx)>Math.abs(dy)*1.2){tracking=false;return;}
+  if(dy>threshold&&!triggered){
+   triggered=true; tracking=false;
+   if(typeof forceRefreshApp==="function") Promise.resolve(forceRefreshApp()).catch(err=>console.warn("Pull refresh failed",err));
+  }
+ },{passive:true});
+ document.addEventListener("touchend",function(){tracking=false;},{passive:true});
+ document.addEventListener("touchcancel",function(){tracking=false;},{passive:true});
+})();
 async function logout(){if(sbClient){try{await sbClient.auth.signOut()}catch(e){}}authProfile=null;location.reload()}
 function showPage(id,btn){
  const gates={products:"view_products",sales:"view_sales",expenses:"view_expenses",reports:"view_reports",analyticsSales:"view_reports",analyticsProfit:"view_reports",analyticsProducts:"view_reports",analyticsExpenses:"view_reports",analyticsCustomers:"view_reports",purchases:"view_products",deleted:"delete_sales",stockTools:"view_products"};
