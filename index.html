@@ -422,7 +422,7 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
 <div id="receiptModal" class="modalback"><div class="modal sale-detail-wrap"><div id="receiptContent"></div></div></div>
 <script>
 // M-P-A v41: do not reload the entire app state on realtime app-state events; only merge notifications.
-const MPA_APP_VERSION = "V60";
+const MPA_APP_VERSION = "V61";
 function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="New Version - "+MPA_APP_VERSION;}
  
 
@@ -557,6 +557,17 @@ async function syncProductsFromSupabase({silent=false}={}){
   // V58: Soma taarifa nyepesi za bidhaa kwanza. image_url inaweza kuwa picha ya Base64 kubwa
   // na kuifanya query nzima iishe kwa statement timeout. Picha zinasomwa kwa maombi tofauti.
   const rows=[]; const pageSize=5; let pageFrom=0;
+  // V61: read the visible row count under the same authenticated/RLS context.
+  // This helps distinguish incomplete pagination from rows hidden by RLS.
+  let expectedRemoteCount=null;
+  try{
+    const countResult=await sbClient.from('products').select('id',{count:'exact',head:true});
+    if(countResult.error)throw countResult.error;
+    if(Number.isFinite(countResult.count)) expectedRemoteCount=countResult.count;
+    console.info('M-P-A V61 products count under current session',{expectedRemoteCount,userId:authProfile?.id||null});
+  }catch(countError){
+    console.warn('M-P-A V61 exact product count unavailable; continuing paginated read',{code:countError?.code,message:countError?.message});
+  }
   const productColumns='id,name,category,buy_price,sell_price,stock_qty,min_stock,created_at,updated_at';
   // Keep each query small and avoid COUNT(*) on every page: exact counts can time out
   // on large/RLS-filtered tables. Stable primary-key ordering makes range pages repeatable.
@@ -572,20 +583,30 @@ async function syncProductsFromSupabase({silent=false}={}){
         break;
       }catch(pageError){
         lastPageError=pageError;
-        console.error('M-P-A V58 product page request failed', {pageFrom, pageTo:pageFrom+pageSize-1, attempt, error:pageError, code:pageError?.code, details:pageError?.details, hint:pageError?.hint});
+        console.error('M-P-A V61 product page request failed', {pageFrom, pageTo:pageFrom+pageSize-1, attempt, error:pageError, code:pageError?.code, details:pageError?.details, hint:pageError?.hint});
         if(attempt<4) await new Promise(resolve=>setTimeout(resolve,600*attempt));
       }
     }
     if(lastPageError)throw lastPageError;
-    console.info('M-P-A V58 product page received', {pageFrom, requested:pageSize, received:pageData.length, totalSoFar:rows.length+pageData.length});
+    console.info('M-P-A V61 product page received', {pageFrom, requested:pageSize, received:pageData.length, totalSoFar:rows.length+pageData.length});
     if(pageData.length===0)break;
     for(const row of pageData){
       const id=String(row?.id??'');
       if(id && !seenRemoteIds.has(id)){seenRemoteIds.add(id);rows.push(row);}
     }
-    pageFrom+=pageData.length;
+    // Advance by the requested range size, not by the number of unique IDs retained.
+    // This prevents a duplicate/filtered row from shifting subsequent page boundaries.
+    pageFrom+=pageSize;
     if(pageData.length<pageSize)break;
     if(pageNumber===499)throw new Error('Bidhaa ni nyingi kuliko kikomo cha kurasa 500; tafadhali wasiliana na msaada.');
+  }
+  console.info('M-P-A V61 products pagination finished',{expectedRemoteCount,receivedUniqueRows:rows.length});
+  if(expectedRemoteCount!==null && rows.length<expectedRemoteCount){
+    const incompleteError=new Error('Supabase inaonyesha bidhaa '+expectedRemoteCount+' kwa akaunti hii, lakini mfumo umeweza kusoma '+rows.length+'. Orodha ya sasa imehifadhiwa; kagua RLS/ruhusa za SELECT au pagination.');
+    incompleteError.code='MPA_INCOMPLETE_PRODUCT_READ';
+    console.error('M-P-A V61 incomplete products read; refusing to replace current list with partial results',{expectedRemoteCount,receivedUniqueRows:rows.length,userId:authProfile?.id||null});
+    if(!silent)toast(incompleteError.message);
+    return {ok:false,error:incompleteError,count:products.length,remoteCount:expectedRemoteCount,receivedCount:rows.length,usedFallback:true};
   }
   // Picha zinasomwa tofauti na metadata ili hitilafu ya picha isiizuie orodha ya bidhaa.
   // Picha zilizopo tayari kwenye kumbukumbu zinabaki kama ombi la picha litashindwa.
@@ -602,7 +623,7 @@ async function syncProductsFromSupabase({silent=false}={}){
         row.image_url=imageById.get(String(row.id))||priorImageById.get(String(row.id))||'';
       }
     }catch(imageError){
-      console.warn('M-P-A V58 image-only request failed; keep list without blocking product sync', {ids,error:imageError,code:imageError?.code});
+      console.warn('M-P-A V61 image-only request failed; keep list without blocking product sync', {ids,error:imageError,code:imageError?.code});
       for(const row of batch)row.image_url=priorImageById.get(String(row.id))||'';
     }
   }
@@ -614,7 +635,7 @@ async function syncProductsFromSupabase({silent=false}={}){
     // backend issue. Never report this as a successful sync or replace a non-empty list.
     const emptyReadError=new Error('Supabase imerudisha bidhaa 0 wakati mfumo una bidhaa '+products.length+'. Orodha haijabadilishwa ili kuzuia kupotea kwa bidhaa; kagua RLS/connection.');
     emptyReadError.code='MPA_EMPTY_REMOTE_READ';
-    console.error('M-P-A V58 suspicious empty products result; current list preserved', {remoteCount:rows.length, localCount:products.length, authenticated:!!authProfile, userId:authProfile?.id||null});
+    console.error('M-P-A V61 suspicious empty products result; current list preserved', {remoteCount:rows.length, localCount:products.length, authenticated:!!authProfile, userId:authProfile?.id||null});
     if(!silent)toast(emptyReadError.message);
     return {ok:false,error:emptyReadError,count:products.length,usedFallback:true};
   }
@@ -1063,16 +1084,16 @@ async function forceRefreshApp(){
       if(productResult?.ok&&!salesResult?.ok)failed.push("mauzo");
       const pe=productResult?.error;
       const detail=pe ? ((pe.code ? String(pe.code)+" — " : "") + (pe.message ? String(pe.message) : "Hitilafu ya kusoma bidhaa")) : "";
-      console.error("M-P-A V60 refresh diagnostics", {stateResult, productResult, salesResult, visibleProductCount:products.length, userId:authProfile?.id||null});
+      console.error("M-P-A V61 refresh diagnostics", {stateResult, productResult, salesResult, visibleProductCount:products.length, userId:authProfile?.id||null});
       toast("Usasishaji haujakamilika kwa "+failed.join(", ")+(detail?": "+detail:"")+". Data haijafutwa.");
     }
   }catch(e){
-    console.error("M-P-A V60 full refresh failed",{message:e?.message,code:e?.code,details:e?.details,hint:e?.hint,status:e?.status,error:e});
+    console.error("M-P-A V61 full refresh failed",{message:e?.message,code:e?.code,details:e?.details,hint:e?.hint,status:e?.status,error:e});
     refreshCurrentPage();
     toast("Usasishaji haujakamilika. Data ya sasa haijafutwa.");
   }finally{pullBusy=false;}
 }
-// V60: iPhone pull-down refresh. Only activates when the page is already at the top.
+// V61: iPhone pull-down refresh. Only activates when the page is already at the top.
 (function setupPullDownRefresh(){
  let startY=0, startX=0, tracking=false, triggered=false;
  const threshold=85;
@@ -1907,7 +1928,7 @@ async function refreshDataView(){
 
 // V55: Disabled swipe-down-to-refresh. Accidental pull gestures previously triggered
 // partial sync while the user was scrolling, which could make sections look inconsistent.
-// V60: Leave native iOS Safari gesture handling enabled; refresh is handled by the guarded pull-down listener below.
+// V61: Leave native iOS Safari gesture handling enabled; refresh is handled by the guarded pull-down listener below.
 let salesDayWatcher=null;
 let lastSalesDate=dateKey(now());
 function startSalesDayWatcher(){
