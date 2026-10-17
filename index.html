@@ -564,9 +564,9 @@ async function syncProductsFromSupabase({silent=false}={}){
     const countResult=await sbClient.from('products').select('id',{count:'exact',head:true});
     if(countResult.error)throw countResult.error;
     if(Number.isFinite(countResult.count)) expectedRemoteCount=countResult.count;
-    console.info('M-P-A V61 products count under current session',{expectedRemoteCount,userId:authProfile?.id||null});
+    console.info('M-P-A V62 products count under current session',{expectedRemoteCount,userId:authProfile?.id||null});
   }catch(countError){
-    console.warn('M-P-A V61 exact product count unavailable; continuing paginated read',{code:countError?.code,message:countError?.message});
+    console.warn('M-P-A V62 exact product count unavailable; continuing paginated read',{code:countError?.code,message:countError?.message});
   }
   const productColumns='id,name,category,buy_price,sell_price,stock_qty,min_stock,created_at,updated_at';
   // Keep each query small and avoid COUNT(*) on every page: exact counts can time out
@@ -583,12 +583,12 @@ async function syncProductsFromSupabase({silent=false}={}){
         break;
       }catch(pageError){
         lastPageError=pageError;
-        console.error('M-P-A V61 product page request failed', {pageFrom, pageTo:pageFrom+pageSize-1, attempt, error:pageError, code:pageError?.code, details:pageError?.details, hint:pageError?.hint});
+        console.error('M-P-A V62 product page request failed', {pageFrom, pageTo:pageFrom+pageSize-1, attempt, error:pageError, code:pageError?.code, details:pageError?.details, hint:pageError?.hint});
         if(attempt<4) await new Promise(resolve=>setTimeout(resolve,600*attempt));
       }
     }
     if(lastPageError)throw lastPageError;
-    console.info('M-P-A V61 product page received', {pageFrom, requested:pageSize, received:pageData.length, totalSoFar:rows.length+pageData.length});
+    console.info('M-P-A V62 product page received', {pageFrom, requested:pageSize, received:pageData.length, totalSoFar:rows.length+pageData.length});
     if(pageData.length===0)break;
     for(const row of pageData){
       const id=String(row?.id??'');
@@ -600,11 +600,15 @@ async function syncProductsFromSupabase({silent=false}={}){
     if(pageData.length<pageSize)break;
     if(pageNumber===499)throw new Error('Bidhaa ni nyingi kuliko kikomo cha kurasa 500; tafadhali wasiliana na msaada.');
   }
-  console.info('M-P-A V61 products pagination finished',{expectedRemoteCount,receivedUniqueRows:rows.length});
+  console.info('M-P-A V62 products pagination finished',{
+    expectedRemoteCount, receivedUniqueRows:rows.length,
+    currentVisibleCount:products.length, pageSize,
+    authenticatedUserId:authProfile?.id||null
+  });
   if(expectedRemoteCount!==null && rows.length<expectedRemoteCount){
-    const incompleteError=new Error('Supabase inaonyesha bidhaa '+expectedRemoteCount+' kwa akaunti hii, lakini mfumo umeweza kusoma '+rows.length+'. Orodha ya sasa imehifadhiwa; kagua RLS/ruhusa za SELECT au pagination.');
+    const incompleteError=new Error('Supabase count inaonyesha bidhaa '+expectedRemoteCount+', lakini SELECT imerudisha '+rows.length+' tu. Orodha ya sasa imehifadhiwa salama. Hii mara nyingi huhitaji kukagua sera za RLS/SELECT, ruhusa za akaunti, au makosa ya kurasa kwenye Console ya Safari.');
     incompleteError.code='MPA_INCOMPLETE_PRODUCT_READ';
-    console.error('M-P-A V61 incomplete products read; refusing to replace current list with partial results',{expectedRemoteCount,receivedUniqueRows:rows.length,userId:authProfile?.id||null});
+    console.error('M-P-A V62 incomplete products read; refusing to replace current list with partial results',{expectedRemoteCount,receivedUniqueRows:rows.length,userId:authProfile?.id||null});
     if(!silent)toast(incompleteError.message);
     return {ok:false,error:incompleteError,count:products.length,remoteCount:expectedRemoteCount,receivedCount:rows.length,usedFallback:true};
   }
@@ -635,7 +639,7 @@ async function syncProductsFromSupabase({silent=false}={}){
     // backend issue. Never report this as a successful sync or replace a non-empty list.
     const emptyReadError=new Error('Supabase imerudisha bidhaa 0 wakati mfumo una bidhaa '+products.length+'. Orodha haijabadilishwa ili kuzuia kupotea kwa bidhaa; kagua RLS/connection.');
     emptyReadError.code='MPA_EMPTY_REMOTE_READ';
-    console.error('M-P-A V61 suspicious empty products result; current list preserved', {remoteCount:rows.length, localCount:products.length, authenticated:!!authProfile, userId:authProfile?.id||null});
+    console.error('M-P-A V62 suspicious empty products result; current list preserved', {remoteCount:rows.length, localCount:products.length, authenticated:!!authProfile, userId:authProfile?.id||null});
     if(!silent)toast(emptyReadError.message);
     return {ok:false,error:emptyReadError,count:products.length,usedFallback:true};
   }
@@ -1058,7 +1062,7 @@ async function login(){
 async function forceRefreshApp(){
   // V58: one controlled refresh pipeline for app-state plus normalized products/sales.
   // Preserve the current section and avoid a hard page reload while Supabase is queried.
-  if(pullBusy){toast("Usasishaji unaendelea; subiri kidogo.");return;}
+  if(pullBusy){console.info("M-P-A refresh already running; duplicate refresh ignored.");return;}
   pullBusy=true;
   const activePage=document.querySelector(".page.active")?.id||"home";
   const scrollY=window.scrollY||0;
@@ -1084,7 +1088,7 @@ async function forceRefreshApp(){
       if(productResult?.ok&&!salesResult?.ok)failed.push("mauzo");
       const pe=productResult?.error;
       const detail=pe ? ((pe.code ? String(pe.code)+" — " : "") + (pe.message ? String(pe.message) : "Hitilafu ya kusoma bidhaa")) : "";
-      console.error("M-P-A V61 refresh diagnostics", {stateResult, productResult, salesResult, visibleProductCount:products.length, userId:authProfile?.id||null});
+      console.error("M-P-A V62 refresh diagnostics", {stateResult, productResult, salesResult, visibleProductCount:products.length, userId:authProfile?.id||null});
       toast("Usasishaji haujakamilika kwa "+failed.join(", ")+(detail?": "+detail:"")+". Data haijafutwa.");
     }
   }catch(e){
