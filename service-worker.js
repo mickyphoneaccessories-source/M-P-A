@@ -1,4 +1,4 @@
-const CACHE = "mpa-v62-static-20261017";
+const CACHE = "mpa-v63-diagnostic-20261019";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
