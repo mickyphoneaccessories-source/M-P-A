@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#080808">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="logo.png">
-<title>M-P-A • Micky Phone Accessories</title>
+<title>M-P-A V65 • Micky Phone Accessories</title>
 <style>
 *{box-sizing:border-box}
 :root{--blue:#2450ff;--blue2:#1741e8;--gold:#ffd21a;--bg:#f6f7f9;--card:#fff;--ink:#17191d;--muted:#737780;--line:#e5e7eb;--green:#19a463;--red:#e83d50;--orange:#f59e0b}
@@ -556,7 +556,7 @@ async function syncProductsFromSupabase({silent=false}={}){
  try{
   // V58: Soma taarifa nyepesi za bidhaa kwanza. image_url inaweza kuwa picha ya Base64 kubwa
   // na kuifanya query nzima iishe kwa statement timeout. Picha zinasomwa kwa maombi tofauti.
-  const rows=[]; const pageSize=5; let pageFrom=0;
+  const rows=[]; const pageSize=500; let pageFrom=0; let totalReceived=0;
   // V61: read the visible row count under the same authenticated/RLS context.
   // This helps distinguish incomplete pagination from rows hidden by RLS.
   let expectedRemoteCount=null;
@@ -590,6 +590,7 @@ async function syncProductsFromSupabase({silent=false}={}){
     if(lastPageError)throw lastPageError;
     console.info('M-P-A V64 product page received', {pageFrom, requested:pageSize, received:pageData.length, totalSoFar:rows.length+pageData.length});
     if(pageData.length===0)break;
+    totalReceived+=pageData.length;
     for(const row of pageData){
       const id=String(row?.id??'');
       if(id && !seenRemoteIds.has(id)){seenRemoteIds.add(id);rows.push(row);}
@@ -605,12 +606,12 @@ async function syncProductsFromSupabase({silent=false}={}){
     currentVisibleCount:products.length, pageSize,
     authenticatedUserId:authProfile?.id||null
   });
-  if(expectedRemoteCount!==null && rows.length<expectedRemoteCount){
-    const incompleteError=new Error('Supabase count inaonyesha bidhaa '+expectedRemoteCount+', lakini SELECT imerudisha '+rows.length+' tu. Orodha ya sasa imehifadhiwa salama. Hii mara nyingi huhitaji kukagua sera za RLS/SELECT, ruhusa za akaunti, au makosa ya kurasa kwenye Console ya Safari.');
+  if(expectedRemoteCount!==null && totalReceived<expectedRemoteCount){
+    const incompleteError=new Error('Supabase count inaonyesha bidhaa '+expectedRemoteCount+', lakini SELECT imerudisha '+totalReceived+' tu. Orodha ya sasa imehifadhiwa salama. Hii mara nyingi huhitaji kukagua sera za RLS/SELECT, ruhusa za akaunti, au makosa ya kurasa kwenye Console ya Safari.');
     incompleteError.code='MPA_INCOMPLETE_PRODUCT_READ';
-    console.error('M-P-A V62 incomplete products read; refusing to replace current list with partial results',{expectedRemoteCount,receivedUniqueRows:rows.length,userId:authProfile?.id||null});
+    console.error('M-P-A V62 incomplete products read; refusing to replace current list with partial results',{expectedRemoteCount,totalReceived,receivedUniqueRows:rows.length,userId:authProfile?.id||null});
     if(!silent)toast(incompleteError.message);
-    return {ok:false,error:incompleteError,count:products.length,remoteCount:expectedRemoteCount,receivedCount:rows.length,usedFallback:true};
+    return {ok:false,error:incompleteError,count:products.length,remoteCount:expectedRemoteCount,receivedCount:totalReceived,usedFallback:true};
   }
   // Picha zinasomwa tofauti na metadata ili hitilafu ya picha isiizuie orodha ya bidhaa.
   // Picha zilizopo tayari kwenye kumbukumbu zinabaki kama ombi la picha litashindwa.
