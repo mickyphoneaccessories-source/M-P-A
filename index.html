@@ -564,7 +564,7 @@ async function syncProductsFromSupabase({silent=false}={}){
     const countResult=await sbClient.from('products').select('id',{count:'exact',head:true});
     if(countResult.error)throw countResult.error;
     if(Number.isFinite(countResult.count)) expectedRemoteCount=countResult.count;
-    console.info('M-P-A V62 products count under current session',{expectedRemoteCount,userId:authProfile?.id||null});
+    console.info('M-P-A V64 products count under current session',{expectedRemoteCount,userId:authProfile?.id||null});
   }catch(countError){
     console.warn('M-P-A V62 exact product count unavailable; continuing paginated read',{code:countError?.code,message:countError?.message});
   }
@@ -588,7 +588,7 @@ async function syncProductsFromSupabase({silent=false}={}){
       }
     }
     if(lastPageError)throw lastPageError;
-    console.info('M-P-A V62 product page received', {pageFrom, requested:pageSize, received:pageData.length, totalSoFar:rows.length+pageData.length});
+    console.info('M-P-A V64 product page received', {pageFrom, requested:pageSize, received:pageData.length, totalSoFar:rows.length+pageData.length});
     if(pageData.length===0)break;
     for(const row of pageData){
       const id=String(row?.id??'');
@@ -600,7 +600,7 @@ async function syncProductsFromSupabase({silent=false}={}){
     if(pageData.length<pageSize)break;
     if(pageNumber===499)throw new Error('Bidhaa ni nyingi kuliko kikomo cha kurasa 500; tafadhali wasiliana na msaada.');
   }
-  console.info('M-P-A V62 products pagination finished',{
+  console.info('M-P-A V64 products pagination finished',{
     expectedRemoteCount, receivedUniqueRows:rows.length,
     currentVisibleCount:products.length, pageSize,
     authenticatedUserId:authProfile?.id||null
@@ -658,6 +658,13 @@ async function syncProductsFromSupabase({silent=false}={}){
     if(!exists && local.pendingSync===true) mergedProducts.push(local);
   }
   products=mergedProducts;
+  console.info('M-P-A V64 products merge result',{
+    remoteProductsCount:remoteProducts.length,
+    mergedProductsCount:mergedProducts.length,
+    pendingLocalCount:pending.length,
+    deletedProductIdsCount:deletedProductIds.length,
+    authenticatedUserId:authProfile?.id||null
+  });
   for(const local of pending.slice(0,20)){
     const remoteRetry=await syncProductToSupabase(local);
     if(remoteRetry.ok) local.pendingSync=false;
@@ -1283,6 +1290,14 @@ function renderProducts(){
  arr=arr.filter(p=>productTab==="all"?true:productTab==="in"?p.qty>0:productTab==="low"?p.qty>0&&p.qty<=3:p.qty<=0);
  arr.sort((a,b)=>sort==="stock"?b.qty-a.qty:sort==="price"?b.price-a.price:a.name.localeCompare(b.name));
  const list=document.getElementById("productList");
+ console.info('M-P-A V64 product list render',{
+   storedProductsCount:products.length,
+   visibleProductsCount:arr.length,
+   search:q,
+   category:cat,
+   productTab,
+   sort
+ });
  list.innerHTML=arr.length?arr.map(p=>`<div class="productrow" data-product-id="${p.id}" onclick="openStock(${JSON.stringify(p.id)})"><img class="pimg" src="${p.image||'icon.svg'}" alt=""><div class="pinfo"><b>${esc(p.name)}</b><small>${p.qty} in stock${p.category?" • "+esc(p.category):""}</small></div><div class="pprice"><b>${Number(p.price||0).toLocaleString("en-US")}</b><small>TZS</small><div style="margin-top:6px;display:flex;gap:5px;justify-content:flex-end" onclick="event.stopPropagation()"><button type="button" class="btn small" onclick="event.preventDefault();event.stopPropagation();editProduct(this.closest('[data-product-id]').dataset.productId)">Edit</button>${can("delete_products")?`<button type="button" class="btn small red" onclick="event.preventDefault();event.stopPropagation();deleteProduct(this.closest('[data-product-id]').dataset.productId)">Futa</button>`:""}</div></div></div>`).join(""):"<div class='empty'>Hakuna bidhaa kwenye kundi hili.</div>";
  document.getElementById("sumProducts").textContent=products.length;document.getElementById("sumBuy").textContent=money(products.reduce((a,p)=>a+p.buy*p.qty,0));document.getElementById("sumSell").textContent=money(products.reduce((a,p)=>a+p.price*p.qty,0));
 }
