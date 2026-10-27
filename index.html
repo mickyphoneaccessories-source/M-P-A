@@ -654,10 +654,12 @@ async function syncProductsFromSupabase({silent=false}={}){
   // pendingSync; do not resurrect stale app-state snapshots as phantom products.
   for(const local of products){
     const key=String(local.supabaseId||local.id);
-    if(deletedProductIds.includes(key)) continue;
+    // V66: deletedProductIds tayari zimesafishwa hapo juu dhidi ya rekodi halisi za DB,
+    // hivyo haitoshi tena kuruka bidhaa hapa — tombstone iliyobaki inamaanisha bidhaa
+    // haipo DB kabisa, na remoteIdSet tayari inalinda hilo.
     const exists=remoteProducts.some(x=>String(x.id)===key||String(x.supabaseId)===key);
     if(!exists && local.pendingSync===true) mergedProducts.push(local);
-  }
+   }
   products=mergedProducts;
   console.info('M-P-A V64 products merge result',{
     remoteProductsCount:remoteProducts.length,
@@ -673,7 +675,7 @@ async function syncProductsFromSupabase({silent=false}={}){
   refreshCategories();
   render();
   if(!silent)toast('Bidhaa zimesawazishwa na Supabase ✓');
-  return {ok:true,count:products.length};
+  return {ok:true,count:products.length,remoteCount:expectedRemoteCount??rows.length};
  }catch(e){
   console.error('Supabase products load failed; product list may still be stale:',e);
   // Keep the Supabase app-state copy visible; never blank the Products page because a refresh failed.
@@ -794,7 +796,10 @@ async function loadCloudState(){
    deletedProductIds=Array.isArray(st.deletedProductIds)?st.deletedProductIds.map(String):[];
    deletedUserIds=Array.isArray(st.deletedUserIds)?st.deletedUserIds.map(String):[];
    if(Array.isArray(st.sales)) sales=st.sales.filter(x=>!deletedSaleIds.includes(String(x.id))&&!deletedSaleIds.includes(String(x.supabaseId)));
-   if(Array.isArray(st.products)) products=st.products.filter(x=>!deletedProductIds.includes(String(x.id||x.supabaseId)));
+   // V66: Usichuje bidhaa za app-state kwa deletedProductIds hapa. Tombstone zilizopitwa na wakati
+   // zilikuwa zikificha bidhaa halisi zilizopo kwenye jedwali la products (mf. 52 DB → 23 tu zinaonekana).
+   // Jedwali la products ndilo chanzo cha kweli; syncProductsFromSupabase ndiyo inayosawazisha mwishoni.
+   if(Array.isArray(st.products)) products=st.products;
    customers=Array.isArray(st.customers)?st.customers:[];
    expenses=Array.isArray(st.expenses)?st.expenses.filter(x=>!deletedExpenseIds.includes(String(x.id))):[];
    movements=Array.isArray(st.movements)?st.movements:[];
@@ -843,7 +848,10 @@ async function saveCloudState(){
     deletedSaleIds=[...new Set([...deletedSaleIds,...(Array.isArray(remoteState.deletedSaleIds)?remoteState.deletedSaleIds.map(String):[])])];
     deletedExpenseIds=[...new Set([...deletedExpenseIds,...(Array.isArray(remoteState.deletedExpenseIds)?remoteState.deletedExpenseIds.map(String):[])])];
     users=users.filter(u=>!deletedUserIds.includes(String(u.id)));
-    products=products.filter(p=>!deletedProductIds.includes(String(p.id||p.supabaseId)));
+    // V66: Usipungeze orodha ya bidhaa kwa deletedProductIds kabla ya kuhifadhi app-state.
+    // Hii ndiyo iliyofanya snapshot ya app-state ipungue hadi bidhaa 23 wakati DB ina 52.
+    // Jedwali la products ndilo chanzo cha kweli cha bidhaa; tombstone zinatumika tu kuzuia
+    // bidhaa iliyofutwa DB isirudishwe na snapshot ya zamani (hushughulikiwa kwenye merge).
     sales=sales.filter(x=>!deletedSaleIds.includes(String(x.id))&&!deletedSaleIds.includes(String(x.supabaseId)));
     expenses=expenses.filter(x=>!deletedExpenseIds.includes(String(x.id)));
     const safeUsers=users.map(({password,...u})=>({...u}));
@@ -1936,8 +1944,15 @@ async function refreshDataView(){
    salesResult=await syncSalesFromSupabase({silent:true});
    if(salesResult?.ok===false)console.warn('Sales refresh did not complete',salesResult.error);
    refreshCurrentPage();
-   if(stateError)toast('Bidhaa zimesasishwa kutoka Supabase. Baadhi ya taarifa nyingine zimeshindwa kupakia; tutazirekebisha tofauti.');
-   else if(Date.now()-started>3000)toast('Refresh imekamilika; Supabase imechukua muda mrefu kujibu.');
+   // V66: Onyesha uchunguzi wa idadi — ikibidi utajua mara moja kama database ina bidhaa
+   // zaidi ya zinazoonekana (ishara ya RLS/policy inayoficha rekodi kwa akaunti hii).
+   const dbCount=productsResult?.remoteCount??productsResult?.count??null;
+   const shown=products.length;
+   if(dbCount!==null&&dbCount!==shown){
+     toast('Angalau: database ina bidhaa '+dbCount+' lakini zinaonekana '+shown+'. Kama tofauti inaendelea, kagua SELECT policy (RLS) ya jedwali la products kwenye Supabase yako — huenda inaficha rekodi kwa akaunti hii.');
+   }else if(stateError)toast('Bidhaa zimesasishwa kutoka Supabase. Baadhi ya taarifa nyingine zimeshindwa kupakia; tutazirekebisha tofauti.');
+    else if(Date.now()-started>3000)toast('Refresh imekamilika; Supabase imechukua muda mrefu kujibu.');
+    else toast('Bidhaa zimesawazishwa: '+shown+' zinaonekana ✓');
   }catch(e){
    console.warn('refreshDataView',e);
    const code=e?.code?String(e.code):'';
