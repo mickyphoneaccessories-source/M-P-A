@@ -506,6 +506,7 @@ const mpaAuthStorage={
 const sbClient=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:mpaAuthStorage}}):null;
 let authProfile=null, loginRole="user", productTab="all", selectedStockId=null, selectedImage="";
 // M-P-A V21: Supabase is the ONLY persistent application datastore.
+let snapshotProducts=[];
 let products=[], sales=[], customers=[], expenses=[], movements=[], notifications=[];
 let goalTarget=10000000, monthlyGoals={}, branches=[], activeBranch="", storeName="Micky Phone Accessories", language="sw", fontSize=100;
 function monthKey(d=now()){const x=new Date(d);return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}`;}
@@ -551,6 +552,32 @@ async function syncProductToSupabase(p){
  }
 }
 function applyRemoteProduct(row){return {id:row.id,supabaseId:row.id,name:row.name||'',category:row.category||'',code:'',buy:Number(row.buy_price||0),price:Number(row.sell_price||0),qty:Number(row.stock_qty||0),minStock:Number(row.min_stock||0),image:row.image_url||'',createdAt:row.created_at||now().toISOString(),updatedAt:row.updated_at||row.created_at||now().toISOString()};}
+
+// V67: Hakikisha token ya kuingia ni hai kabla ya kusoma bidhaa. Baada ya refresh ya ukurasa
+// token iliyokwisha muda ilifanya Supabase isome kama mgeni (RLS → bidhaa chache/0).
+async function ensureFreshSession(){
+ try{
+  const {data}=await sbClient.auth.getSession();
+  const sess=data?.session;
+  if(!sess){return false}
+  const exp=Number(sess.expires_at||0)*1000;
+  if(!exp||exp-Date.now()<120000){const r=await sbClient.auth.refreshSession();if(r.error){console.warn('Session refresh failed',r.error);return false}}
+  return true;
+ }catch(e){console.warn('ensureFreshSession',e);return false}
+}
+async function syncProductsReliable(opts={}){
+ let last=null;
+ for(let attempt=1;attempt<=3;attempt++){
+  await ensureFreshSession();
+  last=await syncProductsFromSupabase({silent:true,...opts});
+  if(last?.ok)return last;
+  await new Promise(r=>setTimeout(r,800*attempt));
+ }
+ // Akiba ya mwisho: tumia snapshot pale tu ambapo hakuna bidhaa kabisa skrini.
+ if(!products.length&&snapshotProducts.length){products=snapshotProducts.slice();console.warn('M-P-A V67 using app-state snapshot fallback',snapshotProducts.length)}
+ if(!opts.silent&&last?.error)toast('Bidhaa hazikusomeka kikamilifu kutoka Supabase: '+(last.error.message||last.error));
+ return last;
+}
 async function syncProductsFromSupabase({silent=false}={}){
  if(!sbClient||!authProfile)return {ok:false,skipped:true};
  try{
@@ -799,7 +826,9 @@ async function loadCloudState(){
    // V66: Usichuje bidhaa za app-state kwa deletedProductIds hapa. Tombstone zilizopitwa na wakati
    // zilikuwa zikificha bidhaa halisi zilizopo kwenye jedwali la products (mf. 52 DB → 23 tu zinaonekana).
    // Jedwali la products ndilo chanzo cha kweli; syncProductsFromSupabase ndiyo inayosawazisha mwishoni.
-   if(Array.isArray(st.products)) products=st.products;
+   // V67: Snapshot ya app-state HAIBADILISHI tena orodha ya bidhaa. Ilikuwa ikirudisha bidhaa 23
+   // za zamani kila refresh. Inahifadhiwa tu kama akiba endapo jedwali la products halipatikani kabisa.
+   snapshotProducts=Array.isArray(st.products)?st.products:[];
    customers=Array.isArray(st.customers)?st.customers:[];
    expenses=Array.isArray(st.expenses)?st.expenses.filter(x=>!deletedExpenseIds.includes(String(x.id))):[];
    movements=Array.isArray(st.movements)?st.movements:[];
@@ -1072,7 +1101,7 @@ async function login(){
  if(authProfile.active===false){await sbClient.auth.signOut();authProfile=null;alert("Account hii imezimwa na Admin.");return}
  if(loginRole!==authProfile.role){await sbClient.auth.signOut();authProfile=null;alert(loginRole==="admin"?"Chagua User kwenye login kwa account hii.":"Chagua Admin kwenye login kwa account hii.");return}
  document.getElementById("login").style.display="none";document.getElementById("app").style.display="block";
- try{await loadCloudState();await syncProductsFromSupabase({silent:true});await syncSalesFromSupabase({silent:true});startSupabaseRealtime();}catch(e){console.error("M-P-A render/sync error after successful login",e)}
+ try{await loadCloudState();await syncProductsReliable({silent:true});await syncSalesFromSupabase({silent:true});startSupabaseRealtime();}catch(e){console.error("M-P-A render/sync error after successful login",e)}
 }
 
 async function forceRefreshApp(){
@@ -1089,7 +1118,7 @@ async function forceRefreshApp(){
     // then replace products/sales with normalized table results so an old app-state
     // snapshot cannot be treated as the latest product list.
     stateResult=await loadCloudState();
-    productResult=await syncProductsFromSupabase({silent:true});
+    productResult=await syncProductsReliable({silent:true});
     if(productResult?.ok) salesResult=await syncSalesFromSupabase({silent:true});
     refreshCurrentPage();
     document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
@@ -1851,7 +1880,7 @@ async function refreshRemoteDataFast(){
  if(!sbClient||!authProfile||mpaSyncBusy)return;
  mpaSyncBusy=true;
  try{
-  await syncProductsFromSupabase({silent:true});
+  await syncProductsReliable({silent:true});
   await syncSalesFromSupabase({silent:true});
   // Do not redraw the whole app while a sale form is open: preserve the in-progress order.
   const saleFormOpen=!document.getElementById("saleEntryView")?.classList.contains("hidden");
@@ -1939,7 +1968,7 @@ async function refreshDataView(){
    // V54: Do not reload mpa_app_state during refresh. It contains an older product snapshot
    // (23 items in this installation) and overwrites the complete live list before the
    // normalized products query can time out. Refresh normalized tables directly instead.
-   productsResult=await syncProductsFromSupabase({silent:true});
+   productsResult=await syncProductsReliable({silent:true});
    if(productsResult?.ok===false)throw (productsResult.error||new Error('Bidhaa hazikusawazishwa.'));
    salesResult=await syncSalesFromSupabase({silent:true});
    if(salesResult?.ok===false)console.warn('Sales refresh did not complete',salesResult.error);
@@ -2016,7 +2045,7 @@ window.addEventListener("load",async()=>{
        const email=(session.user.email||"").trim().toLowerCase();
        const role=KNOWN_LOGIN_ROLES[email]||prof?.role||"user";
        authProfile={...(prof||{}),id:session.user.id,username:prof?.username||session.user.email?.split("@")[0]||"user",role,permissions:role==="admin"?["all"]:[...new Set([...(Array.isArray(prof?.permissions)?prof.permissions:[]),...DEFAULT_USER_PERMISSIONS])],active:prof?.active!==false};
-       if(authProfile.active!==false){document.getElementById("login").style.display="none";document.getElementById("app").style.display="block";await loadCloudState();await syncProductsFromSupabase({silent:true});await syncSalesFromSupabase({silent:true});startSupabaseRealtime();
+       if(authProfile.active!==false){document.getElementById("login").style.display="none";document.getElementById("app").style.display="block";await loadCloudState();await syncProductsReliable({silent:true});await syncSalesFromSupabase({silent:true});startSupabaseRealtime();
        // Re-open the last page after refresh; sessionStorage stores navigation only, never business records.
        try{
         let savedPage=sessionStorage.getItem("mpaCurrentPage")||"home";
