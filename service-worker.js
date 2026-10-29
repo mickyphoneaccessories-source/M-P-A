@@ -1,4 +1,4 @@
-const CACHE = "mpa-v67-stable-products-20261027";
+const CACHE = "mpa-v68-fast-20261029";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -12,7 +12,6 @@ self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE)
       .then(cache => cache.addAll(STATIC_ASSETS))
-      .then(() => self.skipWaiting())
   );
 });
 
@@ -68,3 +67,5 @@ self.addEventListener("fetch", event => {
     })
   );
 });
+
+self.addEventListener("message", event => { if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting(); });
