@@ -6,9 +6,9 @@
 <meta name="theme-color" content="#080808">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="logo.png">
-<title>M-P-A V73 • Micky Phone Accessories</title>
+<title>M-P-A V74 • Micky Phone Accessories</title>
 <meta name="description" content="Micky Phone Accessories — bidhaa, mauzo na usimamizi wa duka.">
-<meta property="og:title" content="Micky Phone Accessories V73">
+<meta property="og:title" content="Micky Phone Accessories V74">
 <meta property="og:description" content="Bidhaa, mauzo na usimamizi wa Micky Phone Accessories.">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary">
@@ -81,6 +81,28 @@ html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-beh
 html[lang="en"] .sale-history-item:after{content:"View details  ›"}
 .sale-delete-bottom{display:flex;align-items:center;justify-content:center;gap:10px;background:var(--red);color:var(--card);border:0;border-radius:12px;min-height:52px}
 .receipt-actions{grid-template-columns:1fr 1fr;position:sticky;bottom:0;background:var(--card);padding:12px 0;z-index:105}.receipt-actions .receipt-close{grid-column:1 / -1}.receipt-actions button{min-width:0;overflow-wrap:anywhere}.receipt-sheet{overflow-wrap:anywhere}.receipt-table{table-layout:fixed}.receipt-table th:first-child{width:6%}.receipt-table th:nth-child(2){width:34%}.receipt-head{flex-wrap:wrap}.receipt-meta{margin-left:auto}
+
+/* Compact, safe-area-aware sale view; never double-scale the text. */
+#saleDetailModal .sale-detail-wrap{height:100dvh;max-height:100dvh;padding:calc(12px + env(safe-area-inset-top)) 14px calc(20px + env(safe-area-inset-bottom));font-size:calc(14px * var(--fontScale,1));-webkit-text-size-adjust:100%;text-size-adjust:100%}
+#saleDetailModal .sale-detail{padding:0 0 24px}
+#saleDetailModal .sale-detail-head{display:grid;grid-template-columns:36px minmax(0,1fr) auto 44px;gap:8px;flex-wrap:nowrap;top:0;margin-bottom:16px;padding:8px 0;min-height:60px}
+#saleDetailModal .sale-detail-head h2{min-width:0;font-size:1em;line-height:1.35;overflow-wrap:anywhere}
+#saleDetailModal .sale-detail-back{width:36px;height:44px;font-size:30px}
+#saleDetailModal .sale-detail-date{font-size:.8em;white-space:nowrap}
+#saleDetailModal .sale-delete-top{width:44px;height:44px;flex:none;background:var(--bg);color:var(--red);border:0;box-shadow:none}
+#saleDetailModal .sale-detail-label{font-size:.9em;margin-bottom:6px}
+#saleDetailModal .sale-detail-value{font-size:1.15em;font-weight:600}
+#saleDetailModal .sale-detail-row{padding:14px}
+#saleDetailModal .sale-detail-products-title{font-size:.9em;letter-spacing:0}
+#saleDetailModal .sale-detail-product{grid-template-columns:44px minmax(0,1fr) auto auto;gap:8px;font-size:.95em}
+#saleDetailModal .sale-detail-product img{width:44px;height:44px}
+#saleDetailModal .sale-detail-product b{overflow-wrap:anywhere}
+#saleDetailModal .sale-detail-totals>div{gap:12px;font-size:1em;padding:12px 0}
+#saleDetailModal .sale-receipt-btn{font-size:1em;padding:14px}
+.receipt-print-options{margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
+.receipt-print-options .btn{display:block;width:100%;margin:8px 0;background:var(--bg);color:var(--ink);min-height:44px}
+.receipt-print-options p{font-size:13px;color:var(--muted);line-height:1.5}
+@media print{.receipt-print-options{display:none!important}}
 @media print{
  @page{size:auto;margin:10mm}
  html,body{background:var(--card);height:auto;overflow:visible;font-size:12px}
@@ -373,7 +395,7 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
       <div class="settings-ios-list">
         <button onclick="toast('Taarifa za usalama ziko tayari.')"><span class="setting-icon" style="background:#5d7dff">⇩</span><span class="setting-main">Taarifa za usalama</span><b>›</b></button>
         <div class="update-card" id="updateCard">
-          <div class="update-head"><span class="setting-icon" style="background:#2450ff">⟳</span><div class="update-main"><b>Masasisho ya App</b><small id="appVersionLabel">Toleo: V73</small></div><span id="updateBadge" class="update-badge">Imesasishwa</span></div>
+          <div class="update-head"><span class="setting-icon" style="background:#2450ff">⟳</span><div class="update-main"><b>Masasisho ya App</b><small id="appVersionLabel">Toleo: V74</small></div><span id="updateBadge" class="update-badge">Imesasishwa</span></div>
           <p id="updateStatus" class="update-status">Bonyeza "Angalia" kuona kama kuna toleo jipya.</p>
           <div class="update-actions"><button type="button" id="updateCheckBtn" onclick="checkAppUpdate()">Angalia masasisho</button><button type="button" id="updateInstallBtn" class="install" onclick="installAppUpdate()" hidden>Sakinisha sasa</button></div>
           <button type="button" class="update-sync" onclick="forceRefreshApp()">↻ Sawazisha data sasa <small id="lastSyncLabel"></small></button>
@@ -468,7 +490,7 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
 <script src="translations.js"></script>
 <script>
 // M-P-A v41: do not reload the entire app state on realtime app-state events; only merge notifications.
-const MPA_APP_VERSION = "V73";
+const MPA_APP_VERSION = "V74";
 function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="Toleo: "+MPA_APP_VERSION;}
 let mpaWaitingWorker=null;
 function setUpdateUI(state,msg){
@@ -1606,7 +1628,7 @@ function openSaleDetails(id){window.mpaOpenSaleId=id;
  const items=s.items||[{productId:s.productId,product:s.product,qty:s.qty||1,price:s.price||s.total,buy:0,lineTotal:(s.price||s.total)*(s.qty||1)}];
  const canDelete=(currentUserObj()?.role==="admin")||can("delete_sales");
  const html=`<div class="sale-detail">
-   <div class="sale-detail-head"><button class="sale-detail-back" onclick="closeModal('saleDetailModal')">‹</button><h2>${translateText("Order #" )}${String(s.id).slice(-8)}</h2><span class="sale-detail-date">${niceDate(s.date)}</span>${canDelete?`<button type="button" class="sale-delete-top" aria-label="${esc(translateText("Futa mauzo"))}" title="${esc(translateText("Futa Mauzo"))}" data-action="delete-sale" data-id="${esc(String(s.id))}">🗑️</button>`:""}</div>
+   <div class="sale-detail-head"><button class="sale-detail-back" onclick="closeModal('saleDetailModal')">‹</button><h2>${translateText("Order #" )}${String(s.id).slice(-8)}</h2><span class="sale-detail-date">${niceDate(s.date)}</span>${canDelete?`<button type="button" class="sale-delete-top" aria-label="${esc(translateText("Futa mauzo"))}" title="${esc(translateText("Futa Mauzo"))}" data-action="delete-sale" data-id="${esc(String(s.id))}"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg></button>`:""}</div>
    <div class="sale-detail-card">
     <div class="sale-detail-row"><span class="sale-detail-label">${translateText("Malipo" )}</span><span class="sale-detail-value">${money(s.total)}</span></div>
     <div class="sale-detail-row"><span class="sale-detail-label">${translateText("Hali" )}</span><span class="sale-detail-value ${s.paid===false?translateText('red'):translateText('green')}">${s.paid===false?translateText('Haijalipwa'):translateText('Imelipwa')}</span></div>
@@ -1617,10 +1639,9 @@ function openSaleDetails(id){window.mpaOpenSaleId=id;
    ${items.map(i=>{const p=products.find(x=>x.id===i.productId);return `<div class="sale-detail-product"><img src="${esc(p?.image||'icon.svg')}" onerror="this.src='icon.svg'"><div><b>${esc(i.product||p?.name||'Bidhaa')}</b><small>@${money(i.price||p?.price||0)}</small></div><div class="qty">${Number(i.qty||1)}</div><div class="line">${money(i.lineTotal||(Number(i.price||p?.price||0)*Number(i.qty||1)))}</div></div>`}).join('')}
    <div class="sale-detail-totals"><div><span>${translateText("Jumla ya Oda" )}</span><b>${money(s.subtotal||s.total)}</b></div><div><span>${translateText("Punguzo" )}</span><b>${money(s.discount||0)}</b></div><div><strong>${translateText("THAMANI YA ODA" )}</strong><strong>${money(s.total)}</strong></div></div>
    ${s.note?`<div class="sale-detail-row" style="margin-top:8px;border-radius:16px;background:#f7f7f8"><span class="sale-detail-label">${translateText("MAELEZO YA ODA" )}</span><span>${esc(s.note)}</span></div>`:''}
-   ${canDelete?`<button type="button" class="sale-delete-bottom" data-action="delete-sale" data-id="${esc(String(s.id))}">🗑️ ${translateText("Futa Mauzo")}</button>`:""}
    <button class="sale-receipt-btn" data-action="open-receipt" data-id="${esc(String(s.id))}">${translateText("▣ &nbsp; Receipt ya Oda (invoice)" )}</button>
  </div>`;
- document.getElementById('saleDetailContent').innerHTML=html;document.getElementById('saleDetailModal').classList.add('show');
+ document.getElementById('saleDetailContent').innerHTML=html;document.getElementById('saleDetailModal').classList.add('show');document.querySelector('#saleDetailModal .modal').scrollTop=0;
  document.querySelectorAll('#saleDetailContent [data-action=delete-sale]').forEach(delBtn=>delBtn.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();deleteSale(delBtn.dataset.id);}));
  const recBtn=document.querySelector('#saleDetailContent [data-action=open-receipt]'); if(recBtn){recBtn.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();const sid=recBtn.dataset.id;closeModal('saleDetailModal');setTimeout(()=>openReceipt(sid),60);});}
 }
@@ -1662,26 +1683,47 @@ async function deleteSale(id){
 
 function openReceipt(id){window.mpaReceiptId=id;
  const s=sales.find(x=>String(x.id)===String(id));if(!s)return;const items=s.items||[{productId:s.productId,product:s.product,qty:s.qty||1,price:s.price||s.total,buy:s.buy||0,lineTotal:(s.price||s.total)*(s.qty||1)}];
- document.getElementById('receiptContent').innerHTML=`<div class="receipt-sheet" id="receiptSheet"><div class="receipt-head"><div class="receipt-brand"><img src="logo.png"><div><div class="receipt-title">${translateText("MICKY M-P-A" )}</div><div class="receipt-sub">${translateText("Phone Accessories & Home Decoration" )}<br>${translateText("Ilembula · 0767203506 / 0773203506" )}</div></div></div><div class="receipt-meta"><b>${translateText("RISITI YA MAUZO" )}</b><br>${translateText("Order #: " )}${String(s.id).slice(-8)}<br>${translateText("Tarehe: " )}${niceDate(s.date)}<br>${translateText("Muda: " )}${timeNow(s.date)}<br>${translateText("Muuzaji: " )}${esc(s.user||translateText('Admin'))}</div></div><table class="receipt-table"><thead><tr><th>#</th><th>${translateText("Bidhaa" )}</th><th>${translateText("Qty" )}</th><th>${translateText("Bei" )}</th><th>${translateText("Jumla" )}</th></tr></thead><tbody>${items.map((i,n)=>`<tr><td>${n+1}</td><td>${esc(i.product||'Bidhaa')}</td><td>${i.qty}</td><td>${money(i.price||0)}</td><td>${money(i.lineTotal||((i.price||0)*(i.qty||1)))}</td></tr>`).join('')}</tbody></table><div class="receipt-total"><div>${translateText("Jumla ya Oda: " )}<b>${money(s.subtotal||s.total)}</b></div><div>${translateText("Punguzo: " )}<b>${money(s.discount||0)}</b></div><div class="grand">${translateText("THAMANI YA ODA: " )}${money(s.total)}</div></div><div class="receipt-foot">${translateText("Hali ya Malipo: " )}<b class="${s.paid===false?translateText('red'):translateText('green')}">${s.paid===false?translateText('Haijalipwa'):translateText('Imelipwa')}</b><br>${translateText("Mteja: " )}${esc(s.customer||translateText('Unknown'))}<br><br>${translateText("Asante kwa kununua!" )}<br>${translateText("Karibu tena Micky Phone Accessories." )}</div></div><div class="receipt-actions"><button class="btn receipt-close" onclick="closeModal('receiptModal')">${translateText("Funga" )}</button><button type="button" class="btn blue" onclick="mpaPrintReceipt()">🖨️ ${translateText("Chapisha")}</button><button type="button" id="receiptImageButton" class="btn blue" onclick="downloadReceiptImage()">⬇ ${translateText("Hifadhi picha")}</button></div>`;
+ document.getElementById('receiptContent').innerHTML=`<div class="receipt-sheet" id="receiptSheet"><div class="receipt-head"><div class="receipt-brand"><img src="logo.png"><div><div class="receipt-title">${translateText("MICKY M-P-A" )}</div><div class="receipt-sub">${translateText("Phone Accessories & Home Decoration" )}<br>${translateText("Ilembula · 0767203506 / 0773203506" )}</div></div></div><div class="receipt-meta"><b>${translateText("RISITI YA MAUZO" )}</b><br>${translateText("Order #: " )}${String(s.id).slice(-8)}<br>${translateText("Tarehe: " )}${niceDate(s.date)}<br>${translateText("Muda: " )}${timeNow(s.date)}<br>${translateText("Muuzaji: " )}${esc(s.user||translateText('Admin'))}</div></div><table class="receipt-table"><thead><tr><th>#</th><th>${translateText("Bidhaa" )}</th><th>${translateText("Qty" )}</th><th>${translateText("Bei" )}</th><th>${translateText("Jumla" )}</th></tr></thead><tbody>${items.map((i,n)=>`<tr><td>${n+1}</td><td>${esc(i.product||'Bidhaa')}</td><td>${i.qty}</td><td>${money(i.price||0)}</td><td>${money(i.lineTotal||((i.price||0)*(i.qty||1)))}</td></tr>`).join('')}</tbody></table><div class="receipt-total"><div>${translateText("Jumla ya Oda: " )}<b>${money(s.subtotal||s.total)}</b></div><div>${translateText("Punguzo: " )}<b>${money(s.discount||0)}</b></div><div class="grand">${translateText("THAMANI YA ODA: " )}${money(s.total)}</div></div><div class="receipt-foot">${translateText("Hali ya Malipo: " )}<b class="${s.paid===false?translateText('red'):translateText('green')}">${s.paid===false?translateText('Haijalipwa'):translateText('Imelipwa')}</b><br>${translateText("Mteja: " )}${esc(s.customer||translateText('Unknown'))}<br><br>${translateText("Asante kwa kununua!" )}<br>${translateText("Karibu tena Micky Phone Accessories." )}</div></div><div class="receipt-actions"><button class="btn receipt-close" onclick="closeModal('receiptModal')">${translateText("Funga" )}</button><button type="button" class="btn blue" onclick="openReceiptPrintOptions()">🖨️ ${translateText("Chapisha")}</button><button type="button" id="receiptImageButton" class="btn blue" disabled onclick="downloadReceiptImage()">⬇ ${translateText("Inaandaa picha…")}</button></div><div id="receiptPrintOptions" class="receipt-print-options" hidden><button type="button" class="btn" onclick="mpaPrintReceipt()">🖨️ ${translateText("AirPrint / Chagua printa")}</button><button type="button" id="receiptPrinterShareButton" class="btn" disabled onclick="downloadReceiptImage()">↗ ${translateText("Shiriki kwa app ya printa")}</button><p>${translateText("Kwa iPhone, Bluetooth/USB hutumia app ya mtengenezaji wa printa inayokubali picha; tovuti haiwezi kutafuta printa hizo moja kwa moja.")}</p></div>`;
  document.getElementById('receiptModal').classList.add('show');
+ receiptImageFile=null;const sheet=document.getElementById('receiptSheet');prepareReceiptImage(sheet,id);
 }
 function mpaPrintReceipt(){
  if(!document.getElementById('receiptSheet'))return;
  try{window.print();}catch(e){toast('Uchapishaji haujafunguka; jaribu kwenye kivinjari au hifadhi picha.');}
 }
-async function downloadReceiptImage(){
- const sheet=document.getElementById('receiptSheet'),button=document.getElementById('receiptImageButton');
- if(!sheet||!button||button.disabled)return {ok:false};
- const original=button.textContent;button.disabled=true;button.textContent=translateText('Inaandaa picha…');
+let receiptImageFile=null;
+function openReceiptPrintOptions(){
+ const options=document.getElementById('receiptPrintOptions');if(!options)return;
+ options.hidden=!options.hidden;if(!options.hidden)options.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+async function prepareReceiptImage(sheet,id){
+ const button=document.getElementById('receiptImageButton'),printerButton=document.getElementById('receiptPrinterShareButton');
+ if(!sheet||!button)return {ok:false};
+ button.disabled=true;button.textContent=translateText('Inaandaa picha…');
  try{
   if(typeof html2canvas!=='function')throw new Error('Image export unavailable');
+  await Promise.all(Array.from(sheet.querySelectorAll('img')).map(img=>img.decode?.().catch(()=>{})));
   const canvas=await html2canvas(sheet,{scale:2,backgroundColor:getComputedStyle(sheet).backgroundColor,useCORS:true,imageTimeout:8000,windowWidth:Math.max(document.documentElement.clientWidth,720),onclone:doc=>{const copy=doc.getElementById('receiptSheet');if(copy){copy.style.width='680px';copy.style.maxWidth='none';}const modal=doc.querySelector('#receiptModal .modal');if(modal){modal.style.width='720px';modal.style.maxWidth='none';modal.style.height='auto';modal.style.maxHeight='none';modal.style.overflow='visible';}}});
   const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(!blob)throw new Error('Image export failed');
-  const url=URL.createObjectURL(blob),link=document.createElement('a');
-  link.href=url;link.download='MPA-receipt-'+String(window.mpaReceiptId||'order').replace(/[^a-zA-Z0-9_-]/g,'')+'.png';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
-  return {ok:true};
+  if(document.getElementById('receiptSheet')!==sheet||String(window.mpaReceiptId)!==String(id))return {ok:false,stale:true};
+  receiptImageFile=new File([blob],'MPA-receipt-'+String(id||'order').replace(/[^a-zA-Z0-9_-]/g,'')+'.png',{type:'image/png'});
+  button.disabled=false;button.textContent=translateText('Hifadhi picha');if(printerButton)printerButton.disabled=false;return {ok:true};
+ }catch(e){
+  if(document.getElementById('receiptSheet')===sheet){button.disabled=false;button.textContent=translateText('Jaribu picha tena');}
+  return {ok:false};
+ }
+}
+async function downloadReceiptImage(){
+ if(!receiptImageFile){const sheet=document.getElementById('receiptSheet');return prepareReceiptImage(sheet,window.mpaReceiptId);}
+ const file=receiptImageFile;
+ // File was prepared before this tap, preserving iOS user activation.
+ if(navigator.canShare?.({files:[file]})&&navigator.share){
+  try{await navigator.share({files:[file],title:file.name});return {ok:true,shared:true};}
+  catch(e){if(e?.name==='AbortError')return {ok:false,cancelled:true};toast('Kushiriki hakujafunguka; jaribu tena.');return {ok:false};}
+ }
+ try{
+  const url=URL.createObjectURL(file),link=document.createElement('a');link.href=url;link.download=file.name;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);return {ok:true,downloaded:true};
  }catch(e){toast('Picha haijahifadhiwa; jaribu tena au tumia Chapisha.');return {ok:false};}
- finally{button.disabled=false;button.textContent=original;}
 }
 async function deleteTodaySales(){
  return runOnce("sales-delete-today",async()=>{
@@ -1720,7 +1762,7 @@ function openExpenseDetails(id){window.mpaExpenseId=id;
  const e=expenses.find(x=>String(x.id)===String(id));if(!e)return;
  const canDelete=(currentUserObj()?.role==="admin")||can("manage_expenses");
  const html=`<div class="expense-detail">
-   <div class="expense-detail-head"><button class="expense-detail-back" onclick="closeModal('expenseDetailModal')">‹</button><h2>${translateText("Maelezo ya Matumizi" )}</h2><span class="sale-detail-date">${niceDate(e.date)}</span>${canDelete?`<button type="button" class="expense-delete-top" title="${esc(translateText("Futa Matumizi"))}" data-action="delete-expense" data-id="${esc(String(e.id))}">🗑️</button>`:""}</div>
+   <div class="expense-detail-head"><button class="expense-detail-back" onclick="closeModal('expenseDetailModal')">‹</button><h2>${translateText("Maelezo ya Matumizi" )}</h2><span class="sale-detail-date">${niceDate(e.date)}</span>${canDelete?`<button type="button" class="expense-delete-top" title="${esc(translateText("Futa Matumizi"))}" data-action="delete-expense" data-id="${esc(String(e.id))}"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg></button>`:""}</div>
    <div class="expense-detail-card">
     <div class="expense-detail-row"><span class="expense-detail-label">${translateText("Aina ya Matumizi" )}</span><span class="expense-detail-value">${esc(e.name||'Matumizi')}</span></div>
     <div class="expense-detail-row"><span class="expense-detail-label">${translateText("Kiasi" )}</span><span class="expense-detail-value">${money(e.amount)}</span></div>
