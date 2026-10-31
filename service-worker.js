@@ -1,8 +1,9 @@
-const CACHE = "mpa-v71-20261031";
+const CACHE = "mpa-v73-20261031";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
   "./translations.js",
+  "./vendor/html2canvas.min.js",
   "./logo.png",
   "./icon.svg",
   "./manifest.webmanifest",
