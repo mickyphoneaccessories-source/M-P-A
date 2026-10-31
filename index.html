@@ -6,9 +6,9 @@
 <meta name="theme-color" content="#080808">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="logo.png">
-<title>M-P-A V74 • Micky Phone Accessories</title>
+<title>M-P-A V75 • Micky Phone Accessories</title>
 <meta name="description" content="Micky Phone Accessories — bidhaa, mauzo na usimamizi wa duka.">
-<meta property="og:title" content="Micky Phone Accessories V74">
+<meta property="og:title" content="Micky Phone Accessories V75">
 <meta property="og:description" content="Bidhaa, mauzo na usimamizi wa Micky Phone Accessories.">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary">
@@ -395,7 +395,7 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
       <div class="settings-ios-list">
         <button onclick="toast('Taarifa za usalama ziko tayari.')"><span class="setting-icon" style="background:#5d7dff">⇩</span><span class="setting-main">Taarifa za usalama</span><b>›</b></button>
         <div class="update-card" id="updateCard">
-          <div class="update-head"><span class="setting-icon" style="background:#2450ff">⟳</span><div class="update-main"><b>Masasisho ya App</b><small id="appVersionLabel">Toleo: V74</small></div><span id="updateBadge" class="update-badge">Imesasishwa</span></div>
+          <div class="update-head"><span class="setting-icon" style="background:#2450ff">⟳</span><div class="update-main"><b>Masasisho ya App</b><small id="appVersionLabel">Toleo: V75</small></div><span id="updateBadge" class="update-badge">Imesasishwa</span></div>
           <p id="updateStatus" class="update-status">Bonyeza "Angalia" kuona kama kuna toleo jipya.</p>
           <div class="update-actions"><button type="button" id="updateCheckBtn" onclick="checkAppUpdate()">Angalia masasisho</button><button type="button" id="updateInstallBtn" class="install" onclick="installAppUpdate()" hidden>Sakinisha sasa</button></div>
           <button type="button" class="update-sync" onclick="forceRefreshApp()">↻ Sawazisha data sasa <small id="lastSyncLabel"></small></button>
@@ -490,7 +490,7 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
 <script src="translations.js"></script>
 <script>
 // M-P-A v41: do not reload the entire app state on realtime app-state events; only merge notifications.
-const MPA_APP_VERSION = "V74";
+const MPA_APP_VERSION = "V75";
 function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="Toleo: "+MPA_APP_VERSION;}
 let mpaWaitingWorker=null;
 function setUpdateUI(state,msg){
@@ -1716,6 +1716,12 @@ async function prepareReceiptImage(sheet,id){
 async function downloadReceiptImage(){
  if(!receiptImageFile){const sheet=document.getElementById('receiptSheet');return prepareReceiptImage(sheet,window.mpaReceiptId);}
  const file=receiptImageFile;
+ const isAndroid=/android/i.test(navigator.userAgent||'');
+ // Android: save the PNG straight to the phone (Downloads/Gallery) instead of opening a share sheet.
+ if(isAndroid){
+  try{const url=URL.createObjectURL(file),link=document.createElement('a');link.href=url;link.download=file.name;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);toast('Picha ya risiti imehifadhiwa kwenye simu ✓');return {ok:true,downloaded:true};}
+  catch(e){toast('Picha haijahifadhiwa; jaribu tena au tumia Chapisha.');return {ok:false};}
+ }
  // File was prepared before this tap, preserving iOS user activation.
  if(navigator.canShare?.({files:[file]})&&navigator.share){
   try{await navigator.share({files:[file],title:file.name});return {ok:true,shared:true};}

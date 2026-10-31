@@ -15,3 +15,5 @@ function phrasePattern(map){return new RegExp(Object.keys(map).sort((a,b)=>b.len
 const mpaEnglishPattern=phrasePattern(MPA_TRANSLATIONS),mpaSwahiliPattern=phrasePattern(MPA_ALIASES);
 function replacePhrases(value,map,pattern){if(map[value.trim()])return value.replace(value.trim(),map[value.trim()]);return value.replace(pattern,(match,offset,whole)=>{const before=whole[offset-1]||'',after=whole[offset+match.length]||'';return /[A-Za-z]/.test(before)||/[A-Za-z]/.test(after)?match:map[match]});}
 function translateText(value){const str=String(value??'');return language==='en'?replacePhrases(str,MPA_TRANSLATIONS,mpaEnglishPattern):replacePhrases(str,MPA_ALIASES,mpaSwahiliPattern);}
+
+Object.assign(MPA_TRANSLATIONS,{"Picha ya risiti imehifadhiwa kwenye simu ✓":"Receipt image saved to your phone ✓"});
