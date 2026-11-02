@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#080808">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="logo.png">
-<title>M-P-A V75 • Micky Phone Accessories</title>
+<title>M-P-A V86 • Micky Phone Accessories</title>
 <meta name="description" content="Micky Phone Accessories — bidhaa, mauzo na usimamizi wa duka.">
 <meta property="og:title" content="Micky Phone Accessories V75">
 <meta property="og:description" content="Bidhaa, mauzo na usimamizi wa Micky Phone Accessories.">
@@ -592,6 +592,9 @@ const SUPABASE_PUBLISHABLE_KEY="sb_publishable_N-k6TxO-Yd-g6IfqEcYjYQ_hbSRTuN0";
 const authMemory=new Map();
 const mpaAuthStorage={async getItem(k){try{return localStorage.getItem(k)||authMemory.get(k)||null}catch(e){return authMemory.get(k)||null}},async setItem(k,v){authMemory.set(k,v);try{localStorage.setItem(k,v)}catch(e){}},async removeItem(k){authMemory.delete(k);try{localStorage.removeItem(k)}catch(e){}}};
 const MPA_LOGIN_DAY_KEY="mpa-login-day-v71";
+// V86: zuia maombi ya full-sync yanayorudiwa na matukio mengi ya Realtime.
+const MPA_REALTIME_FULL_SYNC_MIN_GAP=15000;
+let mpaLastRealtimeFullSyncAt=0,mpaRealtimeFullSyncQueued=false;
 function readLoginDay(){try{return JSON.parse(localStorage.getItem(MPA_LOGIN_DAY_KEY)||"null")}catch(e){return null}}
 function validLoginDay(marker,userId,instant=now()){return !!userId&&marker?.userId===userId&&marker?.day===dateKey(instant);}
 function saveLoginDay(userId){try{localStorage.setItem(MPA_LOGIN_DAY_KEY,JSON.stringify({userId,day:dateKey(now())}))}catch(e){}}
@@ -2391,12 +2394,23 @@ let mpaSyncTimer=null;
 let mpaSyncBusy=false;
 let mpaRealtimeDebounce=null;
 function scheduleRemoteRefresh(){
+ // Realtime hutuma event tofauti kwa products, sales na sale_items kwa mabadiliko yale yale.
+ // Ziunganishe: full SELECT ya bidhaa + historia ya mauzo isirudiwe mara nyingi ndani ya sekunde chache.
  if(mpaRealtimeDebounce)clearTimeout(mpaRealtimeDebounce);
- mpaRealtimeDebounce=setTimeout(()=>refreshRemoteDataFast(),1200);
+ mpaRealtimeDebounce=setTimeout(()=>{
+  const wait=Math.max(0,MPA_REALTIME_FULL_SYNC_MIN_GAP-(Date.now()-mpaLastRealtimeFullSyncAt));
+  if(wait>0){mpaRealtimeFullSyncQueued=true;setTimeout(()=>{
+    if(mpaRealtimeFullSyncQueued){mpaRealtimeFullSyncQueued=false;refreshRemoteDataFast();}
+  },wait);return;}
+  refreshRemoteDataFast();
+ },1200);
 }
 async function refreshRemoteDataFast(){
- if(!sbClient||!authProfile||mpaSyncBusy)return;
- mpaSyncBusy=true;
+ if(!sbClient||!authProfile)return;
+ if(mpaSyncBusy){mpaRealtimeFullSyncQueued=true;return;}
+ const nowAt=Date.now();
+ if(nowAt-mpaLastRealtimeFullSyncAt<MPA_REALTIME_FULL_SYNC_MIN_GAP){mpaRealtimeFullSyncQueued=true;return;}
+ mpaSyncBusy=true;mpaLastRealtimeFullSyncAt=nowAt;
  try{
   await Promise.all([syncProductsReliable({silent:true}),syncSalesFromSupabase({silent:true})]);
   // Do not redraw the whole app while a sale form is open: preserve the in-progress order.
@@ -2408,7 +2422,14 @@ async function refreshRemoteDataFast(){
    document.getElementById(activePage)?.classList.add("active");
   }
  }catch(e){console.warn("Fast Supabase refresh failed",e)}
- finally{mpaSyncBusy=false}
+ finally{
+  mpaSyncBusy=false;
+  if(mpaRealtimeFullSyncQueued){
+   mpaRealtimeFullSyncQueued=false;
+   const wait=Math.max(0,MPA_REALTIME_FULL_SYNC_MIN_GAP-(Date.now()-mpaLastRealtimeFullSyncAt));
+   setTimeout(()=>refreshRemoteDataFast(),wait);
+  }
+ }
 }
 let lastSeenRemoteNotificationIds=new Set();
 let mpaLiveBusy=false,mpaLiveTimer=null,mpaLiveLastAt="";
