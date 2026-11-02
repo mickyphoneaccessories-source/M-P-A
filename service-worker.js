@@ -1,4 +1,4 @@
-const CACHE = "mpa-v82-20261102";
+const CACHE = "mpa-v84-20261102";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -82,5 +82,21 @@ self.addEventListener("notificationclick", event => {
       if ("focus" in client) { client.postMessage({ type: "mpa-open-notification", id }); return client.focus(); }
     }
     return self.clients.openWindow("./");
+  }));
+});
+
+// V84: Push notifications - zinakuja juu ya skrini na lock screen hata app ikiwa imefungwa.
+self.addEventListener("push", event => {
+  let d = {};
+  try { d = event.data ? event.data.json() : {}; } catch (e) { d = { body: event.data && event.data.text() }; }
+  event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(list => {
+    // iPhone inahitaji kila push ionyeshe arifa; Android/kompyuta: app ikiwa wazi inaonyesha bango lake.
+    const visible = list.some(c => c.visibilityState === "visible" && c.focused);
+    if (visible && !/iPhone|iPad/.test(self.navigator.userAgent || "")) return;
+    return self.registration.showNotification(d.title || "M-P-A", {
+      body: d.body || "Gusa kuona", icon: "./logo.png", badge: "./logo.png",
+      tag: "mpa-" + (d.id || Date.now()), renotify: true, silent: false,
+      vibrate: [220, 80, 220, 80, 320], data: { id: d.id }
+    });
   }));
 });
