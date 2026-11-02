@@ -114,7 +114,6 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
 </style>
 <script src="vendor/html2canvas.min.js"></script>
 <script src="vendor/supabase.js"></script>
-<script>if(!(window.supabase&&window.supabase.createClient)){document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"><\/script>')}</script>
 </head>
 <body>
 <div id="notice" class="notice"></div><div id="refreshIndicator" class="refresh-indicator" aria-label="Inasasisha"></div>
@@ -542,7 +541,7 @@ function installAppUpdate(){
 if("serviceWorker" in navigator){let reloaded=false;navigator.serviceWorker.addEventListener("controllerchange",()=>{if(reloaded)return;reloaded=true;location.reload();});}
  
 
-renderAppVersion();setTimeout(()=>registerPushSubscription(),4000);
+renderAppVersion();
 function parseMoney(v){return Number(String(v??"").replace(/[^\d.-]/g,""))||0}
 function formatMoneyInput(el){
   const raw=String(el.value||"").replace(/[^\d]/g,"");
@@ -1179,7 +1178,6 @@ function notify(title,detail,targetPage,targetId,opts={}){
  updateNotifDot();
  renderNotifications();
  playNotificationSignal();
- if(opts.persist!==false&&opts.push!==false)sendRemotePush(item);
  if(document.hidden)showSystemNotification(item);
  else showNoticeBanner(translateText(item.title),translateText("Gusa kuona"),item.id,4500);
 }
@@ -1190,30 +1188,10 @@ function updateNotifDot(){
  dot.classList.toggle("hidden",count===0);dot.classList.toggle("count",count>0);
  dot.textContent=count>99?"99+":String(count);
 }
-// V84: Push notifications (lock screen / app nyingine). Public key tu iko hapa; private key iko Supabase secrets.
-const MPA_VAPID_PUBLIC_KEY="BIWYoyT7PUKxBBbluNZeACXDw2ioRsEVGfKVdB5T26b5DGaro9QsvQxqoIm6vXlgmhZRyeLjMbxxHwooO1UmsFc";
-function mpaB64ToBytes(b){const p="=".repeat((4-b.length%4)%4),r=atob((b+p).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from(r,c=>c.charCodeAt(0))}
-async function registerPushSubscription(){
- try{
-  if(!sbClient||!authProfile||!("serviceWorker" in navigator)||!("PushManager" in window)||!("Notification" in window)||Notification.permission!=="granted")return false;
-  const reg=await navigator.serviceWorker.ready;
-  let sub=await reg.pushManager.getSubscription();
-  if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:mpaB64ToBytes(MPA_VAPID_PUBLIC_KEY)});
-  const j=sub.toJSON(),{data:u}=await sbClient.auth.getUser();if(!u?.user)return false;
-  const {error}=await sbClient.from("push_subscriptions").upsert({endpoint:j.endpoint,user_id:u.user.id,username:currentUser(),p256dh:j.keys.p256dh,auth:j.keys.auth,updated_at:new Date().toISOString()},{onConflict:"endpoint"});
-  if(error)console.warn("push subscription save failed",error);
-  return !error;
- }catch(e){console.warn("push subscribe failed",e);return false}
-}
-function sendRemotePush(item){
- try{if(!sbClient||!authProfile||navigator.onLine===false||!item)return;
-  sbClient.functions.invoke("mpa-send-push",{body:{id:String(item.id),title:translateText(conciseNotificationTitle(item.title)),body:(currentUser()?currentUser()+" · ":"")+translateText("Gusa kuona")}}).catch(()=>{});
- }catch(e){}
-}
 function requestBrowserNotifications(){
  if(!("Notification" in window)){toast("Browser hii haitumii notifications.");return}
  if(mpaDeviceKind()==="ios"&&!(window.navigator.standalone||matchMedia("(display-mode: standalone)").matches)){toast("Kwenye iPhone: Share → Add to Home Screen, fungua app kutoka Home Screen, kisha ruhusu notifications.");return}
- unlockNotificationAudio();Notification.requestPermission().then(x=>{if(x==="granted"){playNotificationSignal();registerPushSubscription();}toast(x==="granted"?"Notifications zimeruhusiwa ✓":"Notifications hazijaruhusiwa. Ruhusu kwenye settings za kivinjari.")});
+ unlockNotificationAudio();Notification.requestPermission().then(x=>{if(x==="granted")playNotificationSignal();toast(x==="granted"?"Notifications zimeruhusiwa ✓":"Notifications hazijaruhusiwa. Ruhusu kwenye settings za kivinjari.")});
 }
 function setLogin(role){
  loginRole=role;
@@ -2452,7 +2430,7 @@ async function scheduleRemoteNotificationRefresh(eventPayload){
  finally{mpaLiveBusy=false}
 }
 // Realtime can miss events (large rows, sleeping phones), so a small check runs every 15s while the app is open.
-function startLivePolling(){registerPushSubscription();if(mpaLiveTimer)clearInterval(mpaLiveTimer);mpaLiveTimer=setInterval(()=>{if(authProfile&&navigator.onLine!==false)scheduleRemoteNotificationRefresh()},document.hidden?20000:15000)}
+function startLivePolling(){if(mpaLiveTimer)clearInterval(mpaLiveTimer);mpaLiveTimer=setInterval(()=>{if(authProfile&&navigator.onLine!==false)scheduleRemoteNotificationRefresh()},document.hidden?20000:15000)}
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&authProfile)scheduleRemoteNotificationRefresh()});
 window.addEventListener("focus",()=>{if(authProfile)scheduleRemoteNotificationRefresh()});
 function startSupabaseRealtime(){
