@@ -113,7 +113,7 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
 }
 </style>
 <script src="vendor/html2canvas.min.js"></script>
-<script src="vendor/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div id="notice" class="notice"></div><div id="refreshIndicator" class="refresh-indicator" aria-label="Inasasisha"></div>
@@ -1048,11 +1048,8 @@ async function saveAll({renderNow=true}={}){
  return result;
 }
 
-// V82: one notification on screen at a time; system toasts never stack on a change alert.
-let mpaLastAlertAt=0;
 function showNoticeBanner(title,detail,id,ms){
  const n=document.getElementById("notice");if(!n)return;
- if(id!=null)mpaLastAlertAt=Date.now();
  const click=id!=null?` role="button" tabindex="0" onclick="openNotification('${String(id).replace(/'/g,"\\'")}')"`:'';
  n.classList.remove("show");n.style.display="flex";
  n.innerHTML=`<div class="notice-inner"${click}><img class="notice-logo" src="logo.png" alt="M-P-A"><div class="notice-copy"><div class="notice-title">${esc(String(title).replace(/^🔔\s*/,""))}</div><div class="notice-detail">${esc(detail)}</div></div><div class="notice-bell">🔔</div></div>`;
@@ -1061,7 +1058,7 @@ function showNoticeBanner(title,detail,id,ms){
 }
 // V81: short system messages only; long technical details go to the console.
 function shortToastText(msg){let t=String(msg||"");const cut=t.search(/ \(|•|\. /);if(t.length>70&&cut>8)t=t.slice(0,cut);return t.trim();}
-function toast(msg){msg=translateText(msg);console.info("M-P-A:",msg);if(Date.now()-mpaLastAlertAt<4000)return;showNoticeBanner(shortToastText(msg),translateText("M-P-A"),null,3200);return;
+function toast(msg){msg=translateText(msg);console.info("M-P-A:",msg);showNoticeBanner(shortToastText(msg),translateText("M-P-A"),null,3200);return;
  const n=document.getElementById("notice");
  if(!n)return;
  n.innerHTML=`<div class="notice-inner"><img class="notice-logo" src="logo.png" alt="M-P-A"><div class="notice-copy"><div class="notice-title">${esc(String(msg).replace(/^🔔\s*/,""))}</div><div class="notice-detail">${translateText("M-P-A • Taarifa ya mfumo" )}</div></div><div class="notice-bell">🔔</div></div>`;
@@ -1070,7 +1067,6 @@ function toast(msg){msg=translateText(msg);console.info("M-P-A:",msg);if(Date.no
  clearTimeout(n._timer);n._timer=setTimeout(()=>{n.classList.remove("show");setTimeout(()=>{if(!n.classList.contains("show"))n.style.display="none"},220)},3800);
 }
 function openNotification(id){
- if(String(id).startsWith("req-")){openStockRequest(String(id).slice(4));return}
  const item=notifications.find(n=>String(n.id)===String(id));
  if(!item)return;
  item.read=true;
@@ -1266,7 +1262,6 @@ async function refreshBusinessData(){
  const [stateResult,productResult,preloadedSales]=await Promise.all([statePromise,productPromise,salesPromise]);
  // Mapping uses current product/customer snapshot and never changes a draft order.
  const salesResult=await syncSalesFromSupabase({silent:true,preloadedSales});
- if(productResult?.ok&&salesResult?.ok&&typeof saveOfflineSnapshot==="function")saveOfflineSnapshot();
  return {stateResult,productResult,salesResult};
 }
 async function mpaInitialSync(){
@@ -1282,7 +1277,6 @@ function showRefreshIndicator(on,pull){
 }
 async function forceRefreshApp(){
   if(pullBusy)return;
-  if(navigator.onLine===false){showRefreshIndicator(false);return;}
   pullBusy=true;
   const activePage=document.querySelector(".page.active")?.id||"home";
   const scrollY=window.scrollY||0;
@@ -1295,14 +1289,14 @@ async function forceRefreshApp(){
     document.getElementById(activePage)?.classList.add("active");
     requestAnimationFrame(()=>window.scrollTo(0,scrollY));
     if(productResult?.ok && salesResult?.ok && stateResult?.ok){
-      // V82: pull-to-refresh is silent on success.
+      toast("Imesasishwa ✓ Bidhaa "+products.length+" • Mauzo "+sales.length);
     }else{
       const failed=[];
       if(!stateResult?.ok)failed.push("taarifa za ziada");
       if(!productResult?.ok)failed.push("bidhaa");
       if(!salesResult?.ok)failed.push("mauzo");
       console.error("M-P-A refresh diagnostics",{stateResult,productResult,salesResult});
-      toast("Haijasasishwa, angalia mtandao");
+      toast("Haikukamilika kwa: "+failed.join(", ")+". Angalia mtandao kisha vuta chini tena. Data haijafutwa.");
     }
   }catch(e){
     console.error("M-P-A full refresh failed",e);
@@ -1354,33 +1348,13 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkLogin
 window.addEventListener('pageshow',checkLoginDay);
 window.addEventListener('storage',e=>{if(e.key===MPA_LOGIN_DAY_KEY&&authProfile&&!validLoginDay(readLoginDay(),authProfile.id))lockSession();});
 document.addEventListener('click',e=>{if(!checkLoginDay()){e.preventDefault();e.stopImmediatePropagation();}},true);
-
-// V82: offline mode. The last synced view is kept on this device (IndexedDB, per signed-in user) so the
-// app opens without internet; saving needs internet and everything resyncs when the device is online.
-const MPA_OFFLINE_DB="mpa-offline",MPA_OFFLINE_STORE="snap";
-let mpaOfflineMode=false;
-function mpaIdb(){return new Promise((res,rej)=>{if(!("indexedDB" in window))return rej(new Error("no idb"));const r=indexedDB.open(MPA_OFFLINE_DB,1);r.onupgradeneeded=()=>r.result.createObjectStore(MPA_OFFLINE_STORE);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
-async function saveOfflineSnapshot(){try{if(!authProfile)return;const db=await mpaIdb();const snap={userId:String(authProfile.id),at:new Date().toISOString(),profile:authProfile,products,sales,customers,expenses,movements,notifications,stockRequests,goalTarget,monthlyGoals,storeName};await new Promise((res,rej)=>{const tx=db.transaction(MPA_OFFLINE_STORE,"readwrite");tx.objectStore(MPA_OFFLINE_STORE).put(JSON.parse(JSON.stringify(snap)),"last");tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});}catch(e){console.warn("offline snapshot",e)}}
-async function readOfflineSnapshot(){try{const db=await mpaIdb();return await new Promise(res=>{const r=db.transaction(MPA_OFFLINE_STORE).objectStore(MPA_OFFLINE_STORE).get("last");r.onsuccess=()=>res(r.result||null);r.onerror=()=>res(null);});}catch(e){return null}}
-async function openOfflineFromSnapshot(sessionUserId){
- const snap=await readOfflineSnapshot();if(!snap||String(snap.userId)!==String(sessionUserId)||!snap.profile)return false;
- authProfile=snap.profile;products=snap.products||[];sales=snap.sales||[];customers=snap.customers||[];expenses=snap.expenses||[];movements=snap.movements||[];notifications=snap.notifications||[];stockRequests=snap.stockRequests||[];
- if(snap.goalTarget)goalTarget=snap.goalTarget;if(snap.monthlyGoals)monthlyGoals=snap.monthlyGoals;if(snap.storeName)storeName=snap.storeName;
- mpaOfflineMode=true;sessionLoginDay=dateKey(now());document.getElementById('login').style.display='none';document.getElementById('app').style.display='block';
- render();toast("Hauko mtandaoni");return true;
-}
-window.addEventListener("online",()=>{if(!authProfile)return;if(mpaOfflineMode){mpaOfflineMode=false;restoreDailySession().catch(()=>{});return}forceRefreshApp();});
 async function restoreDailySession(){
  if(!sbClient)return false;
  try{
   const {data,error}=await sbClient.auth.getSession();const session=data?.session;
   if(error||!session?.user)return false;
   if(!validLoginDay(readLoginDay(),session.user.id)){await sbClient.auth.signOut({scope:'local'});clearLoginDay();return false;}
-  if(navigator.onLine===false)return await openOfflineFromSnapshot(session.user.id);
-  let actual;try{actual=await sbClient.auth.getUser();}catch(e){return await openOfflineFromSnapshot(session.user.id);}
-  if(actual.error&&/fetch|network|Failed/i.test(String(actual.error.message||actual.error)))return await openOfflineFromSnapshot(session.user.id);
-  if(actual.error||!actual.data?.user)return false;
-  mpaOfflineMode=false;
+  const actual=await sbClient.auth.getUser();if(actual.error||!actual.data?.user)return false;
   const result=await sbClient.from('profiles').select('*').eq('id',actual.data.user.id).maybeSingle();if(result.error||!result.data||result.data.active===false||actual.data.user.user_metadata?.active===false){await sbClient.auth.signOut({scope:'local'});clearLoginDay();return false;}
   const profile=result.data;if(!['admin','user'].includes(profile.role))return false;
   authProfile={...profile,id:actual.data.user.id,username:profile.username||actual.data.user.email?.split('@')[0],permissions:profile.role==='admin'?['all']:flattenPermissions(profile.permissions),active:true};
@@ -1433,7 +1407,6 @@ function previewImage(e){
 }
 const actionLocks=new Set();
 async function runOnce(key,fn){
- if(navigator.onLine===false){toast("Hauko mtandaoni. Unganisha mtandao kuhifadhi.");return {ok:false,offline:true};}
  if(actionLocks.has(key)){toast("Tafadhali subiri, kitendo hiki bado kinahifadhiwa.");return {ok:false,busy:true};}
  actionLocks.add(key);
  try{return await fn();}finally{actionLocks.delete(key);}
@@ -1508,7 +1481,7 @@ function openStockRequest(id){const r=stockRequests.find(x=>String(x.id)===Strin
 function openRequestReview(r){let m=document.getElementById("requestReviewModal");if(!m){m=document.createElement("div");m.id="requestReviewModal";m.className="modalback";m.style.zIndex=240;document.body.appendChild(m)}const p=products.find(x=>String(x.id)===String(r.productId)||String(x.supabaseId)===String(r.productId));const img=(r.changes&&r.changes.image)||p?.image;m.innerHTML=`<div class="modal"><div class="modalhead"><h2>${translateText("Ombi la mabadiliko")}</h2><button class="close" onclick="closeModal('requestReviewModal')">×</button></div>${img?`<img src="${esc(img)}" alt="" style="width:100%;max-height:200px;object-fit:contain;border-radius:12px;margin-bottom:10px">`:""}<div class="card" style="padding:12px"><b>${esc(r.productName||"")}</b><div class="muted">${translateText("Idadi ya sasa")}: ${esc(String(p?.qty??"-"))}</div><div style="margin:10px 0;font-size:16px">${stockRequestText(r)}</div><div class="muted">${esc(r.user||"")} • ${niceDate(r.createdAt)} ${timeNow(r.createdAt)}${r.note?" • "+esc(r.note):""}</div></div><div style="display:flex;gap:10px;margin-top:12px"><button class="btn green" style="flex:1" onclick="reviewDecide('${esc(r.id)}',true)">${translateText("Thibitisha")}</button><button class="btn red" style="flex:1" onclick="reviewDecide('${esc(r.id)}',false)">${translateText("Kataa")}</button></div></div>`;m.classList.add("show")}
 async function reviewDecide(id,ok){closeModal("requestReviewModal");const res=await decideStockRequest(id,ok);if(res&&res.ok===false&&!res.busy){const r=stockRequests.find(x=>String(x.id)===String(id));if(r&&r.status==="pending")openRequestReview(r)}}
 let seenRequestIds=null;
-function announceNewRequests(){if(!isRealAdmin())return;const pend=stockRequests.filter(r=>r.status==="pending");if(seenRequestIds===null){seenRequestIds=new Set(pend.map(r=>String(r.id)));return}for(const r of pend){if(seenRequestIds.has(String(r.id)))continue;seenRequestIds.add(String(r.id));if(r.user===currentUser())continue;if(Date.now()-mpaLastAlertAt<6000)continue;playNotificationSignal();if(document.hidden){showSystemNotification({id:"req-"+r.id,title:"Ombi la bidhaa: "+(r.productName||""),detail:"Gusa kuthibitisha au kukataa"});continue}mpaLastAlertAt=Date.now();const n=document.getElementById("notice");if(n){n.style.display="flex";n.innerHTML=`<div class="notice-inner" role="button" onclick="openStockRequest('${esc(r.id)}')"><img class="notice-logo" src="logo.png" alt="M-P-A"><div class="notice-copy"><div class="notice-title">${esc(translateText("Ombi la bidhaa")+": "+(r.productName||""))}</div><div class="notice-detail">${esc(r.user||"")}</div></div><div class="notice-bell">🔔</div></div>`;requestAnimationFrame(()=>n.classList.add("show"));clearTimeout(n._timer);n._timer=setTimeout(()=>n.classList.remove("show"),6000)}updateNotifDot()}}
+function announceNewRequests(){if(!isRealAdmin())return;const pend=stockRequests.filter(r=>r.status==="pending");if(seenRequestIds===null){seenRequestIds=new Set(pend.map(r=>String(r.id)));return}for(const r of pend){if(seenRequestIds.has(String(r.id)))continue;seenRequestIds.add(String(r.id));if(r.user===currentUser())continue;playNotificationSignal();const n=document.getElementById("notice");if(n){n.style.display="flex";n.innerHTML=`<div class="notice-inner" role="button" onclick="openStockRequest('${esc(r.id)}')"><img class="notice-logo" src="logo.png" alt="M-P-A"><div class="notice-copy"><div class="notice-title">${esc(translateText("Ombi la bidhaa")+": "+(r.productName||""))}</div><div class="notice-detail">${esc(r.user||"")}</div></div><div class="notice-bell">🔔</div></div>`;requestAnimationFrame(()=>n.classList.add("show"));clearTimeout(n._timer);n._timer=setTimeout(()=>n.classList.remove("show"),6000)}updateNotifDot()}}
 function renderStockRequests(){announceNewRequests();
  const el=document.getElementById("stockRequestList");if(!el)return;
  const admin=isRealAdmin();const list=stockRequests.filter(r=>admin?r.status==="pending":r.user===currentUser()).slice(0,30);
@@ -2376,7 +2349,7 @@ async function scheduleRemoteNotificationRefresh(eventPayload){
   renderNotifications();updateNotifDot();
   const fresh=notifications.filter(n=>!before.has(String(n.id))&&String(n.user||'')!==String(currentUser())&&!n.read);
   if(fresh.length){
-   mpaLastAlertAt=Date.now();playNotificationSignal();
+   playNotificationSignal();
    const item=fresh[0];
    if(document.hidden){for(const it of fresh.slice(0,3))showSystemNotification(it);}
    else showNoticeBanner(translateText(conciseNotificationTitle(item.title))+(fresh.length>1?" (+"+(fresh.length-1)+")":""),translateText("Gusa kuona"),item.id,4500);
@@ -2385,7 +2358,7 @@ async function scheduleRemoteNotificationRefresh(eventPayload){
  finally{mpaLiveBusy=false}
 }
 // Realtime can miss events (large rows, sleeping phones), so a small check runs every 15s while the app is open.
-function startLivePolling(){if(mpaLiveTimer)clearInterval(mpaLiveTimer);mpaLiveTimer=setInterval(()=>{if(authProfile&&navigator.onLine!==false)scheduleRemoteNotificationRefresh()},document.hidden?20000:15000)}
+function startLivePolling(){if(mpaLiveTimer)clearInterval(mpaLiveTimer);mpaLiveTimer=setInterval(()=>{if(!document.hidden&&authProfile)scheduleRemoteNotificationRefresh()},15000)}
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&authProfile)scheduleRemoteNotificationRefresh()});
 window.addEventListener("focus",()=>{if(authProfile)scheduleRemoteNotificationRefresh()});
 function startSupabaseRealtime(){
