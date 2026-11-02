@@ -217,7 +217,7 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
 
     <div id="saleEntryView" class="sale-entry-screen hidden">
       <div class="sale-entry-head"><button class="sale-back" onclick="closeSaleEntry()">‹</button><h2>Uza bidhaa</h2><span class="sale-camera">◼</span></div>
-      <div class="field"><label id="saleCustomerTitle">Mteja (Sio lazima)</label><button class="sale-customer-field" onclick="focusSaleCustomer()"><span data-runtime-copy id="saleCustomerLabel">Rekodi mteja uliemuuzia</span><b>›</b></button><div id="saleCustomerBox" class="hidden"><div style="display:flex;gap:8px;align-items:center"><input id="saleCustomer" class="sale-customer-input" style="flex:1" placeholder="Jina la mteja" autocomplete="name"><button type="button" class="btn small" id="saleContactBtn" aria-label="Chagua kutoka contacts" title="Chagua kutoka contacts" onclick="pickSaleContact()">📇</button></div><input id="saleCustomerPhone" class="sale-customer-input" style="margin-top:8px" type="tel" inputmode="tel" autocomplete="tel" placeholder="Namba ya simu ya mteja (07...)"><small id="saleCustomerHint" class="muted hidden">Jina na namba ya simu vinahitajika kwa mauzo ambayo hayajalipwa.</small></div></div>
+      <div class="field"><label id="saleCustomerTitle">Mteja (Sio lazima)</label><button class="sale-customer-field" onclick="focusSaleCustomer()"><span data-runtime-copy id="saleCustomerLabel">Rekodi mteja uliemuuzia</span><b>›</b></button><form id="saleCustomerBox" class="hidden" onsubmit="return false" autocomplete="on"><div style="display:flex;gap:8px;align-items:center"><input id="saleCustomer" class="sale-customer-input" style="flex:1" placeholder="Jina la mteja" autocomplete="name"><button type="button" class="btn small" id="saleContactBtn" aria-label="Chagua kutoka contacts" title="Chagua kutoka contacts" onclick="pickSaleContact()">📇</button></div><input id="saleCustomerPhone" class="sale-customer-input" style="margin-top:8px" type="tel" inputmode="tel" autocomplete="tel" placeholder="Namba ya simu ya mteja (07...)"><small id="saleCustomerHint" class="muted hidden">Jina na namba ya simu vinahitajika kwa mauzo ambayo hayajalipwa.</small><input id="saleContactFile" type="file" accept=".vcf,text/vcard,text/x-vcard" class="hidden" onchange="importSaleContactFile(this)"><div id="saleContactHelp" class="hidden" style="margin-top:8px;padding:10px;border-radius:12px;background:#f2f6ff;font-size:13px;line-height:1.45"><b>Chagua mteja kutoka contacts</b><div id="saleContactHelpText" style="margin-top:4px"></div><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button type="button" class="btn small" onclick="startSaleAutofill()">Andika jina (AutoFill)</button><button type="button" class="btn small" onclick="document.getElementById('saleContactFile').click()">Fungua faili la contact (.vcf)</button></div></div></form></div>
       <div class="field"><label>Terehe ya mauzo</label><input id="saleDate" class="sale-date-input" type="date"></div>
       <div class="sale-section-label">Bidhaa za Oda</div>
       <div id="saleCart" class="sale-cart"></div>
@@ -501,7 +501,7 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
 <script src="translations.js"></script>
 <script>
 // M-P-A v41: do not reload the entire app state on realtime app-state events; only merge notifications.
-const MPA_APP_VERSION = "V75";
+const MPA_APP_VERSION = "V79";
 function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="Toleo: "+MPA_APP_VERSION;}
 let mpaWaitingWorker=null;
 function setUpdateUI(state,msg){
@@ -594,7 +594,8 @@ function validLoginDay(marker,userId,instant=now()){return !!userId&&marker?.use
 function saveLoginDay(userId){try{localStorage.setItem(MPA_LOGIN_DAY_KEY,JSON.stringify({userId,day:dateKey(now())}))}catch(e){}}
 function clearLoginDay(){try{localStorage.removeItem(MPA_LOGIN_DAY_KEY)}catch(e){}}
 async function mpaFetch(input,init={}){
- const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),12000);
+ const method=String(init.method||(input&&input.method)||'GET').toUpperCase();
+ const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),method==='GET'||method==='HEAD'?15000:30000);
  const abort=()=>controller.abort();if(init.signal?.aborted)controller.abort();else init.signal?.addEventListener('abort',abort,{once:true});
  try{return await fetch(input,{...init,signal:controller.signal})}catch(e){if(controller.signal.aborted){const err=new Error('Ombi limechukua muda mrefu; hifadhi bado haijathibitishwa. Jaribu kuhakiki kwa kusawazisha.');err.code='MPA_TIMEOUT';throw err}throw e}finally{clearTimeout(timer);init.signal?.removeEventListener('abort',abort)}
 }
@@ -955,7 +956,7 @@ async function loadCloudState({preserveSales=false}={}){
   if(!users.length)users=DEFAULT_USERS.map(u=>({...u}));
   users=users.map(u=>({...u,active:u.active!==false,permissions:Array.isArray(u.permissions)?u.permissions:[]}));
   if(!users.some(u=>u.role==="admin"))users.unshift({...DEFAULT_USERS[0]});
-  const cloudUser=users.find(u=>String(u.username).toLowerCase()===String(authProfile.username||"").toLowerCase());
+  const cloudUser=findAppUserForProfile(authProfile);
   if(cloudUser){authProfile={...authProfile,permissions:authProfile.role==='admin'?["all"]:[...(cloudUser.permissions||[])],active:authProfile.active!==false&&cloudUser.active!==false};}
   if(authProfile.active===false){await lockSession();return {ok:false};}
   cloudStateLoaded=true;
@@ -968,6 +969,13 @@ async function loadCloudState({preserveSales=false}={}){
   return {ok:false,error:e};
  }
 }
+// V79: Read/write only the parts of the shared app-state that are needed. Product photos already
+// stored in the products table are not copied into every save, which made saves time out on phones.
+const MPA_STATE_MERGE_SELECT="deletedUserIds:payload->deletedUserIds,deletedProductIds:payload->deletedProductIds,deletedSaleIds:payload->deletedSaleIds,deletedExpenseIds:payload->deletedExpenseIds,stockRequests:payload->stockRequests,notifications:payload->notifications,monthlyGoals:payload->monthlyGoals,users:payload->users";
+const MPA_STATE_LIVE_SELECT="updated_at,notifications:payload->notifications,stockRequests:payload->stockRequests,users:payload->users,deletedUserIds:payload->deletedUserIds";
+function isInlineImage(v){return /^data:/i.test(String(v||""))}
+function stateProductsForSave(list){return (Array.isArray(list)?list:[]).map(({imageLoaded,...rest})=>imageLoaded&&isInlineImage(rest.image)?{...rest,image:"",imageInTable:true}:rest)}
+function snapshotStockRequests(list){return (Array.isArray(list)?list:[]).slice(0,300).map(r=>{if(!r||r.status==="pending"||!r.changes||!isInlineImage(r.changes.image))return r;return {...r,changes:{...r.changes,image:"[picha]"}}})}
 async function saveCloudState(){
  if(!sbClient||!authProfile)return {ok:false,skipped:true};
  // Queue writes in this tab and retry if another open tab/device overwrites the state
@@ -976,15 +984,18 @@ async function saveCloudState(){
   let lastError=null;
   for(let attempt=1;attempt<=3;attempt++){
    try{
-    const latest=await sbClient.from("mpa_app_state").select("payload").eq("scope",cloudStateScope).maybeSingle();
+    const latest=await sbClient.from("mpa_app_state").select(MPA_STATE_MERGE_SELECT).eq("scope",cloudStateScope).maybeSingle();
     if(latest.error)throw latest.error;
-    const remoteState=(latest.data?.payload&&typeof latest.data.payload==="object")?latest.data.payload:{};
+    const remoteState=(latest.data&&typeof latest.data==="object")?latest.data:{};
     // Keep deletion tombstones from both the current tab and the latest cloud row.
     deletedUserIds=[...new Set([...deletedUserIds,...(Array.isArray(remoteState.deletedUserIds)?remoteState.deletedUserIds.map(String):[])])];
     deletedProductIds=[...new Set([...deletedProductIds,...(Array.isArray(remoteState.deletedProductIds)?remoteState.deletedProductIds.map(String):[])])];
     deletedSaleIds=[...new Set([...deletedSaleIds,...(Array.isArray(remoteState.deletedSaleIds)?remoteState.deletedSaleIds.map(String):[])])];
     deletedExpenseIds=[...new Set([...deletedExpenseIds,...(Array.isArray(remoteState.deletedExpenseIds)?remoteState.deletedExpenseIds.map(String):[])])];
     users=users.filter(u=>!deletedUserIds.includes(String(u.id)));
+    // V79: Only Admin edits users/limits. A user's save must never send back an old copy of users,
+    // which silently undid the limits Admin had just saved for that user.
+    if(!isRealAdmin()&&Array.isArray(remoteState.users)&&remoteState.users.length){users=remoteState.users.filter(u=>u&&!deletedUserIds.includes(String(u.id)));applyLivePermissions();}
     // V66: Usipungeze orodha ya bidhaa kwa deletedProductIds kabla ya kuhifadhi app-state.
     // Hii ndiyo iliyofanya snapshot ya app-state ipungue hadi bidhaa 23 wakati DB ina 52.
     // Jedwali la products ndilo chanzo cha kweli cha bidhaa; tombstone zinatumika tu kuzuia
@@ -995,7 +1006,7 @@ async function saveCloudState(){
     {const nm=new Map();for(const it of (Array.isArray(remoteState.notifications)?remoteState.notifications:[]))if(it&&it.id!=null)nm.set(String(it.id),it);for(const it of notifications){if(!it||it.id==null)continue;const o=nm.get(String(it.id));nm.set(String(it.id),o?{...o,...it,read:!!(o.read||it.read)}:it)}notifications=[...nm.values()].sort((a,b)=>new Date(b.date||0)-new Date(a.date||0)).slice(0,200);}
     if(remoteState.monthlyGoals&&typeof remoteState.monthlyGoals==="object"){for(const [k,v] of Object.entries(remoteState.monthlyGoals))if(Number(v)>0&&!(Number(monthlyGoals?.[k])>0))monthlyGoals[k]=v;}
     const safeUsers=users.map(({password,...u})=>({...u}));
-    const payload={products:products.map(({imageLoaded,...rest})=>rest),sales,customers,expenses,movements,notifications:notifications.slice(0,200),stockRequests:stockRequests.slice(0,300),users:safeUsers,goalTarget:currentGoalTarget(),monthlyGoals,branches,activeBranch,storeName,language,fontSize,deletedSaleIds,deletedExpenseIds,deletedProductIds,deletedUserIds};
+    const payload={products:stateProductsForSave(products),sales,customers,expenses,movements,notifications:notifications.slice(0,200),stockRequests:snapshotStockRequests(stockRequests),users:safeUsers,goalTarget:currentGoalTarget(),monthlyGoals,branches,activeBranch,storeName,language,fontSize,deletedSaleIds,deletedExpenseIds,deletedProductIds,deletedUserIds};
     // Add a unique token for read-after-write verification.
     const stamp=now().toISOString()+"-"+Math.random().toString(36).slice(2,10);
     payload.__mpaWriteToken=stamp;
@@ -1004,10 +1015,10 @@ async function saveCloudState(){
     // observe another device's newer write after this write had already succeeded.
     const {data:writtenRow,error:writeError}=await sbClient.from("mpa_app_state")
       .upsert({scope:cloudStateScope,payload,updated_by:authProfile.id,updated_at:now().toISOString()},{onConflict:"scope"})
-      .select("payload,updated_at").maybeSingle();
+      .select("updated_at,__mpaWriteToken:payload->>__mpaWriteToken,deletedUserIds:payload->deletedUserIds").maybeSingle();
     if(writeError)throw writeError;
     if(!writtenRow)throw new Error("Supabase haikurudisha rekodi iliyohifadhiwa; hifadhi haijathibitishwa.");
-    const saved=writtenRow.payload;
+    const saved=writtenRow;
     const savedToken=String(saved?.__mpaWriteToken||"");
     const savedDeletedUsers=Array.isArray(saved?.deletedUserIds)?saved.deletedUserIds.map(String):[];
     if(savedToken===stamp && deletedUserIds.every(id=>savedDeletedUsers.includes(String(id))))return {ok:true,attempt};
@@ -1068,6 +1079,15 @@ let autoNotifyTimer=null;
 let mpaAudioCtx=null;
 function unlockNotificationAudio(){try{const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;if(!mpaAudioCtx)mpaAudioCtx=new Ctx();if(mpaAudioCtx.state==="suspended")mpaAudioCtx.resume().catch(()=>{});}catch(e){}}
 if(typeof document!=="undefined"){document.addEventListener("pointerdown",unlockNotificationAudio,{passive:true});document.addEventListener("keydown",unlockNotificationAudio);}
+// V79: Android Chrome blocks new Notification(); a service-worker notification works on Android,
+// computers and iPhone apps added to the Home Screen.
+async function showSystemNotification(item){
+ if(!("Notification" in window)||Notification.permission!=="granted"||!item)return;
+ const title=translateText(conciseNotificationTitle(item.title)),opts={body:translateText(item.detail||'Taarifa mpya ya M-P-A'),icon:'./logo.png',badge:'./logo.png',tag:'mpa-'+item.id,renotify:true,vibrate:[220,80,220],data:{id:String(item.id)}};
+ try{const reg=("serviceWorker" in navigator)?await navigator.serviceWorker.getRegistration():null;if(reg&&reg.showNotification){await reg.showNotification(title,opts);return}}catch(e){}
+ try{const bn=new Notification(title,opts);bn.onclick=()=>{try{window.focus()}catch(e){};openNotification(item.id);try{bn.close()}catch(e){}};}catch(e){}
+}
+if("serviceWorker" in navigator)navigator.serviceWorker.addEventListener("message",e=>{if(e.data?.type==="mpa-open-notification"&&e.data.id)setTimeout(()=>openNotification(e.data.id),300)});
 function playNotificationSignal(){
  // Vibration + two-tone alert sound for every notification (admin na user), local na remote.
  try{if(navigator.vibrate)navigator.vibrate([220,80,220,80,320]);}catch(e){}
@@ -1089,12 +1109,12 @@ function conciseNotificationTitle(title){
  if(t.includes('mteja'))return 'Mteja mpya ameongezwa';
  return String(title||'Mabadiliko yamefanyika');
 }
-function notify(title,detail,targetPage,targetId){
+function notify(title,detail,targetPage,targetId,opts={}){
  const shortTitle=conciseNotificationTitle(title);
  const item={id:Date.now()+Math.random(),title:shortTitle,detail:'Taarifa mpya ya M-P-A',user:currentUser(),date:now().toISOString(),read:false,targetPage:targetPage||"notifications",targetId:targetId??null};
  notifications.unshift(item);
  notifications=notifications.slice(0,200);
- saveCloudState();
+ if(opts.persist!==false)saveCloudState();
  updateNotifDot();
  renderNotifications();
  playNotificationSignal();
@@ -1105,10 +1125,8 @@ function notify(title,detail,targetPage,targetId){
    void n.offsetWidth;requestAnimationFrame(()=>n.classList.add("show"));clearTimeout(n._timer);
    n._timer=setTimeout(()=>{n.classList.remove("show");setTimeout(()=>{if(!n.classList.contains("show"))n.style.display="none"},240)},5000);
  }
- if("Notification" in window && Notification.permission==="granted"){
-   try{const bn=new Notification(translateText(item.title),{body:translateText(item.detail),icon:"./logo.png",badge:"./logo.png",tag:"mpa-action-"+item.id,renotify:true});
-     bn.onclick=()=>{try{window.focus()}catch(e){};openNotification(item.id);try{bn.close()}catch(e){}};
-   }catch(e){}
+ if(true){
+   showSystemNotification(item);
  }
 }
 
@@ -1120,7 +1138,8 @@ function updateNotifDot(){
 }
 function requestBrowserNotifications(){
  if(!("Notification" in window)){toast("Browser hii haitumii notifications.");return}
- Notification.requestPermission().then(x=>toast(x==="granted"?"Notifications zimeruhusiwa ✓":"Notifications hazijaruhusiwa."));
+ if(mpaDeviceKind()==="ios"&&!(window.navigator.standalone||matchMedia("(display-mode: standalone)").matches)){toast("Kwenye iPhone: Share → Add to Home Screen, fungua app kutoka Home Screen, kisha ruhusu notifications.");return}
+ Notification.requestPermission().then(x=>toast(x==="granted"?"Notifications zimeruhusiwa ✓":"Notifications hazijaruhusiwa. Ruhusu kwenye settings za kivinjari."));
 }
 function setLogin(role){
  loginRole=role;
@@ -1176,10 +1195,14 @@ const KNOWN_LOGIN_ROLES={
 };
 const DEFAULT_USER_PERMISSIONS=["view_products","sell","add_stock","remove_stock","view_sales","view_reports","view_expenses","manage_expenses","view_expense_history"];
 
+function findAppUserForProfile(profile){if(!profile)return null;const name=String(profile.username||"").trim().toLowerCase().replace(/@mpa\.local$/,"");return users.find(u=>String(u.id)===String(profile.id)||String(u.authId||"")===String(profile.id))||users.find(u=>String(u.username||"").trim().toLowerCase()===name)||null}
+// V79: Apply the admin's latest limits to the signed-in user without needing a new login.
+function applyLivePermissions(){if(!authProfile||authProfile.role==="admin")return false;const cu=findAppUserForProfile(authProfile);if(!cu)return false;const next=[...new Set(Array.isArray(cu.permissions)?cu.permissions:[])].filter(x=>x!=="all").sort();const prev=flattenPermissions(authProfile.permissions).slice().sort();const active=cu.active!==false;if(JSON.stringify(next)===JSON.stringify(prev)&&active===(authProfile.active!==false))return false;authProfile={...authProfile,permissions:next,active:authProfile.active!==false&&active};return true}
+async function sellerAuthErrorText(error){try{const ctx=error?.context;if(ctx&&typeof ctx.clone==="function"){const body=await ctx.clone().json().catch(async()=>({error:await ctx.clone().text()}));const m=body?.error||body?.message;if(m)return String(m)}}catch(e){}return String(error?.message||"Edge Function ya user imeshindwa.")}
 async function callSellerAuth(body){
  if(!sbClient)throw new Error("Supabase haijaunganishwa.");
  const {data,error}=await sbClient.functions.invoke("mpa-user-auth",{body});
- if(error)throw new Error(error.message||"Edge Function ya user imeshindwa.");
+ if(error)throw new Error(await sellerAuthErrorText(error));
  if(data?.error)throw new Error(String(data.error));
  return data;
 }
@@ -1444,9 +1467,10 @@ async function submitStockRequest({type,product,qty=0,note="",changes=null,befor
  if(stockRequests.some(r=>r.status==="pending"&&String(r.productId)===String(product.id)&&r.type===type&&r.user===currentUser()&&r.qty===qty&&JSON.stringify(r.changes||null)===JSON.stringify(changes))){toast("Ombi hili tayari linasubiri idhini ya Admin.");return {ok:false,duplicate:true}}
  const req={id:crypto.randomUUID(),type,productId:product.id,productName:product.name,qty:Number(qty||0),note,changes,before,qtyAtRequest:product.qty,user:currentUser(),status:"pending",createdAt:now().toISOString(),updatedAt:now().toISOString()};
  stockRequests.unshift(req);
+ const notifBefore=new Set(notifications.map(n=>String(n.id)));
+ notify("Ombi la bidhaa: "+product.name,currentUser()+" anaomba idhini ya Admin","stockRequest",req.id,{persist:false});
  const res=await saveCloudState();
- if(!res?.ok){stockRequests=stockRequests.filter(r=>r.id!==req.id);toast("Ombi halijatumwa; jaribu tena.");return {ok:false}}
- notify("Ombi la bidhaa: "+product.name,"","stockRequest",req.id);
+ if(!res?.ok){stockRequests=stockRequests.filter(r=>r.id!==req.id);notifications=notifications.filter(n=>notifBefore.has(String(n.id)));updateNotifDot();renderNotifications();toast("Ombi halijatumwa; jaribu tena.");return {ok:false}}
  toast("Ombi limetumwa kwa Admin ✓ Litaingia baada ya kuthibitishwa.");renderStockRequests();return {ok:true,request:req};
 }
 function stockRequestText(r){if(r.type==="add")return translateText("Ongeza stock")+" +"+r.qty;if(r.type==="remove")return translateText("Punguza stock")+" -"+r.qty;const lab={name:"Jina",category:"Kategoria",buy:"Bei ya kununua",price:"Bei ya kuuza",image:"Picha"};return Object.keys(r.changes||{}).map(k=>k==="image"?translateText("Picha mpya"):translateText(lab[k]||k)+": "+esc(String(k==="buy"||k==="price"?money(r.before?.[k]):r.before?.[k]??""))+" → "+esc(String(k==="buy"||k==="price"?money(r.changes[k]):r.changes[k]))).join("<br>")}
@@ -1702,9 +1726,22 @@ function validDebtCustomer(name,phone){if(!String(name||"").trim())return {ok:fa
 function saleDebtBalance(s){if(!s)return 0;if(s.debt!==undefined&&s.debt!==null&&Number.isFinite(Number(s.debt)))return Math.max(0,Number(s.debt));return s.paid===false?Math.max(0,Number(s.total||0)-Number(s.amountPaid||0)):0}
 function saleRecordNotes(s){const meta={customer:s.customer||"",customerPhone:s.customerPhone||"",payments:Array.isArray(s.payments)?s.payments:[],note:s.note||""};if(!meta.customerPhone&&!meta.payments.length&&(!meta.customer||meta.customer==="Mteja"))return String(s.note||"");return "MPA77:"+JSON.stringify(meta)}
 function saleReadNotes(n){const t=String(n||"");if(!t.startsWith("MPA77:"))return {note:t};try{const m=JSON.parse(t.slice(6));return {customer:m.customer||"",customerPhone:m.customerPhone||"",payments:Array.isArray(m.payments)?m.payments:[],note:m.note||""}}catch(e){return {note:t}}}
+function mpaDeviceKind(){const ua=navigator.userAgent||"";if(/iPhone|iPad|iPod/i.test(ua)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1))return "ios";if(/Android/i.test(ua))return "android";return "desktop"}
+function fillSaleContact(name,phone){focusSaleCustomer();const n=document.getElementById("saleCustomer"),t=document.getElementById("saleCustomerPhone");if(name&&n)n.value=String(name).trim();if(phone&&t)t.value=String(phone).trim();document.getElementById("saleContactHelp")?.classList.add("hidden");toast("Mteja amewekwa ✓")}
+function parseVCard(text){const raw=String(text||"").replace(/\r\n[ \t]/g,"").split(/\r?\n/);let name="",phone="";for(const line of raw){const i=line.indexOf(":");if(i<0)continue;const key=line.slice(0,i).toUpperCase(),val=line.slice(i+1).trim();if(!name&&key.split(";")[0]==="FN")name=val;if(!name&&key.split(";")[0]==="N"){const parts=val.split(";");name=[parts[1],parts[0]].filter(Boolean).join(" ")}if(!phone&&key.split(";")[0].replace(/^ITEM\d+\./,"")==="TEL")phone=val.replace(/^tel:/i,"")}return {name:name.replace(/\\,/g,",").replace(/\\;/g,";"),phone}}
+async function importSaleContactFile(input){const f=input?.files?.[0];if(!f)return;try{const c=parseVCard(await f.text());if(!c.name&&!c.phone){toast("Faili hili halina jina wala namba ya contact.");return}fillSaleContact(c.name,c.phone)}catch(e){toast("Faili la contact halikusomeka.")}finally{input.value=""}}
+function startSaleAutofill(){focusSaleCustomer();const n=document.getElementById("saleCustomer");if(n){n.value="";n.focus()}}
 async function pickSaleContact(){
- if(!(navigator.contacts&&navigator.contacts.select)){toast("Simu/kivinjari hiki hakiruhusu kuchagua contacts; andika jina na namba.");document.getElementById("saleCustomer")?.focus();return}
- try{const [c]=await navigator.contacts.select(["name","tel"],{multiple:false});if(!c)return;focusSaleCustomer();if(c.name?.[0])document.getElementById("saleCustomer").value=c.name[0];if(c.tel?.[0])document.getElementById("saleCustomerPhone").value=c.tel[0];}catch(e){toast("Contacts hazikufunguka; andika jina na namba.")}
+ focusSaleCustomer();
+ if(navigator.contacts&&typeof navigator.contacts.select==="function"){
+  try{const [c]=await navigator.contacts.select(["name","tel"],{multiple:false});if(!c)return;fillSaleContact(c.name?.[0]||"",c.tel?.[0]||"");return}
+  catch(e){console.warn("Contact picker failed",e)}
+ }
+ // Fallbacks: iPhone Safari keeps its contact picker behind a setting, computers have no phone contacts.
+ const kind=mpaDeviceKind();const help=document.getElementById("saleContactHelp"),txt=document.getElementById("saleContactHelpText");
+ const msg=kind==="ios"?"Kwenye iPhone: gusa sehemu ya jina, kisha juu ya keyboard gusa \u201cAutoFill Contact\u201d (au alama ya mtu) uchague mteja; jina na namba vitajaa. Kufungua orodha ya contacts moja kwa moja: Settings \u2192 Apps \u2192 Safari \u2192 Advanced \u2192 Feature Flags \u2192 washa \u201cContact Picker API\u201d.":kind==="android"?"Kivinjari hiki hakifungui contacts. Fungua mfumo kwa Google Chrome ili kitufe kifungue contacts, au tumia faili la contact (.vcf).":"Kompyuta haina contacts za simu. Andika jina na namba, au fungua faili la contact (.vcf).";
+ if(txt)txt.textContent=translateText(msg);help?.classList.remove("hidden");
+ if(kind==="ios")startSaleAutofill();
 }
 function openDebts(){if(!can("view_sales")&&!can("view_debts")){toast("Huna ruhusa ya kuona madeni.");return}showPage("sales",document.getElementById("navSales"));if(typeof closeSaleEntry==="function"&&!document.getElementById("saleEntryView")?.classList.contains("hidden"))closeSaleEntry();setSalesTab("debt")}
 function renderHomeDebts(){const list=sales.filter(s=>saleDebtBalance(s)>0);const t=document.getElementById("homeDebtTotal"),c=document.getElementById("homeDebtCount");if(t)t.textContent=money(list.reduce((a,s)=>a+saleDebtBalance(s),0));if(c)c.textContent=list.length+" "+translateText(list.length===1?"deni":"madeni");}
@@ -1787,8 +1824,8 @@ async function deleteSale(id){
   const state=await saveAll({renderNow:false});
   if(!state?.ok){toast('Mauzo yameondolewa kwenye skrini, lakini Supabase haijathibitisha kuhifadhi ufutaji. Angalia ruhusa/RLS.');return state}
   // Verify the deletion marker on a fresh read so an old app-state snapshot cannot silently restore the sale.
-  const verify=await sbClient.from('mpa_app_state').select('payload').eq('scope',cloudStateScope).maybeSingle();
-  const persistedIds=Array.isArray(verify.data?.payload?.deletedSaleIds)?verify.data.payload.deletedSaleIds.map(String):[];
+  const verify=await sbClient.from('mpa_app_state').select('deletedSaleIds:payload->deletedSaleIds').eq('scope',cloudStateScope).maybeSingle();
+  const persistedIds=Array.isArray(verify.data?.deletedSaleIds)?verify.data.deletedSaleIds.map(String):[];
   if(verify.error||!persistedIds.includes(deletedKey)||!persistedIds.includes(String(id))){
    console.warn('Sale deletion marker verification failed',verify.error);
    toast('Mauzo yameondolewa kwenye skrini, lakini Supabase haijathibitisha ufutaji. Usifute tena; tutakagua ruhusa/RLS.');
@@ -1909,8 +1946,8 @@ async function deleteExpense(id){
   const state=await saveCloudState();
   if(!state.ok){expenses=before;deletedExpenseIds=beforeDeleted;toast('Matumizi hayajafutwa. Supabase haijathibitisha kuhifadhi ufutaji.');return state}
   // Confirm the saved tombstone survived a fresh read before reporting success.
-  const verify=await sbClient.from('mpa_app_state').select('payload').eq('scope',cloudStateScope).maybeSingle();
-  if(verify.error||!Array.isArray(verify.data?.payload?.deletedExpenseIds)||!verify.data.payload.deletedExpenseIds.map(String).includes(String(e.id))){expenses=before;deletedExpenseIds=beforeDeleted;toast('Supabase haijathibitisha ufutaji wa matumizi. Tafadhali angalia RLS ya mpa_app_state.');return {ok:false,error:verify.error||new Error('Expense deletion tombstone was not persisted')}}
+  const verify=await sbClient.from('mpa_app_state').select('deletedExpenseIds:payload->deletedExpenseIds').eq('scope',cloudStateScope).maybeSingle();
+  if(verify.error||!Array.isArray(verify.data?.deletedExpenseIds)||!verify.data.deletedExpenseIds.map(String).includes(String(e.id))){expenses=before;deletedExpenseIds=beforeDeleted;toast('Supabase haijathibitisha ufutaji wa matumizi. Tafadhali angalia RLS ya mpa_app_state.');return {ok:false,error:verify.error||new Error('Expense deletion tombstone was not persisted')}}
   closeModal('expenseDetailModal');render();notify('Matumizi yamefutwa',(e.name||'Matumizi')+' • '+money(e.amount),'expenses',null);toast('Matumizi yamefutwa na kuhifadhiwa ✓');return {ok:true};
  });
 }
@@ -1988,13 +2025,15 @@ function renderUserDetail(){
 }
 function togglePermissionGroup(id){const el=document.getElementById(id);if(!el)return;const opening=el.style.display==='none';el.style.display=opening?'block':'none';const idx=id.replace('permgroup','');const c=document.getElementById('permchev'+idx);if(c)c.textContent=opening?'⌃':'⌄';}
 function stageUserPerm(id,key,on){if(!can('manage_users')){toast('Admin pekee.');renderUserDetail();return}const u=users.find(x=>String(x.id)===String(id));if(!u||u.role==='admin')return;if(String(userPermissionDraftId)!==String(u.id))userPermissionDraft=[...(u.permissions||[])];userPermissionDraftId=u.id;userPermissionDraft=(userPermissionDraft||[]).filter(x=>x!==key);if(on)userPermissionDraft.push(key);userPermissionDraft=[...new Set(userPermissionDraft)];userPermissionDirty=true;const unsaved=document.getElementById('permUnsaved');if(unsaved)unsaved.style.display='block';const btn=document.getElementById('saveUserPermissionsBtn');if(btn){btn.disabled=false;btn.textContent=translateText('Hifadhi Mabadiliko')}document.querySelectorAll('#userDetailPerms .perm-group-row').forEach((row,idx)=>{const groupLabels=[['sell','delete_own_sales','view_sales','delete_sales','record_backdated_sales','delete_backdated_sales','refund_sales','view_goals'],['view_products','create_products','add_stock','view_product_prices','delete_products','edit_product_qty_price','edit_products','view_stock_movements'],['pay_debts','view_debts','create_debts','edit_debts','delete_debts','view_other_users_debts'],['manage_expenses','delete_own_expenses','view_expenses','delete_expenses','delete_backdated_expenses','refund_expenses'],['view_daily_report','view_sales_report','view_debts_report','view_products_report','view_customers_report','view_profit_report','view_suppliers_report'],['analytics_sales','analytics_profit','analytics_products','analytics_expenses','analytics_customers','analytics_suppliers'],['manage_users','manage_goals','manage_settings','manage_branches','view_expense_history']];const keys=groupLabels[idx]||[];const count=keys.filter(k=>userPermissionDraft.includes(k)).length;const span=row.querySelector('span');if(span)span.textContent=span.textContent.replace(/\(\d+\)$/,'('+count+')');const badge=row.querySelector('.perm-count');if(badge)badge.textContent=count+'/'+keys.length;});}
+function syncProfilePermissions(u,perms){if(!sbClient||!u?.username)return;try{sbClient.from('profiles').update({permissions:perms}).eq('username',String(u.username)).then(()=>{},()=>{})}catch(e){}}
 async function saveUserPermissions(id){
  if(!can('manage_users')){toast('Admin pekee.');return}
  const u=users.find(x=>String(x.id)===String(id));if(!u||u.role==='admin')return;
  const before=[...(u.permissions||[])],draft=[...new Set(userPermissionDraft||[])];
  u.permissions=draft;
  const btn=document.getElementById('saveUserPermissionsBtn');if(btn){btn.disabled=true;btn.textContent=translateText('Inahifadhi...')}
- const state=await Promise.race([saveCloudState(),new Promise(r=>setTimeout(()=>r({ok:false,error:new Error('Mtandao umechelewa. Jaribu tena.')}),15000))]);
+ const state=await Promise.race([saveCloudState(),new Promise(r=>setTimeout(()=>r({ok:false,error:new Error('Mtandao umechelewa. Jaribu tena.')}),35000))]);
+ if(state?.ok)syncProfilePermissions(u,draft);
  if(!state?.ok){
   // Keep the user's staged ticks visible for diagnosis/retry; do not silently erase the draft.
   u.permissions=before;userPermissionDraft=[...draft];userPermissionDraftId=u.id;userPermissionDirty=true;
@@ -2231,36 +2270,51 @@ async function refreshRemoteDataFast(){
  finally{mpaSyncBusy=false}
 }
 let lastSeenRemoteNotificationIds=new Set();
+let mpaLiveBusy=false,mpaLiveTimer=null,mpaLiveLastAt="";
 async function scheduleRemoteNotificationRefresh(eventPayload){
- if(!sbClient||!authProfile)return;
- // IMPORTANT: mpa_app_state contains the full application snapshot. Reloading it on every
- // realtime event can overwrite freshly synced products/users with an older snapshot from
- // another tab/device. Only read and merge notifications here; full state loads happen at login.
+ if(!sbClient||!authProfile||mpaLiveBusy)return;
+ // Only the small shared parts are read (notifications, requests, user limits) — never the full snapshot,
+ // which can overwrite freshly synced products and is too large for realtime/phone networks.
+ mpaLiveBusy=true;
  const before=new Set(notifications.map(n=>String(n.id)));
  try{
-  let remoteNotifications=eventPayload?.new?.payload?.notifications;
-  if(!Array.isArray(remoteNotifications)){
-   const {data,error}=await sbClient.from("mpa_app_state").select("payload").eq("scope",cloudStateScope).maybeSingle();
+  let live=eventPayload?.new?.payload&&Array.isArray(eventPayload.new.payload.notifications)?eventPayload.new.payload:null;
+  if(!live){
+   const {data,error}=await sbClient.from("mpa_app_state").select(MPA_STATE_LIVE_SELECT).eq("scope",cloudStateScope).maybeSingle();
    if(error)throw error;
-   remoteNotifications=data?.payload?.notifications;
+   if(!data)return;
+   if(data.updated_at&&data.updated_at===mpaLiveLastAt&&!eventPayload)return;
+   mpaLiveLastAt=data.updated_at||mpaLiveLastAt;live=data;
   }
-  if(!Array.isArray(remoteNotifications))return;
+  if(Array.isArray(live.users)){
+   const del=new Set([...(deletedUserIds||[]),...(Array.isArray(live.deletedUserIds)?live.deletedUserIds:[])].map(String));
+   const remoteUsers=live.users.filter(u=>u&&!del.has(String(u.id))).map(u=>({...u,active:u.active!==false,permissions:Array.isArray(u.permissions)?u.permissions:[]}));
+   if(remoteUsers.length&&!isRealAdmin()){const local=new Map(users.map(u=>[String(u.id),u]));users=remoteUsers.map(u=>{const l=local.get(String(u.id));return l&&l.password?{...u,password:l.password}:u});}
+   if(applyLivePermissions()){if(authProfile.active===false){await lockSession();return}render();}
+   if(isRealAdmin()){renderUsers();if(document.getElementById("userDetail")?.classList.contains("active")&&!userPermissionDirty)renderUserDetail();}
+  }
+  const remoteNotifications=Array.isArray(live.notifications)?live.notifications:[];
   const merged=new Map();
   for(const item of remoteNotifications){if(item&&item.id!=null)merged.set(String(item.id),item)}
-  // Keep this tab's in-memory copy (including read state and just-created notifications).
-  for(const item of notifications){if(item&&item.id!=null)merged.set(String(item.id),item)}
+  for(const item of notifications){if(item&&item.id!=null){const o=merged.get(String(item.id));merged.set(String(item.id),o?{...o,...item,read:!!(o.read||item.read)}:item)}}
   notifications=[...merged.values()].sort((a,b)=>new Date(b.date||0)-new Date(a.date||0)).slice(0,200);
-  const rq=eventPayload?.new?.payload?.stockRequests;if(Array.isArray(rq)){stockRequests=mergeStockRequests(rq,stockRequests);renderStockRequests();}
+  if(Array.isArray(live.stockRequests)){stockRequests=mergeStockRequests(live.stockRequests,stockRequests);renderStockRequests();}
   renderNotifications();updateNotifDot();
-  const fresh=notifications.filter(n=>!before.has(String(n.id))&&String(n.user||'')!==String(currentUser()));
-  for(const item of fresh){
+  const fresh=notifications.filter(n=>!before.has(String(n.id))&&String(n.user||'')!==String(currentUser())&&!n.read);
+  if(fresh.length){
    playNotificationSignal();
-   if('Notification' in window&&Notification.permission==='granted'){
-    try{const bn=new Notification(translateText(conciseNotificationTitle(item.title)),{body:translateText('Taarifa mpya ya M-P-A'),icon:'./logo.png',badge:'./logo.png',tag:'mpa-remote-'+item.id,renotify:true});bn.onclick=()=>{try{window.focus()}catch(e){};openNotification(item.id);try{bn.close()}catch(e){}};}catch(e){}
-   }
+   const item=fresh[0];
+   const box=document.getElementById("notice");
+   if(box){box.style.display="flex";box.innerHTML=`<div class="notice-inner" role="button" tabindex="0" onclick="openNotification('${String(item.id).replace(/'/g,"\\'")}')"><img class="notice-logo" src="logo.png" alt="M-P-A"><div class="notice-copy"><div class="notice-title">${esc(translateText(conciseNotificationTitle(item.title)))}</div><div class="notice-detail">${esc(translateText(item.detail||"Taarifa mpya ya M-P-A"))}</div></div><div class="notice-bell">🔔</div></div>`;requestAnimationFrame(()=>box.classList.add("show"));clearTimeout(box._timer);box._timer=setTimeout(()=>{box.classList.remove("show");setTimeout(()=>{if(!box.classList.contains("show"))box.style.display="none"},240)},6000);}
+   for(const it of fresh.slice(0,3))showSystemNotification(it);
   }
  }catch(e){console.warn('Remote notifications refresh failed',e)}
+ finally{mpaLiveBusy=false}
 }
+// Realtime can miss events (large rows, sleeping phones), so a small check runs every 15s while the app is open.
+function startLivePolling(){if(mpaLiveTimer)clearInterval(mpaLiveTimer);mpaLiveTimer=setInterval(()=>{if(!document.hidden&&authProfile)scheduleRemoteNotificationRefresh()},15000)}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&authProfile)scheduleRemoteNotificationRefresh()});
+window.addEventListener("focus",()=>{if(authProfile)scheduleRemoteNotificationRefresh()});
 function startSupabaseRealtime(){
  if(!sbClient||!authProfile)return;
  try{
@@ -2275,6 +2329,7 @@ function startSupabaseRealtime(){
  // Supabase Realtime is the live-sync mechanism. A polling timer here caused
  // continuous redraws while the user was working, so no periodic refresh is started.
  if(mpaSyncTimer){clearInterval(mpaSyncTimer);mpaSyncTimer=null;}
+ startLivePolling();
 }
 
 function render(){

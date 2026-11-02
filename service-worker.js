@@ -1,4 +1,4 @@
-const CACHE = "mpa-v78-20261102b";
+const CACHE = "mpa-v79-20261102";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -71,3 +71,15 @@ self.addEventListener("fetch", event => {
 });
 
 self.addEventListener("message", event => { if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting(); });
+
+// V79: Open the app on the tapped notification (Android, computers, iPhone Home Screen app).
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  const id = event.notification.data && event.notification.data.id;
+  event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(list => {
+    for (const client of list) {
+      if ("focus" in client) { client.postMessage({ type: "mpa-open-notification", id }); return client.focus(); }
+    }
+    return self.clients.openWindow("./");
+  }));
+});
