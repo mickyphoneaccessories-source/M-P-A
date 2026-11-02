@@ -2472,8 +2472,10 @@ async function scheduleRemoteNotificationRefresh(eventPayload){
  }catch(e){console.warn('Remote notifications refresh failed',e)}
  finally{mpaLiveBusy=false}
 }
-// Realtime can miss events (large rows, sleeping phones), so a small check runs every 15s while the app is open.
-function startLivePolling(){registerPushSubscription();if(mpaLiveTimer)clearInterval(mpaLiveTimer);mpaLiveTimer=setInterval(()=>{if(authProfile&&navigator.onLine!==false)scheduleRemoteNotificationRefresh()},document.hidden?20000:15000)}
+// V87: Realtime + focus/visibility refresh are primary. Keep only a low-frequency
+// 5-minute fallback for missed events; the old 15-second polling caused repeated
+// PostgREST reads and unnecessary Egress while the app was idle.
+function startLivePolling(){registerPushSubscription();if(mpaLiveTimer)clearInterval(mpaLiveTimer);mpaLiveTimer=setInterval(()=>{if(authProfile&&navigator.onLine!==false)scheduleRemoteNotificationRefresh()},300000)}
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&authProfile)scheduleRemoteNotificationRefresh()});
 window.addEventListener("focus",()=>{if(authProfile)scheduleRemoteNotificationRefresh()});
 function startSupabaseRealtime(){
