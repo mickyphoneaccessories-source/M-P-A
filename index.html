@@ -43,7 +43,7 @@ main{max-width:900px;margin:auto;padding:16px}.page{display:none}.page.active{di
 .seller-pin-help{background:#f8f0d8;color:#6b5b2b;border-radius:16px;padding:15px;margin-top:20px;line-height:1.55}
 .close{width:38px;height:38px;border-radius:50%;background:#eee}.preview{width:92px;height:92px;border-radius:14px;object-fit:cover;background:#eee;display:block;margin-bottom:10px}
 .pricewrap{position:relative}.pricewrap input{padding-right:44px}.eyeprice{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:9px;background:#f0f1f3;color:#333}.eyeprice.hiddenprice{background:#dfe2e7}
-.notice{position:fixed;top:76px;left:50%;transform:translateX(-50%) translateY(-14px);background:#fff;color:#17191d;padding:10px 14px;border-radius:18px;z-index:200;display:none;width:min(430px,calc(100% - 28px));box-shadow:0 14px 40px #0003;border:1px solid #e8e9ed;opacity:0;transition:opacity .22s ease,transform .22s ease}.notice.show{display:flex;opacity:1;transform:translateX(-50%) translateY(0)}.notice-inner{display:flex;align-items:center;gap:11px;width:100%;cursor:pointer}.notice:active{transform:translateY(1px)}.notice-logo{width:43px;height:43px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:#f2f3f5}.notice-copy{min-width:0;flex:1}.notice-title{font-weight:800;font-size:15px;line-height:1.15}.notice-detail{color:#686d76;font-size:13px;margin-top:3px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.notice-bell{width:30px;height:30px;border-radius:10px;background:#eef3ff;display:grid;place-items:center;font-size:15px;flex:0 0 auto}.refresh-indicator{position:fixed;top:74px;left:50%;width:34px;height:34px;transform:translate(-50%,-58px);z-index:190;background:rgba(255,255,255,.96);border:1px solid #e5e7eb;border-radius:50%;box-shadow:0 7px 22px #0002;display:grid;place-items:center;opacity:0;transition:transform .2s ease,opacity .2s ease;pointer-events:none}.refresh-indicator::before{content:"";width:18px;height:18px;border:3px solid #d9dce3;border-top-color:#2450ff;border-radius:50%}
+.notice{position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);left:50%;transform:translateX(-50%) translateY(-14px);background:#fff;color:#17191d;padding:10px 14px;border-radius:18px;z-index:200;display:none;width:min(430px,calc(100% - 28px));box-shadow:0 14px 40px #0003;border:1px solid #e8e9ed;opacity:0;transition:opacity .22s ease,transform .22s ease}.notice.show{display:flex;opacity:1;transform:translateX(-50%) translateY(0)}.notice-inner{display:flex;align-items:center;gap:11px;width:100%;cursor:pointer}.notice:active{transform:translateY(1px)}.notice-logo{width:43px;height:43px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:#f2f3f5}.notice-copy{min-width:0;flex:1}.notice-title{font-weight:800;font-size:15px;line-height:1.15}.notice-detail{color:#686d76;font-size:13px;margin-top:3px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.notice-bell{width:30px;height:30px;border-radius:10px;background:#eef3ff;display:grid;place-items:center;font-size:15px;flex:0 0 auto}.refresh-indicator{position:fixed;top:74px;left:50%;width:34px;height:34px;transform:translate(-50%,-58px);z-index:190;background:rgba(255,255,255,.96);border:1px solid #e5e7eb;border-radius:50%;box-shadow:0 7px 22px #0002;display:grid;place-items:center;opacity:0;transition:transform .2s ease,opacity .2s ease;pointer-events:none}.refresh-indicator::before{content:"";width:18px;height:18px;border:3px solid #d9dce3;border-top-color:#2450ff;border-radius:50%}
 .refresh-indicator.ready::before{border-color:#2450ff;border-top-color:#d9dce3}
 .refresh-indicator.spinning::before{animation:mpaSpin .75s linear infinite}
 .refresh-indicator.spinning{transition:transform .2s ease,opacity .2s ease}.refresh-indicator.show{transform:translate(-50%,0);opacity:1}@keyframes mpaSpin{to{transform:rotate(360deg)}}
@@ -363,6 +363,7 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
         <button onclick="showPage('reports',null)"><span class="setting-icon" style="background:#2450ff">⌁</span><span class="setting-main">Ripoti <small>- Ripoti</small></span><b>›</b></button>
         <button onclick="showPage('purchases',null)"><span class="setting-icon" style="background:#b400ff">🛒</span><span class="setting-main">Manunuzi <small>- Manunuzi</small></span><b>›</b></button>
         <button onclick="showPage('deleted',null)"><span class="setting-icon" style="background:#ff3040">▣</span><span class="setting-main">Zilizofutwa na kusawazishwa</span><b>›</b></button>
+        <button id="archivedProductsBtn" onclick="openArchivedProducts()"><span class="setting-icon" style="background:#6b7280">🗑</span><span class="setting-main">Bidhaa zilizofutwa <small>- Rudisha au futa kabisa</small></span><b>›</b></button>
         <button onclick="showPage('stockTools',null)"><span class="setting-icon" style="background:#e4c20e">✎</span><span class="setting-main">Stock <small>- Hariri na bidhaa zilizoharibika</small></span><b>›</b></button>
       </div>
       <div class="settings-group-title">RASILIMALI WATU</div>
@@ -431,6 +432,7 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
 </section>
 
 <div id="expenseModal" class="modalback"><div class="modal"><div class="modalhead"><h2>Rekodi Matumizi</h2><button class="close" onclick="closeModal('expenseModal')">×</button></div><div class="field"><label>Tarehe (Kama ni matumizi ya zamani)</label><input id="expenseDate" type="date"></div><div class="field"><label>Aina Ya Matumizi</label><input id="expenseName" type="text" placeholder="Andika aina ya matumizi, mfano: Mafuta, Chakula, Umeme..."></div><div class="field"><label>Kiasi</label><input id="expenseAmountModal" data-money="1" inputmode="numeric" type="text" inputmode="numeric" placeholder="Andika kiasi, mfano 50,000"></div><div class="field"><label>Kundi La Matumizi</label><input id="expenseCategory" type="text" placeholder="Andika kundi, mfano: Biashara, Usafiri..."></div><div class="field"><label>＋ Maelezo ya ziada (sio lazima)</label><textarea id="expenseNote" rows="3" placeholder="Maelezo ya ziada"></textarea></div><button class="btn blue" style="width:100%;padding:16px" onclick="saveExpenseRecord()">Hifadhi Matumizi</button></div></div>
+<div id="archivedModal" class="modalback"><div class="modal"><div class="modalhead"><h2>Bidhaa zilizofutwa</h2><button class="close" onclick="closeModal('archivedModal')">×</button></div><div id="archivedList"><div class="empty">Inapakia...</div></div></div></div>
 <div id="productModal" class="modalback">
  <div class="modal">
   <div class="modalhead"><h2 data-runtime-copy id="productModalTitle">Bidhaa Mpya</h2><button class="close" onclick="closeModal('productModal')">×</button></div>
@@ -1034,7 +1036,7 @@ async function saveCloudState(){
   const code=lastError?.code?" ("+String(lastError.code).slice(0,40)+")":"";
   const raw=String(lastError?.message||"");
   const safeDetail=raw&&raw.length<220&&!/[<>]{2}/.test(raw)?" • "+raw:"";
-  toast("Hifadhi ya Supabase haijathibitishwa baada ya majaribio 3"+code+safeDetail+". Funga tab/kifaa kingine kinachotumia toleo la zamani, kisha jaribu tena.");
+  console.warn("Cloud save detail",code,safeDetail);toast("Haijahifadhiwa, vuta chini kusawazisha");
   return {ok:false,error:lastError};
  });
  cloudSavePromise=job.catch(()=>({ok:false}));
@@ -1046,7 +1048,17 @@ async function saveAll({renderNow=true}={}){
  return result;
 }
 
-function toast(msg){msg=translateText(msg);
+function showNoticeBanner(title,detail,id,ms){
+ const n=document.getElementById("notice");if(!n)return;
+ const click=id!=null?` role="button" tabindex="0" onclick="openNotification('${String(id).replace(/'/g,"\\'")}')"`:'';
+ n.classList.remove("show");n.style.display="flex";
+ n.innerHTML=`<div class="notice-inner"${click}><img class="notice-logo" src="logo.png" alt="M-P-A"><div class="notice-copy"><div class="notice-title">${esc(String(title).replace(/^🔔\s*/,""))}</div><div class="notice-detail">${esc(detail)}</div></div><div class="notice-bell">🔔</div></div>`;
+ void n.offsetWidth;requestAnimationFrame(()=>n.classList.add("show"));clearTimeout(n._timer);
+ n._timer=setTimeout(()=>{n.classList.remove("show");setTimeout(()=>{if(!n.classList.contains("show"))n.style.display="none"},240)},ms||4000);
+}
+// V81: short system messages only; long technical details go to the console.
+function shortToastText(msg){let t=String(msg||"");const cut=t.search(/ \(|•|\. /);if(t.length>70&&cut>8)t=t.slice(0,cut);return t.trim();}
+function toast(msg){msg=translateText(msg);console.info("M-P-A:",msg);showNoticeBanner(shortToastText(msg),translateText("M-P-A"),null,3200);return;
  const n=document.getElementById("notice");
  if(!n)return;
  n.innerHTML=`<div class="notice-inner"><img class="notice-logo" src="logo.png" alt="M-P-A"><div class="notice-copy"><div class="notice-title">${esc(String(msg).replace(/^🔔\s*/,""))}</div><div class="notice-detail">${translateText("M-P-A • Taarifa ya mfumo" )}</div></div><div class="notice-bell">🔔</div></div>`;
@@ -1117,16 +1129,8 @@ function notify(title,detail,targetPage,targetId,opts={}){
  updateNotifDot();
  renderNotifications();
  playNotificationSignal();
- const n=document.getElementById("notice");
- if(n){
-   n.classList.remove("show");n.style.display="flex";
-   n.innerHTML=`<div class="notice-inner" role="button" tabindex="0" onclick="openNotification('${String(item.id).replace(/'/g,"\\'")}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openNotification('${String(item.id).replace(/'/g,"\\'")}')}"><img class="notice-logo" src="logo.png" alt="M-P-A"><div class="notice-copy"><div class="notice-title">${esc(translateText(item.title))}</div><div class="notice-detail">${translateText("Taarifa mpya ya M-P-A" )}</div></div><div class="notice-bell">🔔</div></div>`;
-   void n.offsetWidth;requestAnimationFrame(()=>n.classList.add("show"));clearTimeout(n._timer);
-   n._timer=setTimeout(()=>{n.classList.remove("show");setTimeout(()=>{if(!n.classList.contains("show"))n.style.display="none"},240)},5000);
- }
- if(true){
-   showSystemNotification(item);
- }
+ if(document.hidden)showSystemNotification(item);
+ else showNoticeBanner(translateText(item.title),translateText("Gusa kuona"),item.id,4500);
 }
 
 function updateNotifDot(){
@@ -1507,6 +1511,50 @@ async function decideStockRequest(id,approve){
  });
 }
 function resetProductModalButton(){const pq=document.getElementById("pQty");if(pq){pq.readOnly=false;pq.disabled=false;}const es=document.getElementById("editStockSection");if(es)es.style.display="none";const b=document.querySelector("#productModal .btn.blue");if(b){b.textContent=translateText("Hifadhi Bidhaa");b.onclick=addProduct}}
+// ===== V81: Bidhaa zilizofutwa (active=false) — Admin anaweza kurudisha au kufuta kabisa =====
+let archivedProducts=[];
+function isAdminNow(){return currentUserObj().role==="admin"}
+async function openArchivedProducts(){
+ if(!isAdminNow()){toast("Admin pekee anaweza kuona bidhaa zilizofutwa.");return}
+ document.getElementById("archivedModal").classList.add("show");await loadArchivedProducts();
+}
+async function loadArchivedProducts(){
+ const box=document.getElementById("archivedList");box.innerHTML=`<div class="empty">${translateText("Inapakia...")}</div>`;
+ if(!sbClient){box.innerHTML=`<div class="empty">${translateText("Hakuna mtandao")}</div>`;return}
+ const r=await sbClient.from('products').select('id,name,qty,price,image_url,updated_at').eq('active',false).order('updated_at',{ascending:false});
+ if(r.error){box.innerHTML=`<div class="empty">${translateText("Imeshindikana kupakia")}</div>`;console.warn(r.error);return}
+ archivedProducts=r.data||[];renderArchivedProducts();
+}
+function renderArchivedProducts(){
+ const box=document.getElementById("archivedList");if(!box)return;
+ if(!archivedProducts.length){box.innerHTML=`<div class="empty">${translateText("Hakuna bidhaa zilizofutwa")}</div>`;return}
+ box.innerHTML=archivedProducts.map(p=>`<div class="row" data-archived-id="${esc(p.id)}" style="padding:12px 0;border-bottom:1px solid #eee;gap:10px"><div style="min-width:0;flex:1"><b>${esc(p.name||"")}</b><div class="muted">${money(Number(p.price||0))}</div></div><button class="btn" style="background:#e8f0ff;color:#2450ff;padding:8px 12px;width:auto" onclick="restoreArchivedProduct('${esc(p.id)}')">${translateText("Rudisha")}</button><button class="btn" style="background:#ffe8ea;color:#e0263c;padding:8px 12px;width:auto" onclick="purgeArchivedProduct('${esc(p.id)}')">${translateText("Futa kabisa")}</button></div>`).join("");
+}
+async function restoreArchivedProduct(id){
+ return runOnce("archived-"+id,async()=>{
+  const r=await sbClient.from('products').update({active:true,updated_at:now().toISOString()}).eq('id',id).select('id');
+  if(r.error||!r.data?.length){toast("Haijarudishwa");return {ok:false}}
+  deletedProductIds=deletedProductIds.filter(x=>String(x)!==String(id));
+  archivedProducts=archivedProducts.filter(p=>String(p.id)!==String(id));renderArchivedProducts();
+  await syncProductsFromSupabase({silent:true});saveCloudState();render();toast("Bidhaa imerudishwa ✓");return {ok:true};
+ });
+}
+async function purgeArchivedProduct(id){
+ const p=archivedProducts.find(x=>String(x.id)===String(id));if(!p)return;
+ if(!confirm(translateText("Futa kabisa bidhaa "+(p.name||"")+"? Haitaweza kurudishwa.")))return;
+ return runOnce("archived-"+id,async()=>{
+  // Mauzo ya zamani yanabaki; tunaondoa tu kiungo cha bidhaa kwenye sale_items.
+  let r=await sbClient.from('products').delete().eq('id',id).select('id');
+  if(r.error&&r.error.code==="23503"){
+   const u=await sbClient.from('sale_items').update({product_id:null}).eq('product_id',id);
+   if(u.error){console.warn(u.error);toast("Haiwezi kufutwa kabisa: ina mauzo yaliyounganishwa");return {ok:false}}
+   r=await sbClient.from('products').delete().eq('id',id).select('id');
+  }
+  if(r.error||!r.data?.length){console.warn(r.error);toast("Haijafutwa kabisa");return {ok:false}}
+  archivedProducts=archivedProducts.filter(x=>String(x.id)!==String(id));renderArchivedProducts();toast("Imefutwa kabisa ✓");return {ok:true};
+ });
+}
+
 async function deleteProduct(id){
  return runOnce("product-delete",async()=>{
   if(!can("delete_products")){toast("Huna ruhusa ya kufuta bidhaa.");return {ok:false}}
@@ -2303,9 +2351,8 @@ async function scheduleRemoteNotificationRefresh(eventPayload){
   if(fresh.length){
    playNotificationSignal();
    const item=fresh[0];
-   const box=document.getElementById("notice");
-   if(box){box.style.display="flex";box.innerHTML=`<div class="notice-inner" role="button" tabindex="0" onclick="openNotification('${String(item.id).replace(/'/g,"\\'")}')"><img class="notice-logo" src="logo.png" alt="M-P-A"><div class="notice-copy"><div class="notice-title">${esc(translateText(conciseNotificationTitle(item.title)))}</div><div class="notice-detail">${esc(translateText(item.detail||"Taarifa mpya ya M-P-A"))}</div></div><div class="notice-bell">🔔</div></div>`;requestAnimationFrame(()=>box.classList.add("show"));clearTimeout(box._timer);box._timer=setTimeout(()=>{box.classList.remove("show");setTimeout(()=>{if(!box.classList.contains("show"))box.style.display="none"},240)},6000);}
-   for(const it of fresh.slice(0,3))showSystemNotification(it);
+   if(document.hidden){for(const it of fresh.slice(0,3))showSystemNotification(it);}
+   else showNoticeBanner(translateText(conciseNotificationTitle(item.title))+(fresh.length>1?" (+"+(fresh.length-1)+")":""),translateText("Gusa kuona"),item.id,4500);
   }
  }catch(e){console.warn('Remote notifications refresh failed',e)}
  finally{mpaLiveBusy=false}
