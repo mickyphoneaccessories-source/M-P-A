@@ -114,7 +114,6 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
 </style>
 <script src="vendor/html2canvas.min.js"></script>
 <script src="vendor/supabase.js"></script>
-<script>if(!(window.supabase&&window.supabase.createClient)){document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"><\/script>')}</script>
 </head>
 <body>
 <div id="notice" class="notice"></div><div id="refreshIndicator" class="refresh-indicator" aria-label="Inasasisha"></div>
@@ -412,7 +411,6 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
       <div class="settings-group-title">DATA</div>
       <div class="settings-ios-list">
         <button onclick="requestBrowserNotifications()"><span class="setting-icon" style="background:#11be27">🔔</span><span class="setting-main">Ruhusu arifa</span><b>›</b></button>
-        <button onclick="testNotificationSignal()"><span class="setting-icon" style="background:#f59e0b">🔊</span><span class="setting-main">Jaribu sauti na mtetemo</span><b>›</b></button>
         <button onclick="clearData()"><span class="setting-icon" style="background:#ff3040">⌫</span><span class="setting-main">Futa data ulizochagua</span><b>›</b></button>
       </div>
     </div>
@@ -542,7 +540,7 @@ function installAppUpdate(){
 if("serviceWorker" in navigator){let reloaded=false;navigator.serviceWorker.addEventListener("controllerchange",()=>{if(reloaded)return;reloaded=true;location.reload();});}
  
 
-renderAppVersion();setTimeout(()=>registerPushSubscription(),4000);
+renderAppVersion();
 function parseMoney(v){return Number(String(v??"").replace(/[^\d.-]/g,""))||0}
 function formatMoneyInput(el){
   const raw=String(el.value||"").replace(/[^\d]/g,"");
@@ -1093,72 +1091,28 @@ function openNotification(id){
  }
 }
 let autoNotifyTimer=null;
-let mpaAudioCtx=null,mpaAlertAudio=null,mpaAudioUnlocked=false;
-// V83: a short WAV built in code. An <audio> element unlocked by one tap can be replayed later on
-// iPhone and Android even after the Web Audio context was suspended in the background.
-function mpaAlertWavUrl(){
- const rate=22050,parts=[[880,0.22],[0,0.06],[1175,0.30]],n=parts.reduce((a,p)=>a+Math.floor(p[1]*rate),0);
- const buf=new ArrayBuffer(44+n*2),v=new DataView(buf),w=(o,t)=>{for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i))};
- w(0,"RIFF");v.setUint32(4,36+n*2,true);w(8,"WAVE");w(12,"fmt ");v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,rate,true);v.setUint32(28,rate*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,"data");v.setUint32(40,n*2,true);
- let o=44;for(const [f,d] of parts){const len=Math.floor(d*rate);for(let i=0;i<len;i++){const env=Math.min(1,i/300,(len-i)/600);const val=f?Math.sin(2*Math.PI*f*i/rate)*0.55*env:0;v.setInt16(o,val*32767,true);o+=2}}
- let bin="";const b=new Uint8Array(buf);for(let i=0;i<b.length;i+=8192)bin+=String.fromCharCode.apply(null,b.subarray(i,i+8192));
- return "data:audio/wav;base64,"+btoa(bin);
-}
-function unlockNotificationAudio(){
- try{const Ctx=window.AudioContext||window.webkitAudioContext;if(Ctx){if(!mpaAudioCtx)mpaAudioCtx=new Ctx();if(mpaAudioCtx.state!=="running")mpaAudioCtx.resume().catch(()=>{});}}catch(e){}
- try{
-  if(!mpaAlertAudio){mpaAlertAudio=new Audio(mpaAlertWavUrl());mpaAlertAudio.preload="auto";mpaAlertAudio.setAttribute("playsinline","");}
-  if(!mpaAudioUnlocked){const a=mpaAlertAudio;a.muted=true;const pr=a.play();if(pr&&pr.then)pr.then(()=>{a.pause();a.currentTime=0;a.muted=false;mpaAudioUnlocked=true}).catch(()=>{a.muted=false});}
- }catch(e){}
-}
-if(typeof document!=="undefined"){for(const ev of ["pointerdown","touchend","click","keydown"])document.addEventListener(ev,unlockNotificationAudio,{passive:true});}
-// iPhone Safari has no navigator.vibrate; iOS 18+ gives a haptic tap when a switch checkbox toggles.
-function mpaIosHaptic(){
- try{let l=document.getElementById("mpaHapticLabel");if(!l){l=document.createElement("label");l.id="mpaHapticLabel";l.style.cssText="position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none";const i=document.createElement("input");i.type="checkbox";i.setAttribute("switch","");l.appendChild(i);document.body.appendChild(l);}l.click();}catch(e){}
-}
-function mpaVibrate(pattern){
- let ok=false;try{if(navigator.vibrate)ok=navigator.vibrate(pattern);}catch(e){}
- if(!ok&&mpaDeviceKind()==="ios"){mpaIosHaptic();setTimeout(mpaIosHaptic,300);}
- return ok;
-}
+let mpaAudioCtx=null;
+function unlockNotificationAudio(){try{const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;if(!mpaAudioCtx)mpaAudioCtx=new Ctx();if(mpaAudioCtx.state==="suspended")mpaAudioCtx.resume().catch(()=>{});}catch(e){}}
+if(typeof document!=="undefined"){document.addEventListener("pointerdown",unlockNotificationAudio,{passive:true});document.addEventListener("keydown",unlockNotificationAudio);}
 // V79: Android Chrome blocks new Notification(); a service-worker notification works on Android,
 // computers and iPhone apps added to the Home Screen.
 async function showSystemNotification(item){
  if(!("Notification" in window)||Notification.permission!=="granted"||!item)return;
- const title=translateText(conciseNotificationTitle(item.title)),opts={body:translateText(item.detail||'Taarifa mpya ya M-P-A'),icon:'./logo.png',badge:'./logo.png',tag:'mpa-'+item.id,renotify:true,silent:false,requireInteraction:false,vibrate:[220,80,220,80,320],data:{id:String(item.id)}};
+ const title=translateText(conciseNotificationTitle(item.title)),opts={body:translateText(item.detail||'Taarifa mpya ya M-P-A'),icon:'./logo.png',badge:'./logo.png',tag:'mpa-'+item.id,renotify:true,vibrate:[220,80,220],data:{id:String(item.id)}};
  try{const reg=("serviceWorker" in navigator)?await navigator.serviceWorker.getRegistration():null;if(reg&&reg.showNotification){await reg.showNotification(title,opts);return}}catch(e){}
  try{const bn=new Notification(title,opts);bn.onclick=()=>{try{window.focus()}catch(e){};openNotification(item.id);try{bn.close()}catch(e){}};}catch(e){}
 }
 if("serviceWorker" in navigator)navigator.serviceWorker.addEventListener("message",e=>{if(e.data?.type==="mpa-open-notification"&&e.data.id)setTimeout(()=>openNotification(e.data.id),300)});
 function playNotificationSignal(){
  // Vibration + two-tone alert sound for every notification (admin na user), local na remote.
- mpaVibrate([220,80,220,80,320]);
- let played=false;
+ try{if(navigator.vibrate)navigator.vibrate([220,80,220,80,320]);}catch(e){}
  try{
   unlockNotificationAudio();
-  const a=mpaAlertAudio;
-  if(a){try{if(navigator.audioSession)navigator.audioSession.type="playback";}catch(e){}
-   a.muted=false;a.volume=1;try{a.currentTime=0}catch(e){}
-   const pr=a.play();played=true;
-   if(pr&&pr.catch)pr.catch(()=>webAudioBeep());
-   setTimeout(()=>{try{if(navigator.audioSession)navigator.audioSession.type="auto"}catch(e){}},1500);
-  }
- }catch(e){}
- if(!played)webAudioBeep();
-}
-function webAudioBeep(){
- try{
   const ctx=mpaAudioCtx;
-  if(!ctx)return;
-  if(ctx.state!=="running"){ctx.resume().catch(()=>{});if(ctx.state!=="running")return;}
+  if(!ctx||ctx.state!=="running")return;
   const tone=(freq,start,dur)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type="sine";o.frequency.value=freq;const t=ctx.currentTime+start;g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.18,t+0.03);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+dur+0.02);};
   tone(880,0,0.25);tone(1174.66,0.28,0.32);
  }catch(e){}
-}
-function testNotificationSignal(){
- unlockNotificationAudio();playNotificationSignal();
- const canVibrate=typeof navigator.vibrate==="function";
- toast(canVibrate?"Umesikia sauti na mtetemo? Kama hapana, ongeza sauti ya simu na zima Silent.":"Umesikia sauti? iPhone: zima Silent. Mtetemo unakuja kwenye arifa za simu.");
 }
 function conciseNotificationTitle(title){
  const t=String(title||'').toLowerCase();
@@ -1179,7 +1133,6 @@ function notify(title,detail,targetPage,targetId,opts={}){
  updateNotifDot();
  renderNotifications();
  playNotificationSignal();
- if(opts.persist!==false&&opts.push!==false)sendRemotePush(item);
  if(document.hidden)showSystemNotification(item);
  else showNoticeBanner(translateText(item.title),translateText("Gusa kuona"),item.id,4500);
 }
@@ -1190,30 +1143,10 @@ function updateNotifDot(){
  dot.classList.toggle("hidden",count===0);dot.classList.toggle("count",count>0);
  dot.textContent=count>99?"99+":String(count);
 }
-// V84: Push notifications (lock screen / app nyingine). Public key tu iko hapa; private key iko Supabase secrets.
-const MPA_VAPID_PUBLIC_KEY="BIWYoyT7PUKxBBbluNZeACXDw2ioRsEVGfKVdB5T26b5DGaro9QsvQxqoIm6vXlgmhZRyeLjMbxxHwooO1UmsFc";
-function mpaB64ToBytes(b){const p="=".repeat((4-b.length%4)%4),r=atob((b+p).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from(r,c=>c.charCodeAt(0))}
-async function registerPushSubscription(){
- try{
-  if(!sbClient||!authProfile||!("serviceWorker" in navigator)||!("PushManager" in window)||!("Notification" in window)||Notification.permission!=="granted")return false;
-  const reg=await navigator.serviceWorker.ready;
-  let sub=await reg.pushManager.getSubscription();
-  if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:mpaB64ToBytes(MPA_VAPID_PUBLIC_KEY)});
-  const j=sub.toJSON(),{data:u}=await sbClient.auth.getUser();if(!u?.user)return false;
-  const {error}=await sbClient.from("push_subscriptions").upsert({endpoint:j.endpoint,user_id:u.user.id,username:currentUser(),p256dh:j.keys.p256dh,auth:j.keys.auth,updated_at:new Date().toISOString()},{onConflict:"endpoint"});
-  if(error)console.warn("push subscription save failed",error);
-  return !error;
- }catch(e){console.warn("push subscribe failed",e);return false}
-}
-function sendRemotePush(item){
- try{if(!sbClient||!authProfile||navigator.onLine===false||!item)return;
-  sbClient.functions.invoke("mpa-send-push",{body:{id:String(item.id),title:translateText(conciseNotificationTitle(item.title)),body:(currentUser()?currentUser()+" · ":"")+translateText("Gusa kuona")}}).catch(()=>{});
- }catch(e){}
-}
 function requestBrowserNotifications(){
  if(!("Notification" in window)){toast("Browser hii haitumii notifications.");return}
  if(mpaDeviceKind()==="ios"&&!(window.navigator.standalone||matchMedia("(display-mode: standalone)").matches)){toast("Kwenye iPhone: Share → Add to Home Screen, fungua app kutoka Home Screen, kisha ruhusu notifications.");return}
- unlockNotificationAudio();Notification.requestPermission().then(x=>{if(x==="granted"){playNotificationSignal();registerPushSubscription();}toast(x==="granted"?"Notifications zimeruhusiwa ✓":"Notifications hazijaruhusiwa. Ruhusu kwenye settings za kivinjari.")});
+ Notification.requestPermission().then(x=>toast(x==="granted"?"Notifications zimeruhusiwa ✓":"Notifications hazijaruhusiwa. Ruhusu kwenye settings za kivinjari."));
 }
 function setLogin(role){
  loginRole=role;
@@ -2452,7 +2385,7 @@ async function scheduleRemoteNotificationRefresh(eventPayload){
  finally{mpaLiveBusy=false}
 }
 // Realtime can miss events (large rows, sleeping phones), so a small check runs every 15s while the app is open.
-function startLivePolling(){registerPushSubscription();if(mpaLiveTimer)clearInterval(mpaLiveTimer);mpaLiveTimer=setInterval(()=>{if(authProfile&&navigator.onLine!==false)scheduleRemoteNotificationRefresh()},document.hidden?20000:15000)}
+function startLivePolling(){if(mpaLiveTimer)clearInterval(mpaLiveTimer);mpaLiveTimer=setInterval(()=>{if(authProfile&&navigator.onLine!==false)scheduleRemoteNotificationRefresh()},document.hidden?20000:15000)}
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&authProfile)scheduleRemoteNotificationRefresh()});
 window.addEventListener("focus",()=>{if(authProfile)scheduleRemoteNotificationRefresh()});
 function startSupabaseRealtime(){
