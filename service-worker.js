@@ -72,7 +72,7 @@ self.addEventListener("fetch", event => {
 
 self.addEventListener("message", event => { if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting(); });
 
-// V79: Open the app on the tapped notification (Android, computers, iPhone Home Screen app).
+// V80: Open the app on the tapped notification (Android, computers, iPhone Home Screen app).
 self.addEventListener("notificationclick", event => {
   event.notification.close();
   const id = event.notification.data && event.notification.data.id;

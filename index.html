@@ -170,7 +170,6 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
       <button class="quick" onclick="showPage('sales',null)"><div class="qi" style="background:#f0f0f0">🎥</div><span>Mauzo</span></button>
       <button class="quick" onclick="openDebts()"><div class="qi" style="background:#e8efff">💰</div><span>Madeni</span></button>
     </div>
-    <div class="card" id="homeDebtCard" role="button" tabindex="0" onclick="openDebts()" style="cursor:pointer;margin-top:12px"><div class="row"><div><b>Madeni</b><div class="muted" id="homeDebtCount">0</div></div><strong class="red" id="homeDebtTotal">TZS 0</strong></div></div>
     <div class="sectiontitle">Muhtasari wa leo</div>
     <div class="stats">
       <div class="stat"><small>Mauzo ya leo</small><strong id="todaySales">TZS 0</strong></div>
@@ -501,7 +500,7 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
 <script src="translations.js"></script>
 <script>
 // M-P-A v41: do not reload the entire app state on realtime app-state events; only merge notifications.
-const MPA_APP_VERSION = "V79";
+const MPA_APP_VERSION = "V80";
 function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="Toleo: "+MPA_APP_VERSION;}
 let mpaWaitingWorker=null;
 function setUpdateUI(state,msg){
@@ -1568,7 +1567,7 @@ function renderProducts(){
    sort
  });
  list.innerHTML=arr.length?arr.map(p=>`<div class="productrow" data-product-id="${p.id}" onclick='openStock(${JSON.stringify(p.id)})'><img class="pimg" src="${p.image||'icon.svg'}" alt="" loading="lazy" decoding="async" style="cursor:zoom-in" data-zoom-src="${esc(String(p.image||'icon.svg'))}" onclick="event.stopPropagation();openSaleImage(this.dataset.zoomSrc)"><div class="pinfo"><b>${esc(p.name)}</b><small>${p.qty}${translateText(" in stock" )}${p.category?" • "+esc(p.category):""}</small></div><div class="pprice"><b>${Number(p.price||0).toLocaleString("en-US")}</b><small>${translateText("TZS" )}</small><div style="margin-top:6px;display:flex;gap:5px;justify-content:flex-end" onclick="event.stopPropagation()"><button type="button" class="btn small" onclick="event.preventDefault();event.stopPropagation();editProduct(this.closest('[data-product-id]').dataset.productId)">${translateText("Hariri" )}</button>${can("delete_products")?`<button type="button" class="btn small red" onclick="event.preventDefault();event.stopPropagation();deleteProduct(this.closest('[data-product-id]').dataset.productId)">${translateText("Futa" )}</button>`:""}</div></div></div>`).join(""):`<div class='empty'>${translateText("Hakuna bidhaa kwenye kundi hili.")}</div>`;
- document.getElementById("sumProducts").textContent=products.length;document.getElementById("sumBuy").textContent=money(products.reduce((a,p)=>a+p.buy*p.qty,0));document.getElementById("sumSell").textContent=money(products.reduce((a,p)=>a+p.price*p.qty,0));
+ document.getElementById("sumProducts").textContent=products.length;const showPrices=can("view_product_prices");document.getElementById("sumBuy").textContent=showPrices?money(products.reduce((a,p)=>a+p.buy*p.qty,0)):"****";document.getElementById("sumSell").textContent=showPrices?money(products.reduce((a,p)=>a+p.price*p.qty,0)):"****";
 }
 function toggleProductFilter(){document.getElementById("productFilter").classList.toggle("hidden")}
 function refreshCategories(){
@@ -1692,12 +1691,12 @@ function saleItemsCount(s){return s.items?s.items.reduce((a,x)=>a+Number(x.qty||
 function saleProductsText(s){return s.items?s.items.map(x=>x.product+" × "+x.qty).join(", "):((s.product||"Mauzo")+" × "+(s.qty||1))}
 function renderSalesHistory(){
  const search=(document.getElementById("salesSearch")?.value||"").toLowerCase(),day=document.getElementById("salesDay")?.value||dateKey(now());
- let arr=[...sales].filter(s=>dateKey(s.date)===day);
+ let arr=salesTab==="debt"?[...sales].filter(s=>saleDebtBalance(s)>0).sort((a,b)=>new Date(b.date)-new Date(a.date)):[...sales].filter(s=>dateKey(s.date)===day);
  if(salesTab==='paid')arr=arr.filter(s=>saleDebtBalance(s)<=0);if(salesTab==='debt')arr=arr.filter(s=>saleDebtBalance(s)>0);
  if(search)arr=arr.filter(s=>(saleProductsText(s)+" "+(s.customer||"")+" "+(s.user||"")).toLowerCase().includes(search));
  const total=arr.reduce((a,s)=>a+Number(s.total||0),0),orders=arr.length,items=arr.reduce((a,s)=>a+saleItemsCount(s),0),customers=new Set(arr.map(s=>s.customer||"Mteja")).size;
  document.getElementById("salesSummaryTotal").textContent=money(total);document.getElementById("salesSummaryOrders").textContent=orders;document.getElementById("salesSummaryItems").textContent=items;document.getElementById("salesSummaryCustomers").textContent=customers;
- const d=new Date(day+"T12:00:00");document.getElementById("salesDayTitle").textContent=day===dateKey(now())?translateText("Today"):d.toLocaleDateString("en-GB",{day:"2-digit",month:"2-digit",year:"numeric"});
+ const d=new Date(day+"T12:00:00");document.getElementById("salesDayTitle").textContent=salesTab==="debt"?translateText("Madeni yote"):day===dateKey(now())?translateText("Today"):d.toLocaleDateString("en-GB",{day:"2-digit",month:"2-digit",year:"numeric"});
  const el=document.getElementById("salesList");el.innerHTML=arr.length?arr.slice(0,100).map(s=>`<div class="sale-history-item" data-sale-id="${s.id}" onclick='openSaleDetails(${JSON.stringify(String(s.id))})'><div class="sale-history-top"><b>${translateText("Order #: " )}${String(s.id).slice(-8)}</b><span>${niceDate(s.date)}</span><span>${timeNow(s.date)}</span></div><div class="sale-history-meta"><span>${translateText("Mteja: " )}${esc(s.customer||translateText("Unknown"))}<br>${translateText("Muuzaji: " )}${esc(s.user||translateText("Admin"))}</span><strong>${money(s.total)}</strong></div><div class="sale-history-status ${saleDebtBalance(s)>0?translateText('debt'):translateText('paid')}">${saleDebtBalance(s)>0?translateText('Haijalipwa'):translateText('Imelipwa')}${s.discount?` • Punguzo ${money(s.discount)}`:""}</div><div class="muted" style="margin-top:7px">${esc(saleProductsText(s))} <span style="float:right;color:var(--blue)">›</span></div></div>`).join(""):`<div class='empty'>${translateText("Hakuna mauzo kwa siku hii.")}</div>`;
 }
 let salesDayUserSelected=false;
