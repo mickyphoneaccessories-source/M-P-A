@@ -168,8 +168,9 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
       <button class="quick" onclick="showPage('expenses',null)"><div class="qi" style="background:#faeaff">🧾</div><span>Matumizi</span></button>
       <button class="quick" onclick="showPage('reports',null)"><div class="qi" style="background:#fff0df">📈</div><span>Uchambuzi</span></button>
       <button class="quick" onclick="showPage('sales',null)"><div class="qi" style="background:#f0f0f0">🎥</div><span>Mauzo</span></button>
-      <button class="quick" onclick="showPage('customers',null)"><div class="qi" style="background:#e8efff">💰</div><span>Madeni</span></button>
+      <button class="quick" onclick="openDebts()"><div class="qi" style="background:#e8efff">💰</div><span>Madeni</span></button>
     </div>
+    <div class="card" id="homeDebtCard" role="button" tabindex="0" onclick="openDebts()" style="cursor:pointer;margin-top:12px"><div class="row"><div><b>Madeni</b><div class="muted" id="homeDebtCount">0</div></div><strong class="red" id="homeDebtTotal">TZS 0</strong></div></div>
     <div class="sectiontitle">Muhtasari wa leo</div>
     <div class="stats">
       <div class="stat"><small>Mauzo ya leo</small><strong id="todaySales">TZS 0</strong></div>
@@ -216,7 +217,7 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
 
     <div id="saleEntryView" class="sale-entry-screen hidden">
       <div class="sale-entry-head"><button class="sale-back" onclick="closeSaleEntry()">‹</button><h2>Uza bidhaa</h2><span class="sale-camera">◼</span></div>
-      <div class="field"><label>Mteja (Sio lazima)</label><button class="sale-customer-field" onclick="focusSaleCustomer()"><span data-runtime-copy id="saleCustomerLabel">Rekodi mteja uliemuuzia</span><b>›</b></button><input id="saleCustomer" class="sale-customer-input hidden" placeholder="Jina la mteja"></div>
+      <div class="field"><label id="saleCustomerTitle">Mteja (Sio lazima)</label><button class="sale-customer-field" onclick="focusSaleCustomer()"><span data-runtime-copy id="saleCustomerLabel">Rekodi mteja uliemuuzia</span><b>›</b></button><div id="saleCustomerBox" class="hidden"><div style="display:flex;gap:8px;align-items:center"><input id="saleCustomer" class="sale-customer-input" style="flex:1" placeholder="Jina la mteja" autocomplete="name"><button type="button" class="btn small" id="saleContactBtn" aria-label="Chagua kutoka contacts" title="Chagua kutoka contacts" onclick="pickSaleContact()">📇</button></div><input id="saleCustomerPhone" class="sale-customer-input" style="margin-top:8px" type="tel" inputmode="tel" autocomplete="tel" placeholder="Namba ya simu ya mteja (07...)"><small id="saleCustomerHint" class="muted hidden">Jina na namba ya simu vinahitajika kwa mauzo ambayo hayajalipwa.</small></div></div>
       <div class="field"><label>Terehe ya mauzo</label><input id="saleDate" class="sale-date-input" type="date"></div>
       <div class="sale-section-label">Bidhaa za Oda</div>
       <div id="saleCart" class="sale-cart"></div>
@@ -314,6 +315,7 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
   </section>
 
   <section id="notifications" class="page">
+    <div id="stockRequestList"></div>
     <div class="row sectiontitle"><span>Arifa</span><button class="btn small" onclick="markNotificationsRead()">Soma zote</button></div>
     <div id="notificationList" class="card notiflist"></div>
   </section>
@@ -444,9 +446,18 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
   <div class="two" style="margin-top:8px"><button type="button" id="stockAddBtn" class="btn green" onclick="changeStock('add')">＋ Ongeza Stock</button><button type="button" id="stockRemoveBtn" class="btn red" onclick="changeStock('remove')">− Punguza Stock</button></div>
   <div class="field"><label>Idadi</label><input id="stockQty" type="number" min="1" value="1"></div>
   <div class="field"><label>Maelezo</label><input id="stockNote" placeholder="Mfano mzigo mpya"></div>
-  <button type="button" class="btn" style="width:100%" onclick="applyStockChange()">Thibitisha Stock</button>
+  <button type="button" class="btn" style="width:100%" id="stockApplyBtn" onclick="applyStockChange()">Thibitisha Stock</button>
   <div id="productHistory" class="card" style="margin-top:12px"></div>
   </div>
+ </div>
+</div>
+
+<div id="debtPaymentModal" class="modalback" style="z-index:230">
+ <div class="modal">
+  <div class="modalhead"><h2>Lipa Deni</h2><button class="close" onclick="closeModal('debtPaymentModal')">×</button></div>
+  <div id="debtPaymentInfo" class="card"></div>
+  <div class="field"><label>Kiasi kinacholipwa (TZS)</label><input id="debtPayAmount" type="number" min="1" inputmode="numeric"></div>
+  <button type="button" id="debtPayBtn" class="btn green" style="width:100%" onclick="paySaleDebt()">Hifadhi malipo</button>
  </div>
 </div>
 
@@ -589,7 +600,7 @@ const sbClient=(window.supabase&&window.supabase.createClient)?window.supabase.c
 let authProfile=null, loginRole="user", productTab="all", selectedStockId=null, selectedImage="";
 // M-P-A V21: Supabase is the ONLY persistent application datastore.
 let snapshotProducts=[];
-let products=[], sales=[], customers=[], expenses=[], movements=[], notifications=[];
+let products=[], sales=[], customers=[], expenses=[], movements=[], notifications=[], stockRequests=[];
 let goalTarget=10000000, monthlyGoals={}, branches=[], activeBranch="", storeName="Micky Phone Accessories", language=readLanguagePreference(), fontSize=100;
 function monthKey(d=now()){return dateKey(d).slice(0,7);}
 function monthLabel(d=now()){return new Date(d).toLocaleDateString(language==='en'?'en-GB':'sw-TZ',{month:"long",timeZone:MPA_TIMEZONE});}
@@ -810,12 +821,12 @@ async function deleteProductFromSupabase(p){
 function supabaseSaleRow(s){
  const branchId=(activeBranch&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(activeBranch)))?String(activeBranch):null;
  const saleId=s.supabaseId||crypto.randomUUID();
- const total=Number(s.total||0),paid=s.paid!==false;
+ const total=Number(s.total||0);
  s.supabaseId=saleId;
  // M-P-A V22: Supabase's legacy `sales.paid` column may be numeric.
  // Store payment state as 1/0 instead of a JS boolean so numeric schemas
  // do not fail with 22P02 ("invalid input syntax for type numeric: \"true\"").
- return {id:saleId,branch_id:branchId,customer_id:null,sold_by:authProfile?.id||null,sale_date:s.date||now().toISOString(),subtotal:Number(s.subtotal||0),discount:Number(s.discount||0),total,paid:paid?1:0,debt:paid?0:total,payment_status:paid?'paid':'unpaid',notes:String(s.note||''),created_at:s.date||now().toISOString()};
+ return {id:saleId,branch_id:branchId,customer_id:null,sold_by:authProfile?.id||null,sale_date:s.date||now().toISOString(),subtotal:Number(s.subtotal||0),discount:Number(s.discount||0),total,paid:saleDebtBalance(s)<=0?1:0,debt:saleDebtBalance(s),payment_status:saleDebtBalance(s)<=0?'paid':(Number(s.amountPaid||0)>0?'partial':'unpaid'),notes:saleRecordNotes(s),created_at:s.date||now().toISOString()};
 }
 async function syncSaleToSupabase(s){
  if(!sbClient||!authProfile)return {ok:false,skipped:true};
@@ -881,7 +892,7 @@ async function syncSalesFromSupabase({silent=false,preloadedSales}={}){
     return {productId:p?.id||i.product_id,product:p?.name||priorSale?.items?.find(x=>String(x.productId)===String(i.product_id))?.product||'Bidhaa',qty,price,buy,lineTotal:Number(i.total??price*qty)};
    });
    const total=Number(r.total||0),subtotal=Number(r.subtotal||total),discount=Number(r.discount||0),remotePaid=Number(r.paid)!==0;
-   return {id:r.id,items,productId:items[0]?.productId,product:items[0]?.product||'Bidhaa',qty:items[0]?.qty||0,price:items[0]?.price||0,discount,total,subtotal,profit:Number(r.profit||items.reduce((a,x)=>a+(x.price-x.buy)*x.qty,0)-discount),customer:r.customer_name||priorSale?.customer||'Mteja',date:r.sale_date||r.created_at||now().toISOString(),user:priorSale?.user||users.find(u=>String(u.id)===String(r.sold_by))?.username||r.sold_by||'Admin',paid:remotePaid,note:r.notes||'',branchId:r.branch_id||'',supabaseId:r.id,supabaseSynced:true,pendingSync:false};
+   return {id:r.id,items,productId:items[0]?.productId,product:items[0]?.product||'Bidhaa',qty:items[0]?.qty||0,price:items[0]?.price||0,discount,total,subtotal,profit:Number(r.profit||items.reduce((a,x)=>a+(x.price-x.buy)*x.qty,0)-discount),customer:saleReadNotes(r.notes).customer||r.customer_name||priorSale?.customer||'Mteja',customerPhone:saleReadNotes(r.notes).customerPhone||priorSale?.customerPhone||'',payments:saleReadNotes(r.notes).payments||[],amountPaid:Number.isFinite(Number(r.debt))&&r.debt!==null?Math.max(0,total-Number(r.debt)):(remotePaid?total:0),debt:Number.isFinite(Number(r.debt))&&r.debt!==null?Number(r.debt):(remotePaid?0:total),date:r.sale_date||r.created_at||now().toISOString(),user:priorSale?.user||users.find(u=>String(u.id)===String(r.sold_by))?.username||r.sold_by||'Admin',paid:(Number.isFinite(Number(r.debt))&&r.debt!==null)?Number(r.debt)<=0:remotePaid,note:saleReadNotes(r.notes).note,branchId:r.branch_id||'',supabaseId:r.id,supabaseSynced:true,pendingSync:false};
   });
   const remoteMappedFiltered=remoteMapped.filter(r=>!deletedSaleIds.includes(String(r.supabaseId||r.id)));
   const remoteIds=new Set(remoteMappedFiltered.map(r=>String(r.supabaseId??r.id)));
@@ -926,6 +937,7 @@ async function loadCloudState({preserveSales=false}={}){
    expenses=Array.isArray(st.expenses)?st.expenses.filter(x=>!deletedExpenseIds.includes(String(x.id))):[];
    movements=Array.isArray(st.movements)?st.movements:[];
    notifications=Array.isArray(st.notifications)?st.notifications:[];
+   stockRequests=Array.isArray(st.stockRequests)?st.stockRequests:[];
    branches=Array.isArray(st.branches)?st.branches:[];
    users=Array.isArray(st.users)?st.users.filter(u=>!deletedUserIds.includes(String(u.id))):[];
    goalTarget=Number(st.goalTarget||10000000);
@@ -977,8 +989,9 @@ async function saveCloudState(){
     // bidhaa iliyofutwa DB isirudishwe na snapshot ya zamani (hushughulikiwa kwenye merge).
     sales=sales.filter(x=>!deletedSaleIds.includes(String(x.id))&&!deletedSaleIds.includes(String(x.supabaseId)));
     expenses=expenses.filter(x=>!deletedExpenseIds.includes(String(x.id)));
+    stockRequests=mergeStockRequests(remoteState.stockRequests,stockRequests);
     const safeUsers=users.map(({password,...u})=>({...u}));
-    const payload={products:products.map(({imageLoaded,...rest})=>rest),sales,customers,expenses,movements,notifications:notifications.slice(0,200),users:safeUsers,goalTarget:currentGoalTarget(),monthlyGoals,branches,activeBranch,storeName,language,fontSize,deletedSaleIds,deletedExpenseIds,deletedProductIds,deletedUserIds};
+    const payload={products:products.map(({imageLoaded,...rest})=>rest),sales,customers,expenses,movements,notifications:notifications.slice(0,200),stockRequests:stockRequests.slice(0,300),users:safeUsers,goalTarget:currentGoalTarget(),monthlyGoals,branches,activeBranch,storeName,language,fontSize,deletedSaleIds,deletedExpenseIds,deletedProductIds,deletedUserIds};
     // Add a unique token for read-after-write verification.
     const stamp=now().toISOString()+"-"+Math.random().toString(36).slice(2,10);
     payload.__mpaWriteToken=stamp;
@@ -1063,6 +1076,7 @@ function playNotificationSignal(){
 }
 function conciseNotificationTitle(title){
  const t=String(title||'').toLowerCase();
+ if(t.includes('ombi'))return String(title);
  if(t.includes('mauzo'))return t.includes('futwa')?'Mauzo yamefutwa':'Kuna mauzo mapya';
  if(t.includes('bidhaa'))return t.includes('futwa')?'Bidhaa imefutwa':(t.includes('hariri')?'Bidhaa imebadilishwa':'Bidhaa imeongezwa');
  if(t.includes('matumizi'))return t.includes('futwa')?'Matumizi yamefutwa':'Matumizi mapya yameongezwa';
@@ -1347,7 +1361,7 @@ function clearProductForm(){
 
 function openProductModal(){
  if(!can("add_stock")&&!can("create_products")){toast("Huna ruhusa ya kuongeza bidhaa/stock.");return}
- clearProductForm();delete document.getElementById("productModal").dataset.pendingId;
+ clearProductForm();resetProductModalButton();delete document.getElementById("productModal").dataset.pendingId;
  document.getElementById("productModal").classList.add("show");
 }
 function closeModal(id){document.getElementById(id).classList.remove("show")}
@@ -1397,13 +1411,17 @@ function editProduct(id){productImagePromise=Promise.resolve();
  document.getElementById("productModal").classList.add("show");
  document.querySelector("#productModal .btn.blue").textContent=translateText("Hifadhi Mabadiliko");
  document.querySelector("#productModal .btn.blue").onclick=updateProduct;
+ const pq=document.getElementById("pQty");pq.readOnly=true;pq.disabled=true;pq.title=translateText("Badilisha idadi kupitia Ongeza/Punguza Stock");
+ const ab=document.getElementById("stockApplyBtn");if(ab)ab.textContent=translateText(isRealAdmin()?"Thibitisha Stock":"Omba Ruhusa kwa Admin");
+ if(!isRealAdmin())document.querySelector("#productModal .btn.blue").textContent=translateText("Omba Ruhusa kwa Admin");
  const es=document.getElementById("editStockSection");if(es){es.style.display="block";stockMode="add";markStockMode();document.getElementById("stockQty").value=1;document.getElementById("stockNote").value="";renderProductHistory(p.id);}
 }
 async function updateProduct(){
  return runOnce("product-save",async()=>{
   const p=products.find(x=>String(x.id)===String(selectedStockId)||String(x.supabaseId)===String(selectedStockId));if(!p){toast('Bidhaa haijapatikana. Funga dirisha na ujaribu tena.');return {ok:false};}
   try{await productImagePromise;}catch(e){toast(e.message);return {ok:false,error:e};}
-  const before=JSON.parse(JSON.stringify(p));const oldQty=p.qty;const name=document.getElementById("pName").value.trim();const qty=Number(document.getElementById("pQty").value||0);if(!name||qty<0){toast("Jaza taarifa sahihi.");return {ok:false}}
+  const before=JSON.parse(JSON.stringify(p));const oldQty=p.qty;const name=document.getElementById("pName").value.trim();const qty=oldQty;if(!name){toast("Jaza taarifa sahihi.");return {ok:false}}
+  if(!isRealAdmin()){const proposed={name,category:document.getElementById("pCategory").value.trim(),buy:getPriceValue("pBuy"),price:getPriceValue("pPrice"),image:selectedImage||p.image||""};const changed=Object.keys(proposed).filter(k=>String(proposed[k]??"")!==String(p[k]??""));if(!changed.length){toast("Hakuna mabadiliko.");return {ok:false}}const r=await submitStockRequest({type:"edit",product:p,changes:Object.fromEntries(changed.map(k=>[k,proposed[k]])),before:Object.fromEntries(changed.map(k=>[k,p[k]]))});if(r.ok){closeModal("productModal");resetProductModalButton();}return r;}
   p.name=name;p.category=document.getElementById("pCategory").value.trim();p.code="";p.buy=getPriceValue("pBuy");p.price=getPriceValue("pPrice");p.qty=qty;p.image=selectedImage||p.image||"";p.updatedAt=now().toISOString();
 
   const remote=await syncProductToSupabase(p);
@@ -1413,7 +1431,49 @@ async function updateProduct(){
  });
 }
 
-function resetProductModalButton(){const es=document.getElementById("editStockSection");if(es)es.style.display="none";const b=document.querySelector("#productModal .btn.blue");if(b){b.textContent=translateText("Hifadhi Bidhaa");b.onclick=addProduct}}
+
+// V77: Mabadiliko ya stock/bidhaa ya user yanahitaji idhini ya admin kabla ya kuingia kwenye mfumo.
+function isRealAdmin(){return authProfile?.role==="admin"}
+function mergeStockRequests(remote,local){const m=new Map();const rank=r=>r&&r.status&&r.status!=="pending"?1:0;for(const r of [...(Array.isArray(remote)?remote:[]),...(Array.isArray(local)?local:[])]){if(!r||r.id==null)continue;const k=String(r.id),o=m.get(k);if(!o||rank(r)>rank(o)||(rank(r)===rank(o)&&String(r.updatedAt||"")>=String(o.updatedAt||"")))m.set(k,r)}return [...m.values()].sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||"")))}
+async function submitStockRequest({type,product,qty=0,note="",changes=null,before=null}){
+ if(stockRequests.some(r=>r.status==="pending"&&String(r.productId)===String(product.id)&&r.type===type&&r.user===currentUser()&&r.qty===qty&&JSON.stringify(r.changes||null)===JSON.stringify(changes))){toast("Ombi hili tayari linasubiri idhini ya Admin.");return {ok:false,duplicate:true}}
+ const req={id:crypto.randomUUID(),type,productId:product.id,productName:product.name,qty:Number(qty||0),note,changes,before,qtyAtRequest:product.qty,user:currentUser(),status:"pending",createdAt:now().toISOString(),updatedAt:now().toISOString()};
+ stockRequests.unshift(req);
+ const res=await saveCloudState();
+ if(!res?.ok){stockRequests=stockRequests.filter(r=>r.id!==req.id);toast("Ombi halijatumwa; jaribu tena.");return {ok:false}}
+ notify("Ombi la bidhaa: "+product.name,"","notifications",req.id);
+ toast("Ombi limetumwa kwa Admin ✓ Litaingia baada ya kuthibitishwa.");renderStockRequests();return {ok:true,request:req};
+}
+function stockRequestText(r){if(r.type==="add")return translateText("Ongeza stock")+" +"+r.qty;if(r.type==="remove")return translateText("Punguza stock")+" -"+r.qty;const lab={name:"Jina",category:"Kategoria",buy:"Bei ya kununua",price:"Bei ya kuuza",image:"Picha"};return Object.keys(r.changes||{}).map(k=>k==="image"?translateText("Picha mpya"):translateText(lab[k]||k)+": "+esc(String(k==="buy"||k==="price"?money(r.before?.[k]):r.before?.[k]??""))+" → "+esc(String(k==="buy"||k==="price"?money(r.changes[k]):r.changes[k]))).join("<br>")}
+function renderStockRequests(){
+ const el=document.getElementById("stockRequestList");if(!el)return;
+ const admin=isRealAdmin();const list=stockRequests.filter(r=>admin?r.status==="pending":r.user===currentUser()).slice(0,30);
+ if(!list.length){el.innerHTML="";return}
+ const st={pending:"Inasubiri Admin",approved:"Imekubaliwa",rejected:"Imekataliwa"};
+ el.innerHTML=`<div class="row sectiontitle"><span>${translateText(admin?"Maombi ya kuthibitisha":"Maombi yangu")}</span></div><div class="card">`+list.map(r=>`<div class="tableitem" data-request-id="${esc(r.id)}"><div><b>${esc(r.productName||"")}</b><div>${stockRequestText(r)}</div><div class="muted">${esc(r.user||"")} • ${niceDate(r.createdAt)} ${timeNow(r.createdAt)}${r.note?" • "+esc(r.note):""}</div></div><div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">${admin?`<button class="btn small green" onclick="decideStockRequest('${esc(r.id)}',true)">${translateText("Thibitisha")}</button><button class="btn small red" onclick="decideStockRequest('${esc(r.id)}',false)">${translateText("Kataa")}</button>`:`<small>${translateText(st[r.status]||r.status)}</small>`}</div></div>`).join("")+`</div>`;
+}
+async function decideStockRequest(id,approve){
+ return runOnce("stock-request-"+id,async()=>{
+  if(!isRealAdmin()){toast("Admin pekee.");return {ok:false}}
+  const r=stockRequests.find(x=>String(x.id)===String(id));if(!r||r.status!=="pending")return {ok:false};
+  const p=products.find(x=>String(x.id)===String(r.productId)||String(x.supabaseId)===String(r.productId));
+  if(approve){
+   if(!p){toast("Bidhaa haijapatikana.");return {ok:false}}
+   const before=JSON.parse(JSON.stringify(p));
+   if(r.type==="remove"&&r.qty>p.qty){toast("Stock haitoshi kwa sasa.");return {ok:false}}
+   if(r.type==="add")p.qty+=r.qty;else if(r.type==="remove")p.qty-=r.qty;else Object.assign(p,r.changes||{});
+   p.updatedAt=now().toISOString();
+   const remote=await syncProductToSupabase(p);
+   if(!remote.ok){Object.assign(p,before);toast("Haijathibitishwa; Supabase haikupokea.");render();return remote}
+   if(r.type!=="edit")movements.unshift({id:crypto.randomUUID(),productId:p.id,type:r.type,qty:r.qty,user:r.user,note:(r.note||"")+" • "+translateText("imethibitishwa na")+" "+currentUser(),date:now().toISOString()});
+  }
+  r.status=approve?"approved":"rejected";r.decidedBy=currentUser();r.updatedAt=now().toISOString();
+  await saveCloudState();
+  notify((approve?"Ombi limekubaliwa: ":"Ombi limekataliwa: ")+(r.productName||""),"","notifications",r.id);
+  toast(approve?"Mabadiliko yamethibitishwa ✓":"Ombi limekataliwa");render();renderStockRequests();return {ok:true};
+ });
+}
+function resetProductModalButton(){const pq=document.getElementById("pQty");if(pq){pq.readOnly=false;pq.disabled=false;}const es=document.getElementById("editStockSection");if(es)es.style.display="none";const b=document.querySelector("#productModal .btn.blue");if(b){b.textContent=translateText("Hifadhi Bidhaa");b.onclick=addProduct}}
 async function deleteProduct(id){
  return runOnce("product-delete",async()=>{
   if(!can("delete_products")){toast("Huna ruhusa ya kufuta bidhaa.");return {ok:false}}
@@ -1440,6 +1500,7 @@ async function applyStockChange(){
   if(stockMode==="remove"&&!can("remove_stock")){toast("Huna ruhusa ya kupunguza stock.");return {ok:false}}
   if(stockMode==="add"&&!can("add_stock")){toast("Huna ruhusa ya kuongeza stock.");return {ok:false}}
   if(stockMode==="remove"&&q>p.qty){toast("Stock haitoshi.");return {ok:false}}
+  if(!isRealAdmin()){const r=await submitStockRequest({type:stockMode,product:p,qty:q,note});if(r.ok){document.getElementById("stockQty").value=1;document.getElementById("stockNote").value="";}return r;}
   const oldQty=p.qty;p.qty += stockMode==="add"?q:-q;
   const remote=await syncProductToSupabase(p);
   if(!remote.ok){p.qty=oldQty;toast("Stock haijahifadhiwa; Supabase haikupokea.");return remote}
@@ -1493,11 +1554,11 @@ function openSaleEntry(){
  if(!can("sell")){toast("Huna ruhusa ya kuuza.");return}
  saleCart=[];salePaid=true;
  document.getElementById("salesHistoryView").classList.add("hidden");document.getElementById("saleEntryView").classList.remove("hidden");
- document.getElementById("saleDate").value=dateKey(now());document.getElementById("saleCustomer").value="";document.getElementById("saleCustomer").classList.add("hidden");document.getElementById("saleCustomerLabel").textContent=translateText("Rekodi mteja uliemuuzia");
+ document.getElementById("saleDate").value=dateKey(now());document.getElementById("saleCustomer").value="";document.getElementById("saleCustomerPhone").value="";document.getElementById("saleCustomerBox").classList.add("hidden");document.getElementById("saleCustomerLabel").textContent=translateText("Rekodi mteja uliemuuzia");
  document.getElementById("saleDiscount").value=0;document.getElementById("saleNote").value="";document.getElementById("saleNote").classList.add("hidden");document.getElementById("saleProductPicker").classList.add("hidden");document.getElementById("saleProductSearch").value="";setSalePayment(true);renderSaleCart();renderSalePicker();window.scrollTo(0,0);
 }
 function closeSaleEntry(){document.getElementById("saleEntryView").classList.add("hidden");document.getElementById("salesHistoryView").classList.remove("hidden");renderSalesHistory();window.scrollTo(0,0)}
-function focusSaleCustomer(){const input=document.getElementById("saleCustomer");input.classList.remove("hidden");input.focus();document.getElementById("saleCustomerLabel").textContent=translateText("Mteja")}
+function focusSaleCustomer(){const input=document.getElementById("saleCustomer");document.getElementById("saleCustomerBox").classList.remove("hidden");input.focus();document.getElementById("saleCustomerLabel").textContent=translateText("Mteja")}
 function toggleSaleDiscount(){const e=document.getElementById("saleDiscount");e.classList.toggle("hidden");if(!e.classList.contains("hidden"))e.focus()}
 function toggleSaleNote(){const e=document.getElementById("saleNote");e.classList.toggle("hidden");if(!e.classList.contains("hidden"))e.focus()}
 function openSaleProductPicker(){document.getElementById("saleProductPicker").classList.toggle("hidden");renderSalePicker();if(!document.getElementById("saleProductPicker").classList.contains("hidden"))document.getElementById("saleProductSearch").focus()}
@@ -1539,7 +1600,7 @@ function calculateSaleOrder(){
  if(document.getElementById("saleGrandTotal"))document.getElementById("saleGrandTotal").textContent=money(total);
  return {subtotal,discount,total};
 }
-function setSalePayment(paid){salePaid=paid;document.getElementById("salePaid")?.classList.toggle("active",paid);document.getElementById("saleUnpaid")?.classList.toggle("active",!paid)}
+function setSalePayment(paid){salePaid=paid;const t=document.getElementById("saleCustomerTitle"),h=document.getElementById("saleCustomerHint");if(t)t.textContent=translateText(paid?"Mteja (Sio lazima)":"Mteja (Lazima kwa deni)");if(h)h.classList.toggle("hidden",paid);if(!paid&&document.getElementById("saleCustomerBox"))focusSaleCustomer();document.getElementById("salePaid")?.classList.toggle("active",paid);document.getElementById("saleUnpaid")?.classList.toggle("active",!paid)}
 async function makeSale(){
  const saveBtn=document.getElementById("saveSaleButton");
  if(actionLocks.has("sale-save")){toast("Tafadhali subiri, mauzo bado yanahifadhiwa.");return {ok:false,busy:true};}
@@ -1552,7 +1613,8 @@ async function makeSale(){
   for(const item of saleCart){const key=String(item.productId);const prior=normalizedCart.get(key);if(!prior||Number(item.qty||0)>Number(prior.qty||0))normalizedCart.set(key,{...item,qty:Number(item.qty||0)});}
   saleCart=[...normalizedCart.values()];
   for(const item of saleCart){const p=products.find(x=>String(x.id)===String(item.productId));if(!p||item.qty<1||item.qty>p.qty){toast("Stock haitoshi kwa bidhaa fulani.");return {ok:false}}}
-  const {subtotal,discount,total}=calculateSaleOrder(),customer=document.getElementById("saleCustomer").value.trim()||"Mteja",saleDate=document.getElementById("saleDate").value||dateKey(now()),note=document.getElementById("saleNote").value.trim();
+  const {subtotal,discount,total}=calculateSaleOrder(),customerRaw=document.getElementById("saleCustomer").value.trim(),customerPhone=normalizePhone(document.getElementById("saleCustomerPhone")?.value||""),customer=customerRaw||"Mteja",saleDate=document.getElementById("saleDate").value||dateKey(now()),note=document.getElementById("saleNote").value.trim();
+  if(!salePaid){const v=validDebtCustomer(customerRaw,document.getElementById("saleCustomerPhone")?.value||"");if(!v.ok){focusSaleCustomer();toast(v.error);(v.field==="phone"?document.getElementById("saleCustomerPhone"):document.getElementById("saleCustomer"))?.focus();return {ok:false,needsCustomer:true}}}
   const uniqueCart=new Map();
   for(const item of saleCart){const key=String(item.productId);const prev=uniqueCart.get(key);if(!prev||Number(item.qty||0)>Number(prev.qty||0))uniqueCart.set(key,{...item,qty:Number(item.qty||0)});}
   const items=[...uniqueCart.values()].map(item=>{const p=products.find(x=>String(x.id)===String(item.productId));const line=p.price*item.qty;return {productId:p.id,product:p.name,qty:item.qty,price:p.price,buy:p.buy,lineTotal:line}});
@@ -1560,7 +1622,7 @@ async function makeSale(){
   const profit=items.reduce((a,x)=>a+(x.price-x.buy)*x.qty,0)-discount;
   const oldQty=new Map();
   items.forEach(x=>{const p=products.find(y=>y.id===x.productId);oldQty.set(p.id,p.qty);p.qty-=x.qty;movements.unshift({id:crypto.randomUUID(),productId:p.id,type:"sale",qty:x.qty,user:currentUser(),note:"Mauzo",date:new Date(saleDate+"T12:00:00").toISOString()})});
-  const order={id:crypto.randomUUID(),items,productId:items[0].productId,product:items[0].product,qty:items[0].qty,price:items[0].price,discount,total,subtotal,profit,customer,date:new Date(saleDate+"T12:00:00").toISOString(),user:currentUser(),paid:salePaid,note};order.branchId=activeBranch||"";
+  const order={id:crypto.randomUUID(),items,productId:items[0].productId,product:items[0].product,qty:items[0].qty,price:items[0].price,discount,total,subtotal,profit,customer,date:new Date(saleDate+"T12:00:00").toISOString(),user:currentUser(),paid:salePaid,note,customerPhone,amountPaid:salePaid?total:0,debt:salePaid?0:total,payments:[]};order.branchId=activeBranch||"";
   const saleSync=await syncSaleToSupabase(order);
   if(!saleSync.ok){
    // Dedicated sales table ikigoma, usifute mauzo yaliyofanyika. Yahifadhi kwenye Supabase app-state
@@ -1597,12 +1659,12 @@ function saleProductsText(s){return s.items?s.items.map(x=>x.product+" × "+x.qt
 function renderSalesHistory(){
  const search=(document.getElementById("salesSearch")?.value||"").toLowerCase(),day=document.getElementById("salesDay")?.value||dateKey(now());
  let arr=[...sales].filter(s=>dateKey(s.date)===day);
- if(salesTab==='paid')arr=arr.filter(s=>s.paid!==false);if(salesTab==='debt')arr=arr.filter(s=>s.paid===false);
+ if(salesTab==='paid')arr=arr.filter(s=>saleDebtBalance(s)<=0);if(salesTab==='debt')arr=arr.filter(s=>saleDebtBalance(s)>0);
  if(search)arr=arr.filter(s=>(saleProductsText(s)+" "+(s.customer||"")+" "+(s.user||"")).toLowerCase().includes(search));
  const total=arr.reduce((a,s)=>a+Number(s.total||0),0),orders=arr.length,items=arr.reduce((a,s)=>a+saleItemsCount(s),0),customers=new Set(arr.map(s=>s.customer||"Mteja")).size;
  document.getElementById("salesSummaryTotal").textContent=money(total);document.getElementById("salesSummaryOrders").textContent=orders;document.getElementById("salesSummaryItems").textContent=items;document.getElementById("salesSummaryCustomers").textContent=customers;
  const d=new Date(day+"T12:00:00");document.getElementById("salesDayTitle").textContent=day===dateKey(now())?translateText("Today"):d.toLocaleDateString("en-GB",{day:"2-digit",month:"2-digit",year:"numeric"});
- const el=document.getElementById("salesList");el.innerHTML=arr.length?arr.slice(0,100).map(s=>`<div class="sale-history-item" data-sale-id="${s.id}" onclick='openSaleDetails(${JSON.stringify(String(s.id))})'><div class="sale-history-top"><b>${translateText("Order #: " )}${String(s.id).slice(-8)}</b><span>${niceDate(s.date)}</span><span>${timeNow(s.date)}</span></div><div class="sale-history-meta"><span>${translateText("Mteja: " )}${esc(s.customer||translateText("Unknown"))}<br>${translateText("Muuzaji: " )}${esc(s.user||translateText("Admin"))}</span><strong>${money(s.total)}</strong></div><div class="sale-history-status ${s.paid===false?translateText('debt'):translateText('paid')}">${s.paid===false?translateText('Haijalipwa'):translateText('Imelipwa')}${s.discount?` • Punguzo ${money(s.discount)}`:""}</div><div class="muted" style="margin-top:7px">${esc(saleProductsText(s))} <span style="float:right;color:var(--blue)">›</span></div></div>`).join(""):`<div class='empty'>${translateText("Hakuna mauzo kwa siku hii.")}</div>`;
+ const el=document.getElementById("salesList");el.innerHTML=arr.length?arr.slice(0,100).map(s=>`<div class="sale-history-item" data-sale-id="${s.id}" onclick='openSaleDetails(${JSON.stringify(String(s.id))})'><div class="sale-history-top"><b>${translateText("Order #: " )}${String(s.id).slice(-8)}</b><span>${niceDate(s.date)}</span><span>${timeNow(s.date)}</span></div><div class="sale-history-meta"><span>${translateText("Mteja: " )}${esc(s.customer||translateText("Unknown"))}<br>${translateText("Muuzaji: " )}${esc(s.user||translateText("Admin"))}</span><strong>${money(s.total)}</strong></div><div class="sale-history-status ${saleDebtBalance(s)>0?translateText('debt'):translateText('paid')}">${saleDebtBalance(s)>0?translateText('Haijalipwa'):translateText('Imelipwa')}${s.discount?` • Punguzo ${money(s.discount)}`:""}</div><div class="muted" style="margin-top:7px">${esc(saleProductsText(s))} <span style="float:right;color:var(--blue)">›</span></div></div>`).join(""):`<div class='empty'>${translateText("Hakuna mauzo kwa siku hii.")}</div>`;
 }
 let salesDayUserSelected=false;
 function ensureSalesDayIsToday(force=false){
@@ -1623,6 +1685,46 @@ function ensureSalesDayIsToday(force=false){
  return false;
 }
 function clearSalesFilter(){salesDayUserSelected=false;document.getElementById("salesSearch").value="";document.getElementById("salesDay").value=dateKey(now());document.getElementById("salesDay").max=dateKey(now());salesTab='all';setSalesTab('all')}
+
+// V77: Madeni — taarifa za mteja na historia ya malipo zinahifadhiwa ndani ya sales.notes (bila kubadili schema).
+function normalizePhone(v){let d=String(v||"").replace(/[^\d+]/g,"");if(d.startsWith("+"))d=d.slice(1);return d.replace(/\D/g,"")}
+function validDebtCustomer(name,phone){if(!String(name||"").trim())return {ok:false,field:"name",error:"Weka jina la mteja kwa mauzo ambayo hayajalipwa."};const d=normalizePhone(phone);if(d.length<7||d.length>15)return {ok:false,field:"phone",error:"Weka namba sahihi ya simu ya mteja."};return {ok:true,phone:d}}
+function saleDebtBalance(s){if(!s)return 0;if(s.debt!==undefined&&s.debt!==null&&Number.isFinite(Number(s.debt)))return Math.max(0,Number(s.debt));return s.paid===false?Math.max(0,Number(s.total||0)-Number(s.amountPaid||0)):0}
+function saleRecordNotes(s){const meta={customer:s.customer||"",customerPhone:s.customerPhone||"",payments:Array.isArray(s.payments)?s.payments:[],note:s.note||""};if(!meta.customerPhone&&!meta.payments.length&&(!meta.customer||meta.customer==="Mteja"))return String(s.note||"");return "MPA77:"+JSON.stringify(meta)}
+function saleReadNotes(n){const t=String(n||"");if(!t.startsWith("MPA77:"))return {note:t};try{const m=JSON.parse(t.slice(6));return {customer:m.customer||"",customerPhone:m.customerPhone||"",payments:Array.isArray(m.payments)?m.payments:[],note:m.note||""}}catch(e){return {note:t}}}
+async function pickSaleContact(){
+ if(!(navigator.contacts&&navigator.contacts.select)){toast("Simu/kivinjari hiki hakiruhusu kuchagua contacts; andika jina na namba.");document.getElementById("saleCustomer")?.focus();return}
+ try{const [c]=await navigator.contacts.select(["name","tel"],{multiple:false});if(!c)return;focusSaleCustomer();if(c.name?.[0])document.getElementById("saleCustomer").value=c.name[0];if(c.tel?.[0])document.getElementById("saleCustomerPhone").value=c.tel[0];}catch(e){toast("Contacts hazikufunguka; andika jina na namba.")}
+}
+function openDebts(){if(!can("view_sales")&&!can("view_debts")){toast("Huna ruhusa ya kuona madeni.");return}showPage("sales",document.getElementById("navSales"));if(typeof closeSaleEntry==="function"&&!document.getElementById("saleEntryView")?.classList.contains("hidden"))closeSaleEntry();setSalesTab("debt")}
+function renderHomeDebts(){const list=sales.filter(s=>saleDebtBalance(s)>0);const t=document.getElementById("homeDebtTotal"),c=document.getElementById("homeDebtCount");if(t)t.textContent=money(list.reduce((a,s)=>a+saleDebtBalance(s),0));if(c)c.textContent=list.length+" "+translateText(list.length===1?"deni":"madeni");}
+let debtPaySaleId=null;
+function openDebtPayment(id){if(!can("pay_debts")){toast("Huna ruhusa ya kulipia deni.");return}const s=sales.find(x=>String(x.id)===String(id));if(!s)return;debtPaySaleId=s.id;const bal=saleDebtBalance(s);document.getElementById("debtPaymentInfo").innerHTML=`<b>${esc(s.customer||"")}</b>${s.customerPhone?`<div class="muted">${esc(s.customerPhone)}</div>`:""}<div style="margin-top:8px">${translateText("Deni lililobaki")}: <b class="red">${money(bal)}</b></div>`;const a=document.getElementById("debtPayAmount");a.value=bal;a.max=bal;document.getElementById("debtPaymentModal").classList.add("show");setTimeout(()=>a.focus(),50)}
+async function paySaleDebt(){
+ return runOnce("debt-pay",async()=>{
+  if(!can("pay_debts")){toast("Huna ruhusa ya kulipia deni.");return {ok:false}}
+  const s=sales.find(x=>String(x.id)===String(debtPaySaleId));if(!s){toast("Mauzo hayajapatikana.");return {ok:false}}
+  const bal=saleDebtBalance(s),amt=Number(document.getElementById("debtPayAmount").value);
+  if(!Number.isInteger(amt)||amt<1){toast("Weka kiasi sahihi.");return {ok:false}}
+  if(amt>bal){toast("Kiasi kinazidi deni lililobaki ("+money(bal)+").");return {ok:false}}
+  if(!sbClient||!authProfile||!s.supabaseId||s.pendingSync){toast("Mauzo haya bado hayajasawazishwa; vuta chini kusawazisha kisha jaribu tena.");return {ok:false}}
+  const payment={amount:amt,date:now().toISOString(),user:currentUser()};
+  const next={...s,payments:[...(s.payments||[]),payment],debt:bal-amt,amountPaid:Number(s.total||0)-(bal-amt)};next.paid=next.debt<=0;
+  const btn=document.getElementById("debtPayBtn");if(btn)btn.disabled=true;
+  try{
+   const {data,error}=await sbClient.from("sales").update({debt:next.debt,paid:next.paid?1:0,payment_status:next.paid?"paid":"partial",notes:saleRecordNotes(next)}).eq("id",s.supabaseId).eq("debt",bal).select("id,debt").maybeSingle();
+   if(error)throw error;
+   if(!data){toast("Deni limebadilika kwenye kifaa kingine; sawazisha kisha jaribu tena.");return {ok:false,conflict:true}}
+   if(Number(data.debt)!==next.debt)throw new Error("Malipo hayajathibitishwa.");
+  }catch(e){toast("Malipo hayajahifadhiwa: "+String(e?.message||e));return {ok:false,error:e}}
+  finally{if(btn)btn.disabled=false;}
+  Object.assign(s,next);
+  saveCloudState().catch(()=>{});
+  notify("Deni limelipwa",s.customer+" • "+money(amt),"sales",s.id);
+  closeModal("debtPaymentModal");toast(next.paid?"Deni limelipwa lote ✓":"Malipo yamehifadhiwa ✓ Baki "+money(next.debt));
+  render();openSaleDetails(s.id);return {ok:true,balance:next.debt};
+ });
+}
 function openSaleDetails(id){window.mpaOpenSaleId=id;
  const s=sales.find(x=>String(x.id)===String(id));if(!s)return;
  const items=s.items||[{productId:s.productId,product:s.product,qty:s.qty||1,price:s.price||s.total,buy:0,lineTotal:(s.price||s.total)*(s.qty||1)}];
@@ -1631,10 +1733,14 @@ function openSaleDetails(id){window.mpaOpenSaleId=id;
    <div class="sale-detail-head"><button class="sale-detail-back" onclick="closeModal('saleDetailModal')">‹</button><h2>${translateText("Order #" )}${String(s.id).slice(-8)}</h2><span class="sale-detail-date">${niceDate(s.date)}</span>${canDelete?`<button type="button" class="sale-delete-top" aria-label="${esc(translateText("Futa mauzo"))}" title="${esc(translateText("Futa Mauzo"))}" data-action="delete-sale" data-id="${esc(String(s.id))}"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg></button>`:""}</div>
    <div class="sale-detail-card">
     <div class="sale-detail-row"><span class="sale-detail-label">${translateText("Malipo" )}</span><span class="sale-detail-value">${money(s.total)}</span></div>
-    <div class="sale-detail-row"><span class="sale-detail-label">${translateText("Hali" )}</span><span class="sale-detail-value ${s.paid===false?translateText('red'):translateText('green')}">${s.paid===false?translateText('Haijalipwa'):translateText('Imelipwa')}</span></div>
+    <div class="sale-detail-row"><span class="sale-detail-label">${translateText("Hali" )}</span><span class="sale-detail-value ${saleDebtBalance(s)>0?'red':'green'}">${saleDebtBalance(s)>0?translateText('Haijalipwa'):translateText('Imelipwa')}</span></div>
+    ${saleDebtBalance(s)>0||Number(s.amountPaid||0)<Number(s.total||0)&&s.payments?.length?`<div class="sale-detail-row"><span class="sale-detail-label">${translateText("Kilicholipwa")}</span><span class="sale-detail-value green">${money(Math.max(0,Number(s.total||0)-saleDebtBalance(s)))}</span></div><div class="sale-detail-row"><span class="sale-detail-label">${translateText("Deni lililobaki")}</span><span class="sale-detail-value red">${money(saleDebtBalance(s))}</span></div>`:""}
     <div class="sale-detail-row"><span class="sale-detail-label">${translateText("Muuzaji" )}</span><span class="sale-detail-value">${esc(s.user||translateText('Admin'))}</span></div>
     <div class="sale-detail-row"><span class="sale-detail-label">${translateText("Mteja" )}</span><span class="sale-detail-value">${esc(s.customer||translateText('Unknown'))}</span></div>
+    ${s.customerPhone?`<div class="sale-detail-row"><span class="sale-detail-label">${translateText("Simu")}</span><span class="sale-detail-value"><a href="tel:${esc(s.customerPhone)}">${esc(s.customerPhone)}</a></span></div>`:""}
    </div>
+   ${saleDebtBalance(s)>0&&can("pay_debts")?`<button type="button" class="btn green" style="width:100%;margin:10px 0" data-action="pay-debt" data-id="${esc(String(s.id))}">${translateText("💰 Lipa Deni")}</button>`:""}
+   ${(s.payments||[]).length?`<div class="sale-detail-products-title">${translateText("Malipo ya deni")}</div>`+(s.payments||[]).map(p=>`<div class="sale-detail-row"><span class="sale-detail-label">${niceDate(p.date)} • ${esc(p.user||"")}</span><span class="sale-detail-value green">${money(p.amount)}</span></div>`).join(""):""}
    <div class="sale-detail-products-title">${translateText("Bidhaa za oda" )}</div>
    ${items.map(i=>{const p=products.find(x=>x.id===i.productId);return `<div class="sale-detail-product"><img src="${esc(p?.image||'icon.svg')}" onerror="this.src='icon.svg'"><div><b>${esc(i.product||p?.name||'Bidhaa')}</b><small>@${money(i.price||p?.price||0)}</small></div><div class="qty">${Number(i.qty||1)}</div><div class="line">${money(i.lineTotal||(Number(i.price||p?.price||0)*Number(i.qty||1)))}</div></div>`}).join('')}
    <div class="sale-detail-totals"><div><span>${translateText("Jumla ya Oda" )}</span><b>${money(s.subtotal||s.total)}</b></div><div><span>${translateText("Punguzo" )}</span><b>${money(s.discount||0)}</b></div><div><strong>${translateText("THAMANI YA ODA" )}</strong><strong>${money(s.total)}</strong></div></div>
@@ -1642,6 +1748,7 @@ function openSaleDetails(id){window.mpaOpenSaleId=id;
    <button class="sale-receipt-btn" data-action="open-receipt" data-id="${esc(String(s.id))}">${translateText("▣ &nbsp; Receipt ya Oda (invoice)" )}</button>
  </div>`;
  document.getElementById('saleDetailContent').innerHTML=html;document.getElementById('saleDetailModal').classList.add('show');document.querySelector('#saleDetailModal .modal').scrollTop=0;
+ document.querySelectorAll('#saleDetailContent [data-action=pay-debt]').forEach(b=>b.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();openDebtPayment(b.dataset.id);}));
  document.querySelectorAll('#saleDetailContent [data-action=delete-sale]').forEach(delBtn=>delBtn.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();deleteSale(delBtn.dataset.id);}));
  const recBtn=document.querySelector('#saleDetailContent [data-action=open-receipt]'); if(recBtn){recBtn.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();const sid=recBtn.dataset.id;closeModal('saleDetailModal');setTimeout(()=>openReceipt(sid),60);});}
 }
@@ -1804,7 +1911,7 @@ function renderLists(){
  document.getElementById("customerList").innerHTML=customers.length?customers.map(c=>`<div class="tableitem"><div><b>${esc(c.name)}</b><div class="muted">${esc(c.phone||translateText("Hakuna namba"))}</div></div></div>`).join(""):`<div class='empty'>${translateText("Hakuna wateja.")}</div>`;
  renderExpensePage();
 }
-function renderNotifications(){const el=document.getElementById("notificationList");if(!el)return;el.innerHTML=notifications.length?notifications.slice(0,100).map(n=>`<div class="tableitem notif-card ${n.read?"":translateText("unread")}" data-notification-id="${esc(n.id)}" onclick="openNotification('${String(n.id).replace(/'/g,"\\'")}')"><img class="notif-logo" src="logo.png" alt="M-P-A"><div><b>${esc(translateText(n.title))}</b><div>${esc(translateText(n.detail))}</div><div class="muted">${esc(n.user||"")} • ${niceDate(n.date)} ${timeNow(n.date)}</div></div></div>`).join(""):`<div class='empty'>${translateText("Hakuna notification.")}</div>`}
+function renderNotifications(){renderStockRequests();const el=document.getElementById("notificationList");if(!el)return;el.innerHTML=notifications.length?notifications.slice(0,100).map(n=>`<div class="tableitem notif-card ${n.read?"":translateText("unread")}" data-notification-id="${esc(n.id)}" onclick="openNotification('${String(n.id).replace(/'/g,"\\'")}')"><img class="notif-logo" src="logo.png" alt="M-P-A"><div><b>${esc(translateText(n.title))}</b><div>${esc(translateText(n.detail))}</div><div class="muted">${esc(n.user||"")} • ${niceDate(n.date)} ${timeNow(n.date)}</div></div></div>`).join(""):`<div class='empty'>${translateText("Hakuna notification.")}</div>`}
 async function markNotificationsRead(){if(autoNotifyTimer){clearTimeout(autoNotifyTimer);autoNotifyTimer=null}if(!notifications.length){toast("Hakuna arifa ya kusoma.");return}notifications.forEach(n=>n.read=true);renderNotifications();updateNotifDot();toast("Arifa zote zimewekwa kuwa zimesomwa ✓");try{const result=await saveCloudState();if(result?.ok===false)console.warn("Read-all cloud save pending",result.error);}catch(e){console.warn("Read-all cloud save failed",e)}}
 function renderMovements(){const el=document.getElementById("movementList");if(!el)return;el.innerHTML=movements.length?movements.slice(0,50).map(m=>{const p=products.find(x=>String(x.id)===String(m.productId));return `<div class="tableitem"><div><b>${m.type==="add"?"＋":m.type==="remove"?"−":"🛒"} ${esc(p?.name||m.productName||translateText("Bidhaa iliyofutwa"))}</b><div class="muted">${esc(m.note||"")} • ${esc(m.user||"")}</div></div><span>${m.type==="add"?"+":"-"}${esc(String(m.qty??0))}</span></div>`}).join(""):`<div class='empty'>${translateText("Hakuna movement.")}</div>`}
 let usersTab="active",selectedUserDetailId=null,editingUserId=null;
@@ -2139,6 +2246,7 @@ async function scheduleRemoteNotificationRefresh(eventPayload){
   // Keep this tab's in-memory copy (including read state and just-created notifications).
   for(const item of notifications){if(item&&item.id!=null)merged.set(String(item.id),item)}
   notifications=[...merged.values()].sort((a,b)=>new Date(b.date||0)-new Date(a.date||0)).slice(0,200);
+  const rq=eventPayload?.new?.payload?.stockRequests;if(Array.isArray(rq)){stockRequests=mergeStockRequests(rq,stockRequests);renderStockRequests();}
   renderNotifications();updateNotifDot();
   const fresh=notifications.filter(n=>!before.has(String(n.id))&&String(n.user||'')!==String(currentUser()));
   for(const item of fresh){
@@ -2169,6 +2277,7 @@ function render(){
  const u=currentUserObj();const roleEl=document.getElementById("roleText");if(roleEl)roleEl.textContent=translateText(u.role==="admin"?"Msimamizi":"Mtumiaji");const userEl=document.getElementById("userText");if(userEl)userEl.textContent=u.username;const settingsUserEl=document.getElementById("settingsUser");if(settingsUserEl)settingsUserEl.textContent=u.username;const storeNameEl=document.getElementById("storeNameInput");if(storeNameEl)storeNameEl.value=storeName;renderBranches();
  refreshCategories();renderProducts();if(document.getElementById("onlineSale").classList.contains("active"))renderOnlineSale();updateSaleProducts();calculateSale();renderSalesHistory();renderLists();renderNotifications();renderMovements();renderUsers();if(document.getElementById("userDetail")?.classList.contains("active"))renderUserDetail();updateNotifDot();if(["reports","analyticsSales","analyticsProfit","analyticsProducts","analyticsExpenses","analyticsCustomers"].some(id=>document.getElementById(id)?.classList.contains("active")))initAnalytics();applyFontSize();
  applyLanguage();
+ renderHomeDebts();
  const today=dateKey(now());const ts=sales.filter(s=>dateKey(s.date)===today);const salesToday=ts.reduce((a,s)=>a+s.total,0),profitToday=ts.reduce((a,s)=>a+s.profit,0);
  const all=sales.reduce((a,s)=>a+s.total,0),profit=sales.reduce((a,s)=>a+s.profit,0),ex=expenses.reduce((a,e)=>a+e.amount,0),units=products.reduce((a,p)=>a+p.qty,0);
  document.getElementById("todaySales").textContent=money(salesToday);document.getElementById("todayProfit").textContent=money(profitToday);document.getElementById("productCount").textContent=products.length;document.getElementById("stockUnits").textContent=units;
