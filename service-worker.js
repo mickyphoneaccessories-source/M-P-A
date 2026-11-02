@@ -1,4 +1,4 @@
-const CACHE = "mpa-v84-20261102";
+const CACHE = "mpa-v85-20261102";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -61,7 +61,8 @@ self.addEventListener("fetch", event => {
     caches.match(request).then(cached => {
       if (cached) return cached;
       return fetch(request).then(response => {
-        if (response && response.ok) {
+        const ct = (response && response.headers.get("content-type")) || "";
+        if (response && response.ok && !(/\.js$/i.test(url.pathname) && ct.includes("text/html"))) {
           const copy = response.clone();
           caches.open(CACHE).then(cache => cache.put(request, copy)).catch(() => {});
         }
