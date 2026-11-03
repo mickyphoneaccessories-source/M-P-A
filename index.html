@@ -1151,6 +1151,8 @@ async function showSystemNotification(item){
  try{const bn=new Notification(title,opts);bn.onclick=()=>{try{window.focus()}catch(e){};openNotification(item.id);try{bn.close()}catch(e){}};}catch(e){}
 }
 if("serviceWorker" in navigator)navigator.serviceWorker.addEventListener("message",e=>{if(e.data?.type==="mpa-open-notification"&&e.data.id)setTimeout(()=>openNotification(e.data.id),300)});
+// V89: kurasa za web haziwezi kutetemesha iPhone; arifa ya simu (OS) ndiyo hutetemesha.
+function mpaPreferOsAlert(){try{return mpaDeviceKind()!=="desktop"&&("Notification" in window)&&Notification.permission==="granted"}catch(e){return false}}
 function playNotificationSignal(){
  // Vibration + two-tone alert sound for every notification (admin na user), local na remote.
  mpaVibrate([220,80,220,80,320]);
@@ -1201,7 +1203,7 @@ function notify(title,detail,targetPage,targetId,opts={}){
  renderNotifications();
  playNotificationSignal();
  if(opts.persist!==false&&opts.push!==false)sendRemotePush(item);
- if(document.hidden)showSystemNotification(item);
+ if(document.hidden||mpaPreferOsAlert())showSystemNotification(item);
  else showNoticeBanner(translateText(item.title),translateText("Gusa kuona"),item.id,4500);
 }
 
@@ -1557,7 +1559,7 @@ function editProduct(id){productImagePromise=Promise.resolve();
  document.querySelector("#productModal .btn.blue").textContent=translateText("Hifadhi Mabadiliko");
  document.querySelector("#productModal .btn.blue").onclick=updateProduct;
  const pq=document.getElementById("pQty");pq.readOnly=true;pq.disabled=true;pq.title=translateText("Badilisha idadi kupitia Ongeza/Punguza Stock");
- const ab=document.getElementById("stockApplyBtn");if(ab)ab.textContent=translateText(isRealAdmin()?"Thibitisha Stock":"Omba Ruhusa kwa Admin");
+ const ab=document.getElementById("stockApplyBtn");if(ab){ab.textContent=translateText(isRealAdmin()?"Thibitisha Stock":"Omba Ruhusa kwa Admin");ab.classList.toggle("blue",!isRealAdmin());}
  if(!isRealAdmin())document.querySelector("#productModal .btn.blue").textContent=translateText("Omba Ruhusa kwa Admin");
  const es=document.getElementById("editStockSection");if(es){es.style.display="block";stockMode="add";markStockMode();document.getElementById("stockQty").value=1;document.getElementById("stockNote").value="";renderProductHistory(p.id);}
 }
@@ -1584,18 +1586,21 @@ async function submitStockRequest({type,product,qty=0,note="",changes=null,befor
  if(stockRequests.some(r=>r.status==="pending"&&String(r.productId)===String(product.id)&&r.type===type&&r.user===currentUser()&&r.qty===qty&&JSON.stringify(r.changes||null)===JSON.stringify(changes))){toast("Ombi hili tayari linasubiri idhini ya Admin.");return {ok:false,duplicate:true}}
  const req={id:crypto.randomUUID(),type,productId:product.id,productName:product.name,qty:Number(qty||0),note,changes,before,qtyAtRequest:product.qty,user:currentUser(),status:"pending",createdAt:now().toISOString(),updatedAt:now().toISOString()};
  stockRequests.unshift(req);
+ // V89: rudi kwenye ukurasa wa bidhaa papo hapo; ombi linahifadhiwa nyuma ya pazia.
+ try{closeModal("productModal");if(document.getElementById("stockModal"))closeModal("stockModal");if(typeof resetProductModalButton==="function")resetProductModalButton();showPage("products",document.getElementById("navProducts"));}catch(e){}
+ toast("Ombi limetumwa kwa Admin ✓ Litaingia baada ya kuthibitishwa.");
  const notifBefore=new Set(notifications.map(n=>String(n.id)));
  notify("Ombi la bidhaa: "+product.name,currentUser()+" anaomba idhini ya Admin","stockRequest",req.id,{persist:false});
  const res=await saveCloudState();
  if(!res?.ok){stockRequests=stockRequests.filter(r=>r.id!==req.id);notifications=notifications.filter(n=>notifBefore.has(String(n.id)));updateNotifDot();renderNotifications();toast("Ombi halijatumwa; jaribu tena.");return {ok:false}}
- toast("Ombi limetumwa kwa Admin ✓ Litaingia baada ya kuthibitishwa.");renderStockRequests();return {ok:true,request:req};
+ renderStockRequests();renderProducts();return {ok:true,request:req};
 }
 function stockRequestText(r){if(r.type==="add")return translateText("Ongeza stock")+" +"+r.qty;if(r.type==="remove")return translateText("Punguza stock")+" -"+r.qty;const lab={name:"Jina",category:"Kategoria",buy:"Bei ya kununua",price:"Bei ya kuuza",image:"Picha"};return Object.keys(r.changes||{}).map(k=>k==="image"?translateText("Picha mpya"):translateText(lab[k]||k)+": "+esc(String(k==="buy"||k==="price"?money(r.before?.[k]):r.before?.[k]??""))+" → "+esc(String(k==="buy"||k==="price"?money(r.changes[k]):r.changes[k]))).join("<br>")}
 function openStockRequest(id){const r=stockRequests.find(x=>String(x.id)===String(id));if(r&&isRealAdmin()&&r.status==="pending"){openRequestReview(r);return}showPage("notifications",null);renderStockRequests();setTimeout(()=>{const el=document.querySelector(`[data-request-id="${CSS.escape(String(id))}"]`);if(el){el.scrollIntoView({behavior:"smooth",block:"center"});el.style.outline="2px solid #f59e0b"}},80)}
 function openRequestReview(r){let m=document.getElementById("requestReviewModal");if(!m){m=document.createElement("div");m.id="requestReviewModal";m.className="modalback";m.style.zIndex=240;document.body.appendChild(m)}const p=products.find(x=>String(x.id)===String(r.productId)||String(x.supabaseId)===String(r.productId));const img=(r.changes&&r.changes.image)||p?.image;m.innerHTML=`<div class="modal"><div class="modalhead"><h2>${translateText("Ombi la mabadiliko")}</h2><button class="close" onclick="closeModal('requestReviewModal')">×</button></div>${img?`<img src="${esc(img)}" alt="" style="width:100%;max-height:200px;object-fit:contain;border-radius:12px;margin-bottom:10px">`:""}<div class="card" style="padding:12px"><b>${esc(r.productName||"")}</b><div class="muted">${translateText("Idadi ya sasa")}: ${esc(String(p?.qty??"-"))}</div><div style="margin:10px 0;font-size:16px">${stockRequestText(r)}</div><div class="muted">${esc(r.user||"")} • ${niceDate(r.createdAt)} ${timeNow(r.createdAt)}${r.note?" • "+esc(r.note):""}</div></div><div style="display:flex;gap:10px;margin-top:12px"><button class="btn green" style="flex:1" onclick="reviewDecide('${esc(r.id)}',true)">${translateText("Thibitisha")}</button><button class="btn red" style="flex:1" onclick="reviewDecide('${esc(r.id)}',false)">${translateText("Kataa")}</button></div></div>`;m.classList.add("show")}
 async function reviewDecide(id,ok){closeModal("requestReviewModal");const res=await decideStockRequest(id,ok);if(res&&res.ok===false&&!res.busy){const r=stockRequests.find(x=>String(x.id)===String(id));if(r&&r.status==="pending")openRequestReview(r)}}
 let seenRequestIds=null;
-function announceNewRequests(){if(!isRealAdmin())return;const pend=stockRequests.filter(r=>r.status==="pending");if(seenRequestIds===null){seenRequestIds=new Set(pend.map(r=>String(r.id)));return}for(const r of pend){if(seenRequestIds.has(String(r.id)))continue;seenRequestIds.add(String(r.id));if(r.user===currentUser())continue;if(Date.now()-mpaLastAlertAt<6000)continue;playNotificationSignal();if(document.hidden){showSystemNotification({id:"req-"+r.id,title:"Ombi la bidhaa: "+(r.productName||""),detail:"Gusa kuthibitisha au kukataa"});continue}mpaLastAlertAt=Date.now();const n=document.getElementById("notice");if(n){n.style.display="flex";n.innerHTML=`<div class="notice-inner" role="button" onclick="openStockRequest('${esc(r.id)}')"><img class="notice-logo" src="logo.png" alt="M-P-A"><div class="notice-copy"><div class="notice-title">${esc(translateText("Ombi la bidhaa")+": "+(r.productName||""))}</div><div class="notice-detail">${esc(r.user||"")}</div></div><div class="notice-bell">🔔</div></div>`;requestAnimationFrame(()=>n.classList.add("show"));clearTimeout(n._timer);n._timer=setTimeout(()=>n.classList.remove("show"),6000)}updateNotifDot()}}
+function announceNewRequests(){if(!isRealAdmin())return;const pend=stockRequests.filter(r=>r.status==="pending");if(seenRequestIds===null){seenRequestIds=new Set(pend.map(r=>String(r.id)));return}for(const r of pend){if(seenRequestIds.has(String(r.id)))continue;seenRequestIds.add(String(r.id));if(r.user===currentUser())continue;if(Date.now()-mpaLastAlertAt<6000)continue;playNotificationSignal();if(document.hidden||mpaPreferOsAlert()){showSystemNotification({id:"req-"+r.id,title:"Ombi la bidhaa: "+(r.productName||""),detail:"Gusa kuthibitisha au kukataa"});continue}mpaLastAlertAt=Date.now();const n=document.getElementById("notice");if(n){n.style.display="flex";n.innerHTML=`<div class="notice-inner" role="button" onclick="openStockRequest('${esc(r.id)}')"><img class="notice-logo" src="logo.png" alt="M-P-A"><div class="notice-copy"><div class="notice-title">${esc(translateText("Ombi la bidhaa")+": "+(r.productName||""))}</div><div class="notice-detail">${esc(r.user||"")}</div></div><div class="notice-bell">🔔</div></div>`;requestAnimationFrame(()=>n.classList.add("show"));clearTimeout(n._timer);n._timer=setTimeout(()=>n.classList.remove("show"),6000)}updateNotifDot()}}
 function renderStockRequests(){announceNewRequests();
  const el=document.getElementById("stockRequestList");if(!el)return;
  const admin=isRealAdmin();const list=stockRequests.filter(r=>admin?r.status==="pending":r.user===currentUser()).slice(0,30);
@@ -2486,7 +2491,7 @@ async function scheduleRemoteNotificationRefresh(eventPayload){
    if(typeof scheduleRemoteRefresh==='function')scheduleRemoteRefresh();
    mpaLastAlertAt=Date.now();playNotificationSignal();
    const item=fresh[0];
-   if(document.hidden){for(const it of fresh.slice(0,3))showSystemNotification(it);}
+   if(document.hidden||mpaPreferOsAlert()){for(const it of fresh.slice(0,3))showSystemNotification(it);}
    else showNoticeBanner(translateText(conciseNotificationTitle(item.title))+(fresh.length>1?" (+"+(fresh.length-1)+")":""),translateText("Gusa kuona"),item.id,4500);
   }
  }catch(e){console.warn('Remote notifications refresh failed',e)}
