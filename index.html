@@ -131,6 +131,14 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
     <div class="field"><label data-runtime-copy id="usernameLabel">Username ya muuzaji</label><input data-runtime-copy id="username" autocomplete="username" placeholder="Andika username ya muuzaji"></div>
     <div class="field"><label data-runtime-copy id="passwordLabel">PIN ya tarakimu 4</label><input data-runtime-copy id="password" type="password" autocomplete="current-password" inputmode="numeric" maxlength="64" placeholder="PIN ya tarakimu 4"></div>
     <button class="goldbtn" id="loginBtn" onclick="login()">Ingia kwenye mfumo</button>
+    <button class="resetcancel" id="forgotLink" onclick="openForgot()" style="color:#f3bf00;font-weight:700">Umesahau password?</button>
+    <div id="forgotBox" class="resetbox">
+      <h2>Umesahau password?</h2>
+      <p>Andika email yako ya Admin. Tutakutumia link; ifungue, kisha utaweka password mpya.</p>
+      <input id="forgotEmail" type="email" autocomplete="email" placeholder="Email yako">
+      <button class="resetbtn" id="forgotBtn" onclick="sendForgot()">Tuma link</button>
+      <button class="resetcancel" onclick="closeForgot()">Rudi kwenye login</button>
+    </div>
     <div class="hint" data-runtime-copy id="loginHint">Kwa User tumia username na PIN uliyopewa na Admin. Admin anaingia kwa email na password yake.</div>
     <div id="resetBox" class="resetbox">
       <h2>Badilisha password</h2>
@@ -496,7 +504,10 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
 </div>
 
 <div id="goalModal" class="modalback"><div class="modal"><div class="modalhead"><h2>🎯 Lengo la Mauzo</h2><button class="close" onclick="closeModal('goalModal')">×</button></div><div class="field"><label id="goalInputLabel">Lengo la mwezi (TZS)</label><input id="goalInput" type="text" inputmode="numeric" data-money="1" min="0" placeholder="Mfano 10,000,000"></div><button class="btn blue" style="width:100%" onclick="saveGoal()">Hifadhi Lengo</button></div></div>
-<div id="pinModal" class="modalback"><div class="modal"><div class="modalhead"><h2>🔐 Kuingia kwa Admin</h2><button class="close" aria-label="Funga" onclick="closeModal('pinModal')">×</button></div><div class="field"><label>Password ya sasa</label><input id="adminCurrentPassword" type="password" autocomplete="current-password"></div><div class="field"><label>Jina la Admin</label><input id="adminLoginName" autocomplete="username"></div><div class="field"><label>Email ya kuingia</label><input id="adminLoginEmail" type="email"></div><div class="field"><label>Password mpya (hiari)</label><input id="newPin" type="password" autocomplete="new-password"></div><div class="field"><label>Rudia password mpya</label><input id="newPin2" type="password" autocomplete="new-password"></div><button class="btn blue" onclick="changePin()">Hifadhi mabadiliko</button></div></div>
+<div id="pinModal" class="modalback"><div class="modal"><div class="modalhead"><h2>🔐 Kuingia kwa Admin</h2><button class="close" aria-label="Funga" onclick="closeModal('pinModal')">×</button></div>
+<div id="adminStep1"><p class="hint" style="text-align:left;margin:0 0 12px">Hatua 1 kati ya 2: Andika jina na password unazotumia sasa kuingia.</p><div class="field"><label>Jina la kuingia la sasa (au email)</label><input id="adminOldName" autocomplete="username"></div><div class="field"><label>Password ya sasa</label><input id="adminCurrentPassword" type="password" autocomplete="current-password"></div><button class="btn blue" id="adminNextBtn" onclick="adminLoginNext()">Endelea ›</button></div>
+<div id="adminStep2" style="display:none"><p class="hint" style="text-align:left;margin:0 0 12px">Hatua 2 kati ya 2: Weka jina jipya la kuingia na password mpya (angalau herufi/namba 6), kisha rudia password.</p><div class="field"><label>Jina jipya la kuingia</label><input id="adminLoginName" autocomplete="username"></div><div class="field"><label>Password mpya</label><input id="newPin" type="password" autocomplete="new-password"></div><div class="field"><label>Rudia password mpya</label><input id="newPin2" type="password" autocomplete="new-password"></div><button class="btn blue" onclick="changePin()">Hifadhi</button><button class="btn" style="margin-top:8px" onclick="adminLoginBack()">‹ Rudi</button></div>
+</div></div>
 <div id="clearDataModal" class="modalback"><div class="modal"><div class="modalhead"><h2>Futa data ulizochagua</h2><button class="close" aria-label="Funga" onclick="closeModal('clearDataModal')">×</button></div><div id="clearOptions"></div><button class="btn red" onclick="clearSelectedData()">Futa zilizochaguliwa</button></div></div>
 <div id="expenseDetailModal" class="modalback"><div class="modal sale-detail-wrap"><div id="expenseDetailContent"></div></div></div>
 <div id="saleDetailModal" class="modalback"><div class="modal sale-detail-wrap"><div id="saleDetailContent"></div></div></div>
@@ -1243,13 +1254,13 @@ function setLogin(role){
  document.getElementById("adminTab").classList.toggle("active",role==="admin");
  document.getElementById("userTab").classList.toggle("active",role==="user");
  const userMode=role==="user";
- document.getElementById("usernameLabel").textContent=userMode?translateText("Username ya muuzaji"):translateText("Email ya Admin");
- document.getElementById("username").placeholder=userMode?translateText("Andika username ya muuzaji"):translateText("Andika email ya Admin");
+ document.getElementById("usernameLabel").textContent=userMode?translateText("Username ya muuzaji"):translateText("Jina au email ya Admin");
+ document.getElementById("username").placeholder=userMode?translateText("Andika username ya muuzaji"):translateText("Jina la kuingia au email");
  document.getElementById("username").autocomplete=userMode?"username":"email";
  document.getElementById("passwordLabel").textContent=userMode?translateText("PIN ya tarakimu 4"):translateText("Password ya Admin");
  document.getElementById("password").placeholder=userMode?translateText("PIN ya tarakimu 4"):translateText("Password ya Admin");
  document.getElementById("password").inputMode=userMode?"numeric":"text";
- document.getElementById("loginHint").textContent=userMode?translateText("Muuzaji: tumia username na PIN ya tarakimu 4 uliyopewa na Admin."):translateText("Admin: tumia email na password yako ya Admin.");
+ document.getElementById("loginHint").textContent=userMode?translateText("Muuzaji: tumia username na PIN ya tarakimu 4 uliyopewa na Admin."):translateText("Admin: tumia jina lako la kuingia (au email) na password.");
 }
 function isPasswordRecoveryLink(){return /type=recovery/i.test(location.hash||"")||/type=recovery/i.test(location.search||"")}
 function showPasswordReset(){
@@ -1263,6 +1274,13 @@ function showPasswordReset(){
  document.getElementById("loginHint").style.display="none";
  document.getElementById("resetBox").style.display="block";
 }
+function loginFormVisible(v){["username","password"].forEach(id=>document.getElementById(id).parentElement.style.display=v?"":"none");["loginBtn","loginHint","forgotLink"].forEach(id=>document.getElementById(id).style.display=v?"":"none");document.querySelector("#login .tabs").style.display=v?"":"none"}
+function openForgot(){loginFormVisible(false);const u=document.getElementById("username").value.trim();document.getElementById("forgotEmail").value=u.includes("@")?u:(adminEmailFor(u)||"");document.getElementById("forgotBox").style.display="block"}
+function closeForgot(){document.getElementById("forgotBox").style.display="none";loginFormVisible(true)}
+async function sendForgot(){const email=document.getElementById("forgotEmail").value.trim();if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){alert(translateText("Weka email sahihi."));return}if(!sbClient){alert(translateText("Hakuna mtandao. Jaribu tena."));return}const b=document.getElementById("forgotBtn");b.disabled=true;b.textContent=translateText("Inatuma...");try{const {error}=await sbClient.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});if(error)throw error;alert(translateText("Link imetumwa kwenye email yako. Fungua email, gusa link, kisha weka password mpya."));closeForgot()}catch(e){alert(translateText("Link haikutumwa: ")+(e.message||e))}finally{b.disabled=false;b.textContent=translateText("Tuma link")}}
+const ADMIN_LOGIN_MAP_KEY="mpa_admin_login_map";
+function adminEmailFor(name){try{return (JSON.parse(localStorage.getItem(ADMIN_LOGIN_MAP_KEY)||"{}"))[String(name||"").trim().toLowerCase()]||""}catch(e){return ""}}
+function rememberAdminLogin(name,email){if(!name||!email)return;try{const m=JSON.parse(localStorage.getItem(ADMIN_LOGIN_MAP_KEY)||"{}");m[String(name).trim().toLowerCase()]=email;localStorage.setItem(ADMIN_LOGIN_MAP_KEY,JSON.stringify(m))}catch(e){}}
 function cancelPasswordReset(){location.href=location.origin+location.pathname}
 async function changePassword(){
  const p1=document.getElementById("newPassword").value;
@@ -1312,7 +1330,7 @@ async function login(){
  authProfile=null;
  if(!sbClient){alert(translateText("Supabase haijaunganishwa. Login imesitishwa."));return}
  try{await sbClient.auth.signOut()}catch(e){}
- let data=null,error=null,email=u.includes("@")?u:(u+"@mpa.local");
+ let data=null,error=null,email=u.includes("@")?u:((loginRole==="admin"&&adminEmailFor(u))||(u+"@mpa.local"));
  try{
    if(loginRole==="user"&&!u.includes("@")){
      // User login is verified server-side; the 4-digit PIN is never used as an Auth password directly.
@@ -1343,6 +1361,7 @@ async function login(){
  authProfile={...(prof||{}),id:data.user.id,username:prof?.username||metadata.username||data.user.email?.split("@")[0]||u,role:expectedRole||prof?.role||metadata.role||fallbackRole,permissions:fallbackRole==="admin"?["all"]:(Array.isArray(prof?.permissions)?[...new Set(prof.permissions)]:Array.isArray(metadata.permissions)?[...new Set(metadata.permissions)]:[...DEFAULT_USER_PERMISSIONS]),active:prof?.active!==false&&metadata.active!==false};
  if(authProfile.active===false){await sbClient.auth.signOut();authProfile=null;alert(translateText("Account hii imezimwa na Admin."));return}
  if(loginRole!==authProfile.role){await sbClient.auth.signOut();authProfile=null;alert(translateText(loginRole==="admin"?"Chagua User kwenye login kwa account hii.":"Chagua Admin kwenye login kwa account hii."));return}
+ if(authProfile.role==="admin"&&data.user.email){rememberAdminLogin(authProfile.username,data.user.email);rememberAdminLogin(data.user.email.split("@")[0],data.user.email);}
  document.getElementById("login").style.display="none";document.getElementById("app").style.display="block";
  sessionLoginDay=dateKey(now());saveLoginDay(authProfile.id);document.getElementById("password").value="";render();mpaInitialSync();
 }
@@ -2332,19 +2351,32 @@ function renderCustomerAnalytics(){const map={};sales.forEach(s=>{const name=s.c
 function initAnalytics(){const today=dateKey(now()),first=today.slice(0,8)+"01";["productFrom","expenseFrom"].forEach(id=>{if(document.getElementById(id)&&!document.getElementById(id).value)document.getElementById(id).value=first});["productTo","expenseTo"].forEach(id=>{if(document.getElementById(id)&&!document.getElementById(id).value)document.getElementById(id).value=today});renderSalesAnalytics();renderProfitAnalytics();renderProductAnalytics();renderExpenseAnalytics();renderCustomerAnalytics()}
 function openGoalModal(){if(!isRealAdmin()){toast("Admin pekee ndiye anaweka lengo la mwezi.");return}if(currentGoalTarget()>0){toast("Lengo la mwezi huu limeshawekwa. Utaweza kuweka jipya mwezi ujao.");return}const target=currentGoalTarget();document.getElementById("goalInput").value=target;document.getElementById("goalModal").classList.add("show")}
 async function saveGoal(){if(!isRealAdmin()){toast("Admin pekee.");return}const v=Number(document.getElementById("goalInput").value||0);if(v<=0){toast("Weka kiasi cha lengo.");return}const key=monthKey();if(Number(monthlyGoals?.[key])>0){closeModal("goalModal");toast("Lengo la mwezi huu limeshawekwa.");return}monthlyGoals[key]=v;goalTarget=v;const state=await saveCloudState();closeModal("goalModal");render();notify("Lengo la mwezi limehifadhiwa",monthLabel()+" • "+money(v),"home",null);toast(state.ok?"Lengo la mwezi limehifadhiwa ✓":"Lengo limehifadhiwa kwenye mfumo; sync itajaribiwa tena.")}
-function openPinModal(){if(authProfile?.role!=="admin"){toast("Admin pekee anaweza kubadilisha kuingia hapa.");return;}document.getElementById('adminCurrentPassword').value='';document.getElementById('adminLoginName').value=authProfile.username||'';document.getElementById('adminLoginEmail').value='';sbClient.auth.getUser().then(r=>{if(r.data?.user)document.getElementById('adminLoginEmail').value=r.data.user.email||''});document.getElementById('newPin').value='';document.getElementById('newPin2').value='';document.getElementById('pinModal').classList.add('show');}
+let adminVerifiedEmail="";
+function openPinModal(){if(authProfile?.role!=="admin"){toast("Admin pekee anaweza kubadilisha kuingia hapa.");return;}adminVerifiedEmail="";["adminOldName","adminCurrentPassword","adminLoginName","newPin","newPin2"].forEach(id=>document.getElementById(id).value="");adminLoginBack();document.getElementById('pinModal').classList.add('show');setTimeout(()=>document.getElementById('adminOldName').focus(),50);}
+function adminLoginBack(){document.getElementById('adminStep1').style.display='';document.getElementById('adminStep2').style.display='none';}
+async function adminLoginNext(){
+ const old=document.getElementById('adminOldName').value.trim(),current=document.getElementById('adminCurrentPassword').value;
+ if(!old||!current){toast('Andika jina la sasa na password ya sasa.');return}
+ const actual=await sbClient.auth.getUser();const me=actual.data?.user;if(!me){toast('Ingia upya kwanza.');return}
+ const o=old.toLowerCase(),okName=o===String(authProfile.username||'').toLowerCase()||o===String(me.email||'').toLowerCase()||o===String(me.email||'').split('@')[0].toLowerCase();
+ if(!okName){toast('Jina la sasa si sahihi.');return}
+ const btn=document.getElementById('adminNextBtn');btn.disabled=true;
+ try{const verify=await sbClient.auth.signInWithPassword({email:me.email,password:current});if(verify.error){toast('Password ya sasa si sahihi.');return}}finally{btn.disabled=false}
+ adminVerifiedEmail=me.email;document.getElementById('adminLoginName').value=authProfile.username||'';document.getElementById('adminStep1').style.display='none';document.getElementById('adminStep2').style.display='';
+}
 async function changePin(){return runOnce('admin-credentials',async()=>{
- if(authProfile?.role!=="admin")return {ok:false};
- const name=document.getElementById('adminLoginName').value.trim(),email=document.getElementById('adminLoginEmail').value.trim(),current=document.getElementById('adminCurrentPassword').value,a=document.getElementById('newPin').value,b=document.getElementById('newPin2').value;
- if(!name||!email||!current||(a&&(a.length<6||a!==b))){toast('Weka jina, email na password ya sasa; password mpya iwe angalau herufi 6 na zifanane.');return {ok:false};}
- const actual=await sbClient.auth.getUser();if(actual.error||!actual.data?.user)return {ok:false};
- const verify=await sbClient.auth.signInWithPassword({email:actual.data.user.email,password:current});if(verify.error){toast('Password ya sasa si sahihi.');return {ok:false};}
- const update=await sbClient.auth.updateUser({...(a?{password:a}:{}),...(email!==actual.data.user.email?{email}:{}),data:{username:name}});
- if(update.error){toast('Mabadiliko hayajahifadhiwa: '+update.error.message);return {ok:false};}
+ if(authProfile?.role!=="admin"||!adminVerifiedEmail){adminLoginBack();return {ok:false};}
+ const name=document.getElementById('adminLoginName').value.trim(),a=document.getElementById('newPin').value,b=document.getElementById('newPin2').value;
+ if(!name||/\s|@/.test(name)){toast('Jina jipya lisiwe na nafasi wala @.');return {ok:false};}
+ if(a.length<6){toast('Password mpya iwe angalau herufi/namba 6.');return {ok:false};}
+ if(a!==b){toast('Password mbili hazifanani.');return {ok:false};}
+ const update=await sbClient.auth.updateUser({password:a,data:{username:name}});
+ if(update.error){toast('Haijahifadhiwa: '+update.error.message);return {ok:false};}
  const profile=await sbClient.from('profiles').update({username:name}).eq('id',authProfile.id).select('id,username');
  const nameOk=!profile.error&&profile.data?.some(x=>x.username===name);
- if(nameOk){authProfile.username=name;users=users.map(u=>String(u.id)===String(authProfile.id)?{...u,username:name}:u);await saveCloudState();}
- closeModal('pinModal');toast(!nameOk?'Password/email imetumwa, lakini jina halijahifadhiwa; kagua ruhusa.':email!==actual.data.user.email?'Mabadiliko yametumwa; thibitisha email mpya kabla ya kuitumia kuingia.':'Kuingia kwa Admin kumesasishwa ✓');return {ok:true,nameOk};
+ if(nameOk){authProfile.username=name;users=users.map(u=>String(u.id)===String(authProfile.id)?{...u,username:name}:u);saveCloudState();}
+ rememberAdminLogin(name,adminVerifiedEmail);adminVerifiedEmail="";
+ closeModal('pinModal');toast(nameOk?'Imehifadhiwa ✓ Ingia kwa jina "'+name+'" na password mpya.':'Password imehifadhiwa, lakini jina halijahifadhiwa.');return {ok:true,nameOk};
  });}
 async function enableBiometric(){toast('Face ID/fingerprint bado haiwezi kuwezeshwa salama kwenye akaunti hii; endelea kutumia password/PIN.');}
 function setFontSize(v){const n=Math.max(85,Math.min(120,Number(v)||100));fontSize=n;document.documentElement.style.setProperty("--fontScale",n/100);const r=document.getElementById("fontSizeRange");if(r)r.value=n;const l=document.getElementById("fontSizeLabel");if(l)l.textContent=n+"%"}
