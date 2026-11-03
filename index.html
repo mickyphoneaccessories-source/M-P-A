@@ -738,7 +738,8 @@ async function syncProductsFromSupabase({silent=false}={}){
   const needImg=[];
   for(const row of rows){
     const prior=priorById.get(String(row.id));
-    if(prior&&prior.imageLoaded&&String(prior.updatedAt||'')===String(row.updated_at||'')){row.image_url=prior.image||'';row.__imgOk=true;}
+    const sameMeta=prior&&prior.imageLoaded&&prior.image&&prior.name===row.name&&String(prior.category||'')===String(row.category||'')&&Number(prior.price)===Number(row.sell_price)&&Number(prior.buy)===Number(row.buy_price)&&(Date.now()-Number(prior.imageCheckedAt||0))<3*864e5;
+    if(prior&&prior.imageLoaded&&(sameMeta||String(prior.updatedAt||'')===String(row.updated_at||''))){row.__imgChecked=prior.imageCheckedAt;row.image_url=prior.image||'';row.__imgOk=true;}
     else{row.image_url=prior?.image||'';needImg.push(row);}
   }
   const chunks=[];for(let i=0;i<needImg.length;i+=10)chunks.push(needImg.slice(i,i+10));
@@ -781,7 +782,7 @@ async function syncProductsFromSupabase({silent=false}={}){
    }
   products=mergedProducts;
   const imageUserId=authProfile?.id;
-  imageWork().then(()=>{if(authProfile?.id!==imageUserId)return;for(const row of rows){const p=products.find(x=>String(x.id)===String(row.id));if(p&&p.updatedAt===row.updated_at&&row.__imgOk){p.image=row.image_url;p.imageLoaded=true;}}scheduleRender();}).catch(()=>{});
+  imageWork().then(()=>{if(authProfile?.id!==imageUserId)return;for(const row of rows){const p=products.find(x=>String(x.id)===String(row.id));if(p&&p.updatedAt===row.updated_at&&row.__imgOk){p.image=row.image_url;p.imageLoaded=true;p.imageCheckedAt=row.__imgChecked||Date.now();}}scheduleRender();}).catch(()=>{});
   if(false)console.info('M-P-A V64 products merge result',{
     remoteProductsCount:remoteProducts.length,
     mergedProductsCount:mergedProducts.length,
@@ -881,9 +882,21 @@ async function deleteSaleFromSupabase(s){
 async function syncSalesFromSupabase({silent=false,preloadedSales}={}){
  if(!sbClient||!authProfile)return {ok:false,skipped:true};
  try{
-  const {data:remoteSales,error}=preloadedSales||await sbClient.from('sales').select('*').order('sale_date',{ascending:false});
-  if(error)throw error;
-  const rs=Array.isArray(remoteSales)?remoteSales:[];
+  // V88 Egress: pakua ID tu, kisha mauzo kamili ya siku 21, madeni na yasiyo kwenye kifaa. Ukaguzi kamili mara 1/siku.
+  const idRes=await sbClient.from('sales').select('id').order('sale_date',{ascending:false});
+  if(idRes.error)throw idRes.error;
+  const allIds=(idRes.data||[]).map(x=>String(x.id));
+  const fullKey='mpa-sales-full-day-v88:'+String(authProfile.id);let fullDone=false;try{fullDone=localStorage.getItem(fullKey)===dateKey(now())}catch(e){}
+  const recentFrom=Date.now()-21*864e5;
+  const cachedById=new Map(sales.filter(x=>!x.pendingSync).map(x=>[String(x.supabaseId||x.id),x]));
+  const needIds=allIds.filter(id=>{const c=cachedById.get(id);return !fullDone||!c||!(new Date(c.date).getTime()<recentFrom)||Number(c.debt||0)>0;});
+  const needSet=new Set(needIds);
+  const reused=allIds.filter(id=>!needSet.has(id)).map(id=>cachedById.get(id)).filter(Boolean);
+  const rs=[];
+  {const ch=[];for(let i=0;i<needIds.length;i+=150)ch.push(needIds.slice(i,i+150));
+   const parts=await Promise.all(ch.map(c=>sbClient.from('sales').select('*').in('id',c)));
+   for(const r of parts){if(r.error)throw r.error;if(Array.isArray(r.data))rs.push(...r.data);}}
+  if(!fullDone){try{localStorage.setItem(fullKey,dateKey(now()))}catch(e){}}
   const ids=rs.map(x=>x.id).filter(Boolean);
   let remoteItems=[];
   if(ids.length){
@@ -903,6 +916,7 @@ async function syncSalesFromSupabase({silent=false,preloadedSales}={}){
    const total=Number(r.total||0),subtotal=Number(r.subtotal||total),discount=Number(r.discount||0),remotePaid=Number(r.paid)!==0;
    return {id:r.id,items,productId:items[0]?.productId,product:items[0]?.product||'Bidhaa',qty:items[0]?.qty||0,price:items[0]?.price||0,discount,total,subtotal,profit:Number(r.profit||items.reduce((a,x)=>a+(x.price-x.buy)*x.qty,0)-discount),customer:saleReadNotes(r.notes).customer||r.customer_name||priorSale?.customer||'Mteja',customerPhone:saleReadNotes(r.notes).customerPhone||priorSale?.customerPhone||'',payments:saleReadNotes(r.notes).payments||[],amountPaid:Number.isFinite(Number(r.debt))&&r.debt!==null?Math.max(0,total-Number(r.debt)):(remotePaid?total:0),debt:Number.isFinite(Number(r.debt))&&r.debt!==null?Number(r.debt):(remotePaid?0:total),date:r.sale_date||r.created_at||now().toISOString(),user:priorSale?.user||users.find(u=>String(u.id)===String(r.sold_by))?.username||r.sold_by||'Admin',paid:(Number.isFinite(Number(r.debt))&&r.debt!==null)?Number(r.debt)<=0:remotePaid,note:saleReadNotes(r.notes).note,branchId:r.branch_id||'',supabaseId:r.id,supabaseSynced:true,pendingSync:false};
   });
+  remoteMapped.push(...reused);
   const remoteMappedFiltered=remoteMapped.filter(r=>!deletedSaleIds.includes(String(r.supabaseId||r.id)));
   const remoteIds=new Set(remoteMappedFiltered.map(r=>String(r.supabaseId??r.id)));
   const mergedSales=[...remoteMappedFiltered];
@@ -925,9 +939,13 @@ async function syncSalesFromSupabase({silent=false,preloadedSales}={}){
 async function loadCloudState({preserveSales=false}={}){
  if(!sbClient||!authProfile)return {ok:false,skipped:true};
  try{
-  const {data,error}=await sbClient.from("mpa_app_state").select("payload,updated_at").eq("scope",cloudStateScope).maybeSingle();
+    // V88 Egress: usipakue products/sales ndani ya app-state; majedwali yake ndiyo chanzo.
+  const keys=["deletedSaleIds","deletedExpenseIds","deletedProductIds","deletedUserIds","customers","expenses","movements","notifications","stockRequests","branches","users","goalTarget","monthlyGoals","activeBranch","storeName","language","fontSize"];
+  if(!preserveSales)keys.push("sales");
+  const {data:row,error}=await sbClient.from("mpa_app_state").select("updated_at,"+keys.map(k=>k+":payload->"+k).join(",")).eq("scope",cloudStateScope).maybeSingle();
   if(error)throw error;
-  if(data?.payload&&typeof data.payload==="object"){
+  const data=row?{payload:Object.fromEntries(keys.filter(k=>row[k]!==null&&row[k]!==undefined).map(k=>[k,row[k]])),updated_at:row.updated_at}:null;
+  if(data?.payload&&typeof data.payload==="object"&&Object.keys(data.payload).length){
    const st=data.payload;
    // Products and sales are also kept inside the authenticated Supabase app-state as a durable fallback.
    // The dedicated products/sales tables remain the primary normalized source when available.
@@ -941,7 +959,7 @@ async function loadCloudState({preserveSales=false}={}){
    // Jedwali la products ndilo chanzo cha kweli; syncProductsFromSupabase ndiyo inayosawazisha mwishoni.
    // V67: Snapshot ya app-state HAIBADILISHI tena orodha ya bidhaa. Ilikuwa ikirudisha bidhaa 23
    // za zamani kila refresh. Inahifadhiwa tu kama akiba endapo jedwali la products halipatikani kabisa.
-   snapshotProducts=Array.isArray(st.products)?st.products:[];
+   if(Array.isArray(st.products))snapshotProducts=st.products;
    customers=Array.isArray(st.customers)?st.customers:[];
    expenses=Array.isArray(st.expenses)?st.expenses.filter(x=>!deletedExpenseIds.includes(String(x.id))):[];
    movements=Array.isArray(st.movements)?st.movements:[];
@@ -1332,10 +1350,9 @@ async function refreshBusinessData(){
  if(!await ensureFreshSession())throw new Error('Ingia tena ili kusawazisha data.');
  const statePromise=loadCloudState({preserveSales:true});
  const productPromise=syncProductsReliable({silent:true,sessionReady:true});
- const salesPromise=(async()=>{const result=await sbClient.from('sales').select('*').order('sale_date',{ascending:false});return result;})();
- const [stateResult,productResult,preloadedSales]=await Promise.all([statePromise,productPromise,salesPromise]);
+ const [stateResult,productResult]=await Promise.all([statePromise,productPromise]);
  // Mapping uses current product/customer snapshot and never changes a draft order.
- const salesResult=await syncSalesFromSupabase({silent:true,preloadedSales});
+ const salesResult=await syncSalesFromSupabase({silent:true});
  if(productResult?.ok&&salesResult?.ok&&typeof saveOfflineSnapshot==="function")saveOfflineSnapshot();
  return {stateResult,productResult,salesResult};
 }
@@ -2442,6 +2459,8 @@ async function scheduleRemoteNotificationRefresh(eventPayload){
  try{
   let live=eventPayload?.new?.payload&&Array.isArray(eventPayload.new.payload.notifications)?eventPayload.new.payload:null;
   if(!live){
+   const head=await sbClient.from("mpa_app_state").select("updated_at").eq("scope",cloudStateScope).maybeSingle();
+   if(!head.error&&head.data&&head.data.updated_at===mpaLiveLastAt)return;
    const {data,error}=await sbClient.from("mpa_app_state").select(MPA_STATE_LIVE_SELECT).eq("scope",cloudStateScope).maybeSingle();
    if(error)throw error;
    if(!data)return;
@@ -2464,6 +2483,7 @@ async function scheduleRemoteNotificationRefresh(eventPayload){
   renderNotifications();updateNotifDot();
   const fresh=notifications.filter(n=>!before.has(String(n.id))&&String(n.user||'')!==String(currentUser())&&!n.read);
   if(fresh.length){
+   if(typeof scheduleRemoteRefresh==='function')scheduleRemoteRefresh();
    mpaLastAlertAt=Date.now();playNotificationSignal();
    const item=fresh[0];
    if(document.hidden){for(const it of fresh.slice(0,3))showSystemNotification(it);}
@@ -2475,7 +2495,7 @@ async function scheduleRemoteNotificationRefresh(eventPayload){
 // V87: Realtime + focus/visibility refresh are primary. Keep only a low-frequency
 // 5-minute fallback for missed events; the old 15-second polling caused repeated
 // PostgREST reads and unnecessary Egress while the app was idle.
-function startLivePolling(){registerPushSubscription();if(mpaLiveTimer)clearInterval(mpaLiveTimer);mpaLiveTimer=setInterval(()=>{if(authProfile&&navigator.onLine!==false)scheduleRemoteNotificationRefresh()},300000)}
+function startLivePolling(){registerPushSubscription();if(mpaLiveTimer)clearInterval(mpaLiveTimer);mpaLiveTimer=setInterval(()=>{if(authProfile&&navigator.onLine!==false&&!document.hidden)scheduleRemoteNotificationRefresh()},30000)}
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&authProfile)scheduleRemoteNotificationRefresh()});
 window.addEventListener("focus",()=>{if(authProfile)scheduleRemoteNotificationRefresh()});
 function startSupabaseRealtime(){
@@ -2483,10 +2503,8 @@ function startSupabaseRealtime(){
  try{
   if(mpaRealtimeChannel){sbClient.removeChannel(mpaRealtimeChannel);mpaRealtimeChannel=null;}
   mpaRealtimeChannel=sbClient.channel("mpa-live-sync")
-   .on("postgres_changes",{event:"*",schema:"public",table:"products"},scheduleRemoteRefresh)
    .on("postgres_changes",{event:"*",schema:"public",table:"sales"},scheduleRemoteRefresh)
    .on("postgres_changes",{event:"*",schema:"public",table:"sale_items"},scheduleRemoteRefresh)
-   .on("postgres_changes",{event:"*",schema:"public",table:"mpa_app_state"},scheduleRemoteNotificationRefresh)
    .subscribe();
  }catch(e){console.warn("Realtime setup failed",e)}
  // Supabase Realtime is the live-sync mechanism. A polling timer here caused
