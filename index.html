@@ -515,7 +515,7 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
 <script src="translations.js"></script>
 <script>
 // M-P-A v41: do not reload the entire app state on realtime app-state events; only merge notifications.
-const MPA_APP_VERSION = "V80";
+const MPA_APP_VERSION = "V91";
 function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="Toleo: "+MPA_APP_VERSION;}
 let mpaWaitingWorker=null;
 function setUpdateUI(state,msg){
@@ -620,6 +620,7 @@ const sbClient=(window.supabase&&window.supabase.createClient)?window.supabase.c
 let authProfile=null, loginRole="user", productTab="all", selectedStockId=null, selectedImage="";
 // M-P-A V21: Supabase is the ONLY persistent application datastore.
 let snapshotProducts=[];
+let imageVersions={};const mpaImageCache=new Map();
 let products=[], sales=[], customers=[], expenses=[], movements=[], notifications=[], stockRequests=[];
 let goalTarget=10000000, monthlyGoals={}, branches=[], activeBranch="", storeName="Micky Phone Accessories", language=readLanguagePreference(), fontSize=100;
 function monthKey(d=now()){return dateKey(d).slice(0,7);}
@@ -655,7 +656,7 @@ async function syncProductToSupabase(p){
   const row=await supabaseProductRow(p);
   const {error}=await sbClient.from('products').upsert(row,{onConflict:'id'});
   if(error)throw error;
-  p.supabaseId=row.id;p.updatedAt=row.updated_at;p.imageLoaded=!!p.image;
+  p.supabaseId=row.id;p.updatedAt=row.updated_at;p.imageLoaded=true;if(String(p.image||'')!==String(p.__syncedImage??'')){const v=Date.now();imageVersions[row.id]=v;p.__syncedImage=String(p.image||'');}p.imageCheckedAt=Date.now()+1;mpaImageCache.set(String(row.id),{image:String(p.image||''),imageCheckedAt:p.imageCheckedAt});
   return {ok:true,data:row};
  }catch(e){
   if(e?.code==='MPA_TIMEOUT'||e?.name==='AbortError'||/fetch|network|timeout|abort/i.test(String(e?.message||''))){
@@ -748,10 +749,12 @@ async function syncProductsFromSupabase({silent=false}={}){
   const priorById=new Map([...snapshotProducts,...products].map(p=>[String(p.supabaseId||p.id),p]));
   const needImg=[];
   for(const row of rows){
-    const prior=priorById.get(String(row.id));
-    const sameMeta=prior&&prior.imageLoaded&&prior.image&&prior.name===row.name&&String(prior.category||'')===String(row.category||'')&&Number(prior.price)===Number(row.sell_price)&&Number(prior.buy)===Number(row.buy_price)&&(Date.now()-Number(prior.imageCheckedAt||0))<3*864e5;
-    if(prior&&prior.imageLoaded&&(sameMeta||String(prior.updatedAt||'')===String(row.updated_at||''))){row.__imgChecked=prior.imageCheckedAt;row.image_url=prior.image||'';row.__imgOk=true;}
-    else{row.image_url=prior?.image||'';needImg.push(row);}
+    const key=String(row.id);const prior=priorById.get(key);const cached=mpaImageCache.get(key);
+    const ver=Number(imageVersions[key]||0);
+    const src=(prior&&prior.imageLoaded)?{image:prior.image||'',imageCheckedAt:Number(prior.imageCheckedAt||0)}:cached;
+    // V91 Egress: picha haipakuliwi tena mpaka Admin abadilishe picha (imageVersions), si kila siku/kila mauzo.
+    if(src&&Number(src.imageCheckedAt||0)>=ver){row.__imgChecked=src.imageCheckedAt||1;row.image_url=src.image||'';row.__imgOk=true;}
+    else{row.image_url=src?.image||prior?.image||'';needImg.push(row);}
   }
   const chunks=[];for(let i=0;i<needImg.length;i+=10)chunks.push(needImg.slice(i,i+10));
   let ci=0;
@@ -759,7 +762,7 @@ async function syncProductsFromSupabase({silent=false}={}){
     try{const imageResult=await sbClient.from('products').select('id,image_url').in('id',ids);
       if(imageResult.error)throw imageResult.error;
       const m=new Map((imageResult.data||[]).map(r=>[String(r.id),r.image_url||'']));
-      for(const row of batch){if(m.has(String(row.id))){const remoteImage=m.get(String(row.id));row.image_url=remoteImage||row.image_url||"";row.__imgOk=!!remoteImage;}}
+      for(const row of batch){if(m.has(String(row.id))){const remoteImage=m.get(String(row.id));row.image_url=remoteImage||"";row.__imgOk=true;row.__imgChecked=Date.now();}}
     }catch(imageError){console.warn('M-P-A V68 image batch failed',imageError?.code||imageError);}
   }};
   const imageWork=()=>Promise.all(Array.from({length:Math.min(4,chunks.length)},worker));
@@ -776,7 +779,7 @@ async function syncProductsFromSupabase({silent=false}={}){
     return {ok:false,error:emptyReadError,count:products.length,usedFallback:true};
   }
   // Records present in the authoritative products table must remain visible. A stale deletedProductIds tombstone in app-state must never hide a real database row.
-  const remoteProducts=rows.map(r=>{const x=applyRemoteProduct(r);x.imageLoaded=!!r.__imgOk;return x;});
+  const remoteProducts=rows.map(r=>{const x=applyRemoteProduct(r);x.imageLoaded=!!r.__imgOk;if(r.__imgOk){x.imageCheckedAt=r.__imgChecked||1;x.__syncedImage=String(r.image_url||'');}return x;});
   const remoteIdSet=new Set(remoteProducts.map(x=>String(x.id)));
   deletedProductIds=deletedProductIds.filter(id=>!remoteIdSet.has(String(id)));
   const mergedProducts=[...remoteProducts];
@@ -793,7 +796,7 @@ async function syncProductsFromSupabase({silent=false}={}){
    }
   products=mergedProducts;
   const imageUserId=authProfile?.id;
-  imageWork().then(()=>{if(authProfile?.id!==imageUserId)return;for(const row of rows){const p=products.find(x=>String(x.id)===String(row.id));if(p&&p.updatedAt===row.updated_at&&row.__imgOk){p.image=row.image_url;p.imageLoaded=true;p.imageCheckedAt=row.__imgChecked||Date.now();}}scheduleRender();}).catch(()=>{});
+  imageWork().then(()=>{if(authProfile?.id!==imageUserId)return;for(const row of rows){const p=products.find(x=>String(x.id)===String(row.id));if(p&&row.__imgOk){p.image=row.image_url;p.imageLoaded=true;p.__syncedImage=String(row.image_url||'');p.imageCheckedAt=row.__imgChecked||Date.now();mpaImageCache.set(String(row.id),{image:p.image,imageCheckedAt:p.imageCheckedAt});}}if(typeof saveOfflineSnapshot==='function')saveOfflineSnapshot();{}scheduleRender();}).catch(()=>{});
   if(false)console.info('M-P-A V64 products merge result',{
     remoteProductsCount:remoteProducts.length,
     mergedProductsCount:mergedProducts.length,
@@ -898,7 +901,7 @@ async function syncSalesFromSupabase({silent=false,preloadedSales}={}){
   if(idRes.error)throw idRes.error;
   const allIds=(idRes.data||[]).map(x=>String(x.id));
   const fullKey='mpa-sales-full-day-v88:'+String(authProfile.id);let fullDone=false;try{fullDone=localStorage.getItem(fullKey)===dateKey(now())}catch(e){}
-  const recentFrom=Date.now()-21*864e5;
+  const recentFrom=Date.now()-3*864e5;
   const cachedById=new Map(sales.filter(x=>!x.pendingSync).map(x=>[String(x.supabaseId||x.id),x]));
   const needIds=allIds.filter(id=>{const c=cachedById.get(id);return !fullDone||!c||!(new Date(c.date).getTime()<recentFrom)||Number(c.debt||0)>0;});
   const needSet=new Set(needIds);
@@ -951,7 +954,7 @@ async function loadCloudState({preserveSales=false}={}){
  if(!sbClient||!authProfile)return {ok:false,skipped:true};
  try{
     // V88 Egress: usipakue products/sales ndani ya app-state; majedwali yake ndiyo chanzo.
-  const keys=["deletedSaleIds","deletedExpenseIds","deletedProductIds","deletedUserIds","customers","expenses","movements","notifications","stockRequests","branches","users","goalTarget","monthlyGoals","activeBranch","storeName","language","fontSize"];
+  const keys=["deletedSaleIds","deletedExpenseIds","deletedProductIds","deletedUserIds","customers","expenses","movements","notifications","stockRequests","branches","users","goalTarget","monthlyGoals","activeBranch","storeName","language","fontSize","imageVersions"];
   if(!preserveSales)keys.push("sales");
   const {data:row,error}=await sbClient.from("mpa_app_state").select("updated_at,"+keys.map(k=>k+":payload->"+k).join(",")).eq("scope",cloudStateScope).maybeSingle();
   if(error)throw error;
@@ -971,6 +974,7 @@ async function loadCloudState({preserveSales=false}={}){
    // V67: Snapshot ya app-state HAIBADILISHI tena orodha ya bidhaa. Ilikuwa ikirudisha bidhaa 23
    // za zamani kila refresh. Inahifadhiwa tu kama akiba endapo jedwali la products halipatikani kabisa.
    if(Array.isArray(st.products))snapshotProducts=st.products;
+   mergeImageVersions(st.imageVersions);
    customers=Array.isArray(st.customers)?st.customers:[];
    expenses=Array.isArray(st.expenses)?st.expenses.filter(x=>!deletedExpenseIds.includes(String(x.id))):[];
    movements=Array.isArray(st.movements)?st.movements:[];
@@ -1006,10 +1010,11 @@ async function loadCloudState({preserveSales=false}={}){
 }
 // V79: Read/write only the parts of the shared app-state that are needed. Product photos already
 // stored in the products table are not copied into every save, which made saves time out on phones.
-const MPA_STATE_MERGE_SELECT="deletedUserIds:payload->deletedUserIds,deletedProductIds:payload->deletedProductIds,deletedSaleIds:payload->deletedSaleIds,deletedExpenseIds:payload->deletedExpenseIds,stockRequests:payload->stockRequests,notifications:payload->notifications,monthlyGoals:payload->monthlyGoals,users:payload->users";
-const MPA_STATE_LIVE_SELECT="updated_at,notifications:payload->notifications,stockRequests:payload->stockRequests,users:payload->users,deletedUserIds:payload->deletedUserIds";
+const MPA_STATE_MERGE_SELECT="deletedUserIds:payload->deletedUserIds,deletedProductIds:payload->deletedProductIds,deletedSaleIds:payload->deletedSaleIds,deletedExpenseIds:payload->deletedExpenseIds,stockRequests:payload->stockRequests,notifications:payload->notifications,monthlyGoals:payload->monthlyGoals,users:payload->users,imageVersions:payload->imageVersions";
+const MPA_STATE_LIVE_SELECT="updated_at,notifications:payload->notifications,stockRequests:payload->stockRequests,users:payload->users,deletedUserIds:payload->deletedUserIds,imageVersions:payload->imageVersions";
 function isInlineImage(v){return /^data:/i.test(String(v||""))}
-function stateProductsForSave(list){return (Array.isArray(list)?list:[]).map(({imageLoaded,...rest})=>imageLoaded&&isInlineImage(rest.image)?{...rest,image:"",imageInTable:true}:rest)}
+function stateProductsForSave(list){return (Array.isArray(list)?list:[]).map(({imageLoaded,__syncedImage,...rest})=>isInlineImage(rest.image)?{...rest,image:"",imageInTable:true}:rest)}
+function mergeImageVersions(v){let changed=false;if(v&&typeof v==="object")for(const [k,n] of Object.entries(v)){if(Number(n)>Number(imageVersions[k]||0)){imageVersions[k]=Number(n);changed=true;}}return changed}
 function snapshotStockRequests(list){return (Array.isArray(list)?list:[]).slice(0,300).map(r=>{if(!r||r.status==="pending"||!r.changes||!isInlineImage(r.changes.image))return r;return {...r,changes:{...r.changes,image:"[picha]"}}})}
 async function saveCloudState(){
  if(!sbClient||!authProfile)return {ok:false,skipped:true};
@@ -1037,11 +1042,11 @@ async function saveCloudState(){
     // bidhaa iliyofutwa DB isirudishwe na snapshot ya zamani (hushughulikiwa kwenye merge).
     sales=sales.filter(x=>!deletedSaleIds.includes(String(x.id))&&!deletedSaleIds.includes(String(x.supabaseId)));
     expenses=expenses.filter(x=>!deletedExpenseIds.includes(String(x.id)));
-    stockRequests=mergeStockRequests(remoteState.stockRequests,stockRequests);
+    stockRequests=mergeStockRequests(remoteState.stockRequests,stockRequests);mergeImageVersions(remoteState.imageVersions);
     {const nm=new Map();for(const it of (Array.isArray(remoteState.notifications)?remoteState.notifications:[]))if(it&&it.id!=null)nm.set(String(it.id),it);for(const it of notifications){if(!it||it.id==null)continue;const o=nm.get(String(it.id));nm.set(String(it.id),o?{...o,...it,read:!!(o.read||it.read)}:it)}notifications=[...nm.values()].sort((a,b)=>new Date(b.date||0)-new Date(a.date||0)).slice(0,200);}
     if(remoteState.monthlyGoals&&typeof remoteState.monthlyGoals==="object"){for(const [k,v] of Object.entries(remoteState.monthlyGoals))if(Number(v)>0&&!(Number(monthlyGoals?.[k])>0))monthlyGoals[k]=v;}
     const safeUsers=users.map(({password,...u})=>({...u}));
-    const payload={products:stateProductsForSave(products),sales,customers,expenses,movements,notifications:notifications.slice(0,200),stockRequests:snapshotStockRequests(stockRequests),users:safeUsers,goalTarget:currentGoalTarget(),monthlyGoals,branches,activeBranch,storeName,language,fontSize,deletedSaleIds,deletedExpenseIds,deletedProductIds,deletedUserIds};
+    const payload={products:stateProductsForSave(products),sales,customers,expenses,movements,notifications:notifications.slice(0,200),stockRequests:snapshotStockRequests(stockRequests),users:safeUsers,goalTarget:currentGoalTarget(),monthlyGoals,branches,activeBranch,storeName,language,fontSize,deletedSaleIds,deletedExpenseIds,deletedProductIds,deletedUserIds,imageVersions};
     // Add a unique token for read-after-write verification.
     const stamp=now().toISOString()+"-"+Math.random().toString(36).slice(2,10);
     payload.__mpaWriteToken=stamp;
@@ -1367,8 +1372,17 @@ async function login(){
 }
 
 // V68: Usawazishaji wa kwanza: ukurasa unaonekana mara moja, data inaingia kwa pamoja (parallel).
+async function seedFromDeviceCache(){
+ // V91 Egress: tumia picha na mauzo yaliyopo kwenye simu badala ya kupakua yote upya kila ukifungua.
+ try{const snap=await readOfflineSnapshot();if(!snap||String(snap.userId)!==String(authProfile?.id))return;
+  for(const p of (snap.products||[]))if(p&&p.imageLoaded)mpaImageCache.set(String(p.supabaseId||p.id),{image:p.image||'',imageCheckedAt:Number(p.imageCheckedAt||1)});
+  if(!sales.length&&Array.isArray(snap.sales))sales=snap.sales.filter(x=>!x.pendingSync);
+  if(!products.length&&Array.isArray(snap.products)){products=snap.products;scheduleRender();}
+ }catch(e){}
+}
 async function refreshBusinessData(){
  if(!await ensureFreshSession())throw new Error('Ingia tena ili kusawazisha data.');
+ if(!mpaImageCache.size)await seedFromDeviceCache();
  const statePromise=loadCloudState({preserveSales:true});
  const productPromise=syncProductsReliable({silent:true,sessionReady:true});
  const [stateResult,productResult]=await Promise.all([statePromise,productPromise]);
@@ -1536,7 +1550,7 @@ function previewImage(e){
  productImagePromise=(async()=>{if(!f.type.startsWith('image/')||f.size>20*1024*1024)throw new Error('Chagua picha ndogo kuliko MB 20.');
   const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error('Picha haijasomeka.'));reader.readAsDataURL(f)});
   const img=await new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('Picha haijasomeka.'));image.src=data});
-  const scale=Math.min(1,1000/Math.max(img.width,img.height));const canvas=document.createElement('canvas');canvas.width=Math.round(img.width*scale);canvas.height=Math.round(img.height*scale);const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Picha haijasomeka.');ctx.drawImage(img,0,0,canvas.width,canvas.height);selectedImage=canvas.toDataURL('image/jpeg',0.78);document.getElementById('imagePreview').src=selectedImage;
+  const scale=Math.min(1,640/Math.max(img.width,img.height));const canvas=document.createElement('canvas');canvas.width=Math.round(img.width*scale);canvas.height=Math.round(img.height*scale);const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Picha haijasomeka.');ctx.drawImage(img,0,0,canvas.width,canvas.height);selectedImage=canvas.toDataURL('image/jpeg',0.7);document.getElementById('imagePreview').src=selectedImage;
  })();productImagePromise.catch(e=>toast(e.message));
 }
 const actionLocks=new Set();
@@ -2516,6 +2530,7 @@ async function scheduleRemoteNotificationRefresh(eventPayload){
   for(const item of remoteNotifications){if(item&&item.id!=null)merged.set(String(item.id),item)}
   for(const item of notifications){if(item&&item.id!=null){const o=merged.get(String(item.id));merged.set(String(item.id),o?{...o,...item,read:!!(o.read||item.read)}:item)}}
   notifications=[...merged.values()].sort((a,b)=>new Date(b.date||0)-new Date(a.date||0)).slice(0,200);
+  if(live.imageVersions&&mergeImageVersions(live.imageVersions)&&typeof scheduleRemoteRefresh==='function')scheduleRemoteRefresh();
   if(Array.isArray(live.stockRequests)){stockRequests=mergeStockRequests(live.stockRequests,stockRequests);renderStockRequests();}
   renderNotifications();updateNotifDot();
   const fresh=notifications.filter(n=>!before.has(String(n.id))&&String(n.user||'')!==String(currentUser())&&!n.read);
