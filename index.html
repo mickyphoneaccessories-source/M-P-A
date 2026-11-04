@@ -515,7 +515,7 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
 <script src="translations.js"></script>
 <script>
 // M-P-A v41: do not reload the entire app state on realtime app-state events; only merge notifications.
-const MPA_APP_VERSION = "V91";
+const MPA_APP_VERSION = "V92";
 function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="Toleo: "+MPA_APP_VERSION;}
 let mpaWaitingWorker=null;
 function setUpdateUI(state,msg){
@@ -616,6 +616,11 @@ async function mpaFetch(input,init={}){
  const abort=()=>controller.abort();if(init.signal?.aborted)controller.abort();else init.signal?.addEventListener('abort',abort,{once:true});
  try{return await fetch(input,{...init,signal:controller.signal})}catch(e){if(controller.signal.aborted){const err=new Error('Ombi limechukua muda mrefu; hifadhi bado haijathibitishwa. Jaribu kuhakiki kwa kusawazisha.');err.code='MPA_TIMEOUT';throw err}throw e}finally{clearTimeout(timer);init.signal?.removeEventListener('abort',abort)}
 }
+// V92: Supabase hufuta "#...type=recovery" mara inapoanza, hivyo tunanasa link ya reset KABLA client haijaanza.
+const MPA_RESET_FLAG="mpa-password-recovery";
+const MPA_URL_AT_LOAD=String(location.hash||"")+"&"+String(location.search||"");
+const MPA_RESET_LINK_ERROR=/error_code=|error=access_denied/i.test(MPA_URL_AT_LOAD);
+if(/type=recovery/i.test(MPA_URL_AT_LOAD)){try{sessionStorage.setItem(MPA_RESET_FLAG,"1")}catch(e){}}
 const sbClient=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{global:{fetch:mpaFetch},auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:mpaAuthStorage}}):null;
 let authProfile=null, loginRole="user", productTab="all", selectedStockId=null, selectedImage="";
 // M-P-A V21: Supabase is the ONLY persistent application datastore.
@@ -1267,7 +1272,9 @@ function setLogin(role){
  document.getElementById("password").inputMode=userMode?"numeric":"text";
  document.getElementById("loginHint").textContent=userMode?translateText("Muuzaji: tumia username na PIN ya tarakimu 4 uliyopewa na Admin."):translateText("Admin: tumia jina lako la kuingia (au email) na password.");
 }
-function isPasswordRecoveryLink(){return /type=recovery/i.test(location.hash||"")||/type=recovery/i.test(location.search||"")}
+function isPasswordRecoveryLink(){if(/type=recovery/i.test(MPA_URL_AT_LOAD)||/type=recovery/i.test(location.hash||"")||/type=recovery/i.test(location.search||""))return true;try{return sessionStorage.getItem(MPA_RESET_FLAG)==="1"}catch(e){return false}}
+function clearRecoveryFlag(){try{sessionStorage.removeItem(MPA_RESET_FLAG)}catch(e){}}
+if(sbClient)sbClient.auth.onAuthStateChange(ev=>{if(ev==="PASSWORD_RECOVERY"){try{sessionStorage.setItem(MPA_RESET_FLAG,"1")}catch(e){}setTimeout(showPasswordReset,0)}});
 function showPasswordReset(){
  document.getElementById("login").style.display="flex";
  document.getElementById("app").style.display="none";
@@ -1277,7 +1284,10 @@ function showPasswordReset(){
  document.getElementById("password").parentElement.style.display="none";
  document.getElementById("loginBtn").style.display="none";
  document.getElementById("loginHint").style.display="none";
+ document.getElementById("forgotBox").style.display="none";
+ {const fl=document.getElementById("forgotLink");if(fl)fl.style.display="none";}
  document.getElementById("resetBox").style.display="block";
+ setTimeout(()=>document.getElementById("newPassword")?.focus(),50);
 }
 function loginFormVisible(v){["username","password"].forEach(id=>document.getElementById(id).parentElement.style.display=v?"":"none");["loginBtn","loginHint","forgotLink"].forEach(id=>document.getElementById(id).style.display=v?"":"none");document.querySelector("#login .tabs").style.display=v?"":"none"}
 function openForgot(){loginFormVisible(false);const u=document.getElementById("username").value.trim();document.getElementById("forgotEmail").value=u.includes("@")?u:(adminEmailFor(u)||"");document.getElementById("forgotBox").style.display="block"}
@@ -1286,7 +1296,7 @@ async function sendForgot(){const email=document.getElementById("forgotEmail").v
 const ADMIN_LOGIN_MAP_KEY="mpa_admin_login_map";
 function adminEmailFor(name){try{return (JSON.parse(localStorage.getItem(ADMIN_LOGIN_MAP_KEY)||"{}"))[String(name||"").trim().toLowerCase()]||""}catch(e){return ""}}
 function rememberAdminLogin(name,email){if(!name||!email)return;try{const m=JSON.parse(localStorage.getItem(ADMIN_LOGIN_MAP_KEY)||"{}");m[String(name).trim().toLowerCase()]=email;localStorage.setItem(ADMIN_LOGIN_MAP_KEY,JSON.stringify(m))}catch(e){}}
-function cancelPasswordReset(){location.href=location.origin+location.pathname}
+function cancelPasswordReset(){clearRecoveryFlag();try{sbClient&&sbClient.auth.signOut()}catch(e){}location.href=location.origin+location.pathname}
 async function changePassword(){
  const p1=document.getElementById("newPassword").value;
  const p2=document.getElementById("newPassword2").value;
@@ -1297,6 +1307,7 @@ async function changePassword(){
  if(!data?.session){alert(translateText("Link ya kubadilisha password imekwisha muda au haijathibitishwa. Omba Reset password tena."));return}
  const {error}=await sbClient.auth.updateUser({password:p1});
  if(error){alert(translateText("Password haikubadilika: "+error.message));return}
+ clearRecoveryFlag();clearLoginDay();
  await sbClient.auth.signOut();
  history.replaceState(null,"",location.pathname);
  document.getElementById("resetBox").style.display="none";
@@ -2630,7 +2641,8 @@ window.addEventListener("load",async()=>{
    try{
      const {data}=await sbClient.auth.getSession();
      const session=data?.session;
-     if(isPasswordRecoveryLink()){showPasswordReset();return;}
+     if(isPasswordRecoveryLink()){if(session?.user){showPasswordReset();return;}clearRecoveryFlag();alert(translateText("Link ya kubadilisha password imekwisha muda au imeshatumika. Gusa \"Umesahau password?\" uombe link mpya."));}
+     else if(MPA_RESET_LINK_ERROR){alert(translateText("Link ya kubadilisha password imekwisha muda au imeshatumika. Gusa \"Umesahau password?\" uombe link mpya."));history.replaceState(null,"",location.pathname);}
      if(session?.user)await restoreDailySession();
    }catch(e){console.warn("Session restore failed",e)}
 }
