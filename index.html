@@ -515,7 +515,7 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
 <script src="translations.js"></script>
 <script>
 // M-P-A v41: do not reload the entire app state on realtime app-state events; only merge notifications.
-const MPA_APP_VERSION = "V92";
+const MPA_APP_VERSION = "V93";
 function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="Toleo: "+MPA_APP_VERSION;}
 let mpaWaitingWorker=null;
 function setUpdateUI(state,msg){
@@ -1741,6 +1741,9 @@ async function applyStockChange(){
  return runOnce("stock-save",async()=>{
   const p=products.find(x=>String(x.id)===String(selectedStockId)||String(x.supabaseId)===String(selectedStockId)),q=Number(document.getElementById("stockQty").value||0),note=document.getElementById("stockNote").value.trim()||"Mabadiliko ya stock";
   if(!p||!q||q<1)return {ok:false};
+  if(stockMode==="remove"&&q>p.qty){toast("Stock haitoshi.");return {ok:false}}
+  // V93: user hutuma OMBI (Admin huthibitisha), hivyo kupunguza hutumia ruhusa ileile ya kuongeza.
+  if(!isRealAdmin()&&(can("add_stock")||can("remove_stock"))){const r=await submitStockRequest({type:stockMode,product:p,qty:q,note});if(r.ok){document.getElementById("stockQty").value=1;document.getElementById("stockNote").value="";}return r;}
   if(stockMode==="remove"&&!can("remove_stock")){toast("Huna ruhusa ya kupunguza stock.");return {ok:false}}
   if(stockMode==="add"&&!can("add_stock")){toast("Huna ruhusa ya kuongeza stock.");return {ok:false}}
   if(stockMode==="remove"&&q>p.qty){toast("Stock haitoshi.");return {ok:false}}
