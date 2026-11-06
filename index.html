@@ -115,6 +115,25 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
 <script src="vendor/html2canvas.min.js"></script>
 <script src="vendor/supabase.js"></script>
 <script>if(!(window.supabase&&window.supabase.createClient)){document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"><\/script>')}</script>
+<style>
+#v94StoreOverlay,#v94DebtView{position:fixed;inset:0;background:#fff;z-index:9000;overflow:auto;color:#111}
+#v94DebtView{z-index:99999;background:#f6f7fb}
+.v94-wrap{padding:14px 16px calc(20px + env(safe-area-inset-bottom))}
+.v94-top{display:flex;align-items:center;gap:10px;margin:6px 0 14px}.v94-top h2{margin:0;font-size:20px}
+.v94-back,.v94-del{border:0;background:none;font-size:24px;padding:6px;cursor:pointer}
+.v94-search{flex:1;display:flex;align-items:center;gap:8px;background:#f1f1f3;border:1px solid #e3e3e6;border-radius:999px;padding:10px 14px}.v94-search input{border:0;background:none;outline:0;flex:1;font-size:15px}
+.v94-tabs{display:flex;background:#e3ebff;border-radius:999px;padding:6px;margin-bottom:14px}.v94-tabs button{flex:1;border:0;background:none;padding:10px 4px;border-radius:999px;font-size:14px;color:#444}.v94-tabs button.on{background:#0a3cff;color:#fff;font-weight:600}
+.v94-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}.v94-stats div{border-radius:10px;padding:14px 6px;text-align:center}.v94-stats small{display:block;font-size:13px;margin-bottom:8px}.v94-stats b{font-size:15px}
+.v94-title{font-weight:600;font-size:17px;margin:4px 0 10px}
+.v94-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #eee}.v94-item img{width:46px;height:46px;border-radius:10px;object-fit:cover;background:#f3f3f3}.v94-item small{display:block;color:#777;font-size:12px}.v94-qty{font-weight:700;min-width:36px;text-align:right}.v94-mini{border:1px solid #ddd;background:#fff;border-radius:8px;padding:6px 9px}
+.v94-empty{text-align:center;font-size:56px;padding:50px 0;color:#888}.v94-empty p{font-size:14px}
+.v94-bottom{position:fixed;left:0;right:0;bottom:0;display:flex;gap:14px;padding:12px 16px calc(14px + env(safe-area-inset-bottom));background:#fff}.v94-bottom button{flex:1;border:0;border-radius:999px;padding:15px;color:#fff;font-size:15px}.v94-move{background:#ff5a7a}.v94-new{background:#0a3cff}
+.v94-addrow{display:flex;gap:8px;margin-bottom:14px}
+.v94-storecard{display:flex;width:100%;align-items:center;gap:12px;border:1px solid #eee;background:#fff;border-radius:14px;padding:14px;margin-bottom:10px}.v94-storecard small{display:block;color:#777}.v94-ic{font-size:26px}
+.v94-mback{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9500;display:flex;align-items:flex-end;justify-content:center}.v94-mbox{background:#fff;width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom))}
+.v94-imgpick{display:flex;align-items:center;gap:12px;margin-bottom:10px;cursor:pointer}.v94-imgpick img{width:64px;height:64px;border-radius:12px;object-fit:cover;background:#f3f3f3}
+.v94-card{background:#fff;border-radius:14px;padding:6px 14px;margin-bottom:10px}.v94-r{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #f0f0f0}.v94-r:last-child{border:0}
+</style>
 </head>
 <body>
 <div id="notice" class="notice"></div><div id="refreshIndicator" class="refresh-indicator" aria-label="Inasasisha"></div>
@@ -382,7 +401,7 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
       </div>
       <div class="settings-group-title">ZIADA</div>
       <div class="settings-ios-list">
-        <button type="button" onclick="toggleSettingsPanel('branchesPanel')"><span class="setting-icon" style="background:#ff2b83">🛍</span><span class="setting-main">Maduka yangu Mengine <small>- Matawi</small></span><b>›</b></button>
+        <button type="button" onclick="openStores()"><span class="setting-icon" style="background:#ff2b83">🛍</span><span class="setting-main">Store zangu <small>- Bidhaa za akiba</small></span><b>›</b></button>
         <button type="button" onclick="toggleSettingsPanel('storePanel')"><span class="setting-icon" style="background:#b400ff">⌂</span><span class="setting-main">Stoo Zangu</span><b>›</b></button>
         <button onclick="toast('Malipo - Banking: itaunganishwa hapa.')"><span class="setting-icon" style="background:#9fc1ff">▣</span><span class="setting-main">Malipo <small>- Huduma za benki</small></span><b>›</b></button>
         <button onclick="toast('Alika Wafanyabiashara: tumia Ongeza Muuzaji.')"><span class="setting-icon" style="background:#2450ff">♟</span><span class="setting-main">Alika Wafanyabiashara</span><b>›</b></button>
@@ -515,7 +534,7 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
 <script src="translations.js"></script>
 <script>
 // M-P-A v41: do not reload the entire app state on realtime app-state events; only merge notifications.
-const MPA_APP_VERSION = "V93";
+const MPA_APP_VERSION = "V94";
 function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="Toleo: "+MPA_APP_VERSION;}
 let mpaWaitingWorker=null;
 function setUpdateUI(state,msg){
@@ -627,6 +646,7 @@ let authProfile=null, loginRole="user", productTab="all", selectedStockId=null, 
 let snapshotProducts=[];
 let imageVersions={};const mpaImageCache=new Map();
 let products=[], sales=[], customers=[], expenses=[], movements=[], notifications=[], stockRequests=[];
+let stores=[];
 let goalTarget=10000000, monthlyGoals={}, branches=[], activeBranch="", storeName="Micky Phone Accessories", language=readLanguagePreference(), fontSize=100;
 function monthKey(d=now()){return dateKey(d).slice(0,7);}
 function monthLabel(d=now()){return new Date(d).toLocaleDateString(language==='en'?'en-GB':'sw-TZ',{month:"long",timeZone:MPA_TIMEZONE});}
@@ -959,7 +979,7 @@ async function loadCloudState({preserveSales=false}={}){
  if(!sbClient||!authProfile)return {ok:false,skipped:true};
  try{
     // V88 Egress: usipakue products/sales ndani ya app-state; majedwali yake ndiyo chanzo.
-  const keys=["deletedSaleIds","deletedExpenseIds","deletedProductIds","deletedUserIds","customers","expenses","movements","notifications","stockRequests","branches","users","goalTarget","monthlyGoals","activeBranch","storeName","language","fontSize","imageVersions"];
+  const keys=["deletedSaleIds","deletedExpenseIds","deletedProductIds","deletedUserIds","customers","expenses","movements","notifications","stockRequests","branches","stores","users","goalTarget","monthlyGoals","activeBranch","storeName","language","fontSize","imageVersions"];
   if(!preserveSales)keys.push("sales");
   const {data:row,error}=await sbClient.from("mpa_app_state").select("updated_at,"+keys.map(k=>k+":payload->"+k).join(",")).eq("scope",cloudStateScope).maybeSingle();
   if(error)throw error;
@@ -981,6 +1001,7 @@ async function loadCloudState({preserveSales=false}={}){
    if(Array.isArray(st.products))snapshotProducts=st.products;
    mergeImageVersions(st.imageVersions);
    customers=Array.isArray(st.customers)?st.customers:[];
+   if(Array.isArray(st.stores))stores=st.stores;
    expenses=Array.isArray(st.expenses)?st.expenses.filter(x=>!deletedExpenseIds.includes(String(x.id))):[];
    movements=Array.isArray(st.movements)?st.movements:[];
    notifications=Array.isArray(st.notifications)?st.notifications:[];
@@ -1051,7 +1072,7 @@ async function saveCloudState(){
     {const nm=new Map();for(const it of (Array.isArray(remoteState.notifications)?remoteState.notifications:[]))if(it&&it.id!=null)nm.set(String(it.id),it);for(const it of notifications){if(!it||it.id==null)continue;const o=nm.get(String(it.id));nm.set(String(it.id),o?{...o,...it,read:!!(o.read||it.read)}:it)}notifications=[...nm.values()].sort((a,b)=>new Date(b.date||0)-new Date(a.date||0)).slice(0,200);}
     if(remoteState.monthlyGoals&&typeof remoteState.monthlyGoals==="object"){for(const [k,v] of Object.entries(remoteState.monthlyGoals))if(Number(v)>0&&!(Number(monthlyGoals?.[k])>0))monthlyGoals[k]=v;}
     const safeUsers=users.map(({password,...u})=>({...u}));
-    const payload={products:stateProductsForSave(products),sales,customers,expenses,movements,notifications:notifications.slice(0,200),stockRequests:snapshotStockRequests(stockRequests),users:safeUsers,goalTarget:currentGoalTarget(),monthlyGoals,branches,activeBranch,storeName,language,fontSize,deletedSaleIds,deletedExpenseIds,deletedProductIds,deletedUserIds,imageVersions};
+    const payload={products:stateProductsForSave(products),sales,customers,expenses,movements,notifications:notifications.slice(0,200),stockRequests:snapshotStockRequests(stockRequests),users:safeUsers,goalTarget:currentGoalTarget(),monthlyGoals,branches,stores,activeBranch,storeName,language,fontSize,deletedSaleIds,deletedExpenseIds,deletedProductIds,deletedUserIds,imageVersions};
     // Add a unique token for read-after-write verification.
     const stamp=now().toISOString()+"-"+Math.random().toString(36).slice(2,10);
     payload.__mpaWriteToken=stamp;
@@ -1999,6 +2020,7 @@ function openSaleDetails(id){window.mpaOpenSaleId=id;
     <div class="sale-detail-row"><span class="sale-detail-label">${translateText("Mteja" )}</span><span class="sale-detail-value">${esc(s.customer||translateText('Unknown'))}</span></div>
     ${s.customerPhone?`<div class="sale-detail-row"><span class="sale-detail-label">${translateText("Simu")}</span><span class="sale-detail-value"><a href="tel:${esc(s.customerPhone)}">${esc(s.customerPhone)}</a></span></div>`:""}
    </div>
+   ${saleDebtBalance(s)>0?`<button type="button" class="btn" style="width:100%;margin:10px 0 0;background:#fff4e5;color:#b45309;border:1px solid #f5c27a" onclick="openDebtReminder('${esc(String(s.id))}')">🔔 ${translateText("Mkumbushe Deni")}</button>`:""}
    ${saleDebtBalance(s)>0&&can("pay_debts")?`<button type="button" class="btn green" style="width:100%;margin:10px 0" data-action="pay-debt" data-id="${esc(String(s.id))}">${translateText("💰 Lipa Deni")}</button>`:""}
    ${(s.payments||[]).length?`<div class="sale-detail-products-title">${translateText("Malipo ya deni")}</div>`+(s.payments||[]).map(p=>`<div class="sale-detail-row"><span class="sale-detail-label">${niceDate(p.date)} • ${esc(p.user||"")}</span><span class="sale-detail-value green">${money(p.amount)}</span></div>`).join(""):""}
    <div class="sale-detail-products-title">${translateText("Bidhaa za oda" )}</div>
@@ -2652,6 +2674,107 @@ window.addEventListener("load",async()=>{
  // Login na session vinadhibitiwa na Supabase Auth pekee.
  render();
 });
+
+/* ===== V94: Store zangu (bidhaa za akiba) + Kumkumbusha deni ===== */
+const MPA_SHOP_PHONE="+255767203506";
+const MPA_SHOP_TITLE="MICKY PHONE ACCESSORIES";
+function v94fmt(n){return Math.round(Number(n||0)).toLocaleString("en-US")}
+function v94canStore(){const u=currentUserObj?.();return u?.role==="admin"||can("manage_settings")||can("create_products")}
+let v94StoreId=null,v94StoreFilter="all";
+function v94el(){let o=document.getElementById("v94StoreOverlay");if(!o){o=document.createElement("div");o.id="v94StoreOverlay";document.body.appendChild(o)}return o}
+function openStores(){if(!v94canStore()){toast("Huna ruhusa ya Store.");return}v94StoreId=null;v94renderStores()}
+function closeStores(){const o=document.getElementById("v94StoreOverlay");if(o)o.remove()}
+function v94renderStores(){const o=v94el();
+ o.innerHTML=`<div class="v94-wrap"><div class="v94-top"><button class="v94-back" onclick="closeStores()">←</button><h2>${translateText("Store zangu")}</h2></div>
+ <div class="v94-addrow"><input id="v94StoreName" class="field" style="margin:0;flex:1" placeholder="${esc(translateText("Andika jina la store"))}"><button class="btn blue" onclick="v94addStore()">＋ ${translateText("Ongeza")}</button></div>
+ ${stores.length?stores.map(st=>{const n=(st.items||[]).length,q=(st.items||[]).reduce((a,i)=>a+Number(i.qty||0),0);return `<button class="v94-storecard" onclick="v94openStore('${esc(String(st.id))}')"><span class="v94-ic">🏬</span><span style="flex:1;text-align:left"><b>${esc(st.name)}</b><small>${n} ${translateText("bidhaa")} • ${v94fmt(q)} ${translateText("idadi")}</small></span><b>›</b></button>`}).join(""):`<div class="v94-empty">🏬<p>${translateText("Hakuna store bado. Andika jina la store hapo juu.")}</p></div>`}
+ </div>`}
+async function v94save(){try{const r=await saveAll({renderNow:false});if(r&&r.ok===false)toast("Haijahifadhiwa mtandaoni; jaribu tena.");return r}catch(e){toast("Haijahifadhiwa mtandaoni; jaribu tena.");return {ok:false}}}
+function v94addStore(){const i=document.getElementById("v94StoreName"),n=i.value.trim();if(!n){toast("Andika jina la store.");return}stores.push({id:crypto.randomUUID(),name:n,items:[],createdAt:new Date().toISOString()});v94renderStores();v94save();notify("Store mpya imeongezwa",n,"settings",null)}
+function v94store(){return stores.find(s=>String(s.id)===String(v94StoreId))}
+function v94openStore(id){v94StoreId=id;v94StoreFilter="all";v94renderStore()}
+function v94renderStore(){const st=v94store();if(!st)return v94renderStores();const o=v94el();const q=(document.getElementById("v94Search")?.value||"").toLowerCase();
+ let items=(st.items||[]).filter(i=>!q||String(i.name).toLowerCase().includes(q));
+ if(v94StoreFilter==="low")items=items.filter(i=>Number(i.qty)>0&&Number(i.qty)<=3);if(v94StoreFilter==="out")items=items.filter(i=>Number(i.qty)<=0);
+ const all=st.items||[],buy=all.reduce((a,i)=>a+Number(i.buy||0)*Number(i.qty||0),0),sell=all.reduce((a,i)=>a+Number(i.price||0)*Number(i.qty||0),0);const showP=currentUserObj?.()?.role==="admin"||can("view_product_prices");
+ const tab=(k,l)=>`<button class="${v94StoreFilter===k?"on":""}" onclick="v94StoreFilter='${k}';v94renderStore()">${translateText(l)}</button>`;
+ o.innerHTML=`<div class="v94-wrap" style="padding-bottom:110px"><div class="v94-top"><button class="v94-back" onclick="v94StoreId=null;v94renderStores()">←</button><div class="v94-search">🔍<input id="v94Search" placeholder="${esc(translateText("Tafuta bidhaa"))}" value="${esc(q)}" oninput="v94renderStore();const e=document.getElementById('v94Search');e.focus();e.setSelectionRange(e.value.length,e.value.length)"></div><button class="v94-del" title="Futa store" onclick="v94deleteStore()">🗑</button></div>
+ <div class="v94-tabs">${tab("all","Zote")}${tab("low","Karibia kuisha")}${tab("out","Zilizoisha")}</div>
+ <div class="v94-stats"><div style="background:#ebfbee"><small>${translateText("Bidhaa")}</small><b>${all.length}</b></div><div style="background:#fff9e6"><small>${translateText("Thamani ya kununua")}</small><b>${showP?v94fmt(buy):"****"}</b></div><div style="background:#e8efff"><small>${translateText("Thamani ya kuuza")}</small><b>${showP?v94fmt(sell):"****"}</b></div></div>
+ <div class="v94-title">${esc(st.name)}</div>
+ ${items.length?items.map(i=>`<div class="v94-item"><img src="${esc(i.image||"icon.svg")}" onerror="this.src='icon.svg'"><div style="flex:1;min-width:0"><b>${esc(i.name)}</b><small>${esc(i.category||"")}${showP?` • ${translateText("Kuuza")}: ${v94fmt(i.price)}`:""}</small></div><div class="v94-qty">${v94fmt(i.qty)}</div><button class="v94-mini" onclick="v94editItem('${esc(String(i.id))}')">✎</button></div>`).join(""):`<div class="v94-empty">😐</div>`}
+ </div><div class="v94-bottom"><button class="v94-move" onclick="v94openMove()">— ${translateText("Hamishia Dukani")}</button><button class="v94-new" onclick="v94editItem()">＋ ${translateText("Bidhaa Mpya")}</button></div>`}
+function v94deleteStore(){const st=v94store();if(!st)return;if(!confirm(translateText("Futa store hii")+` "${st.name}"?`))return;if((st.items||[]).length&&!confirm(translateText("Store ina bidhaa. Una uhakika kuzifuta zote?")))return;stores=stores.filter(s=>s!==st);v94StoreId=null;v94renderStores();v94save()}
+function v94modal(html){let m=document.getElementById("v94Modal");if(!m){m=document.createElement("div");m.id="v94Modal";document.body.appendChild(m)}m.innerHTML=`<div class="v94-mback" onclick="if(event.target===this)v94closeModal()"><div class="v94-mbox">${html}</div></div>`}
+function v94closeModal(){document.getElementById("v94Modal")?.remove()}
+let v94Img="";
+function v94editItem(id){const st=v94store();const it=id?(st.items||[]).find(i=>String(i.id)===String(id)):null;v94Img=it?.image||"";
+ v94modal(`<div class="modalhead"><h2>${translateText(it?"Edit bidhaa ya store":"Bidhaa Mpya (Store)")}</h2><button class="close" onclick="v94closeModal()">×</button></div>
+ <label class="v94-imgpick"><img id="v94ImgPrev" src="${esc(v94Img||"icon.svg")}"><input type="file" accept="image/*" hidden onchange="v94pickImg(event)"><span>${translateText("Weka picha")}</span></label>
+ <div class="field"><label>${translateText("Jina la bidhaa")}</label><input id="v94Name" value="${esc(it?.name||"")}"></div>
+ <div class="field"><label>${translateText("Kundi")}</label><input id="v94Cat" value="${esc(it?.category||"")}"></div>
+ <div class="two"><div class="field"><label>${translateText("Bei ya kununua")}</label><input id="v94Buy" inputmode="numeric" data-money="1" value="${it?v94fmt(it.buy):""}"></div><div class="field"><label>${translateText("Bei ya kuuza")}</label><input id="v94Price" inputmode="numeric" data-money="1" value="${it?v94fmt(it.price):""}"></div></div>
+ <div class="field"><label>${translateText("Idadi")}</label><input id="v94Qty" type="number" inputmode="numeric" value="${it?Number(it.qty||0):""}"></div>
+ <button class="btn blue" style="width:100%;padding:15px" onclick="v94saveItem('${it?esc(String(it.id)):""}')">${translateText("Hifadhi kwenye Store")}</button>
+ ${it?`<button class="btn red" style="width:100%;margin-top:8px" onclick="v94removeItem('${esc(String(it.id))}')">${translateText("Ondoa kwenye store")}</button>`:""}`);
+ try{setupMoneyInputs()}catch(e){}}
+function v94num(id){return Number(String(document.getElementById(id)?.value||"").replace(/[^\d.]/g,""))||0}
+function v94pickImg(e){const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const sc=Math.min(1,640/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);c.getContext("2d").drawImage(im,0,0,c.width,c.height);v94Img=c.toDataURL("image/jpeg",0.7);document.getElementById("v94ImgPrev").src=v94Img};im.src=r.result};r.readAsDataURL(f)}
+function v94saveItem(id){const st=v94store();if(!st)return;const name=document.getElementById("v94Name").value.trim(),qty=Number(document.getElementById("v94Qty").value||0);if(!name||!Number.isFinite(qty)||qty<0){toast("Jaza jina na idadi.");return}
+ const data={name,category:document.getElementById("v94Cat").value.trim(),buy:v94num("v94Buy"),price:v94num("v94Price"),qty,image:v94Img,updatedAt:new Date().toISOString()};st.items=st.items||[];
+ if(id){const it=st.items.find(i=>String(i.id)===String(id));Object.assign(it,data)}else st.items.unshift({id:crypto.randomUUID(),...data});
+ v94closeModal();v94renderStore();toast("Imehifadhiwa kwenye store ✓");v94save()}
+function v94removeItem(id){if(!confirm(translateText("Ondoa bidhaa hii kwenye store?")))return;const st=v94store();st.items=(st.items||[]).filter(i=>String(i.id)!==String(id));v94closeModal();v94renderStore();v94save()}
+function v94openMove(){const st=v94store();const av=(st?.items||[]).filter(i=>Number(i.qty)>0);if(!av.length){toast("Hakuna bidhaa yenye idadi kwenye store hii.");return}
+ v94modal(`<div class="modalhead"><h2>${translateText("Hamishia Dukani")}</h2><button class="close" onclick="v94closeModal()">×</button></div>
+ <div class="field"><label>${translateText("Chagua bidhaa")}</label><select id="v94MoveItem">${av.map(i=>`<option value="${esc(String(i.id))}">${esc(i.name)} (${v94fmt(i.qty)})</option>`).join("")}</select></div>
+ <div class="field"><label>${translateText("Idadi ya kuhamisha")}</label><input id="v94MoveQty" type="number" inputmode="numeric" value="1" min="1"></div>
+ <p class="muted" style="font-size:13px">${translateText("Ikiwa bidhaa yenye jina hilo ipo dukani, idadi itaongezwa. Isipokuwepo, itaundwa bidhaa mpya dukani.")}</p>
+ <button id="v94MoveBtn" class="btn" style="width:100%;padding:15px;background:#ff5a7a;color:#fff" onclick="v94doMove()">${translateText("Hamisha sasa")}</button>`)}
+async function v94doMove(){const st=v94store();const it=(st.items||[]).find(i=>String(i.id)===document.getElementById("v94MoveItem").value);const n=Math.floor(Number(document.getElementById("v94MoveQty").value||0));
+ if(!it||n<=0){toast("Weka idadi sahihi.");return}if(n>Number(it.qty)){toast("Idadi kwenye store haitoshi.");return}
+ if(navigator.onLine===false){toast("Hauko mtandaoni. Unganisha mtandao kuhamisha.");return}
+ const btn=document.getElementById("v94MoveBtn");btn.disabled=true;btn.textContent=translateText("Inahamisha…");
+ const key=String(it.name).trim().toLowerCase();const ex=products.find(p=>String(p.name||"").trim().toLowerCase()===key&&p.active!==false);
+ let p;if(ex){p={...ex,qty:Number(ex.qty||0)+n,updatedAt:new Date().toISOString()};if(!p.image&&it.image)p.image=it.image}
+ else{const id=crypto.randomUUID();p={id,supabaseId:id,name:it.name,category:it.category||"",code:"",buy:Number(it.buy||0),price:Number(it.price||0),qty:n,image:it.image||"",createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),minStock:0}}
+ const r=await syncProductToSupabase(p);
+ if(!r.ok){btn.disabled=false;btn.textContent=translateText("Hamisha sasa");toast("Haijahamishwa. Jaribu tena.");return}
+ if(ex)Object.assign(ex,p);else products.unshift(p);
+ it.qty=Number(it.qty)-n;movements.unshift({id:crypto.randomUUID(),productId:p.id,type:"add",qty:n,user:currentUser(),note:"Kutoka store: "+st.name,date:new Date().toISOString()});
+ v94closeModal();v94renderStore();try{render()}catch(e){}notify("Bidhaa imehamishiwa dukani",`${it.name} × ${n} (${st.name})`,"products",p.id);toast(`${it.name} × ${n} imehamishiwa dukani ✓`);v94save()}
+
+/* ---- Kumkumbusha deni ---- */
+function v94date(d){const x=new Date(d);if(isNaN(x))return "";const f=new Intl.DateTimeFormat("en-GB",{timeZone:"Africa/Dar_es_Salaam",day:"2-digit",month:"2-digit",year:"numeric"}).format(x);return f.replace(/\//g,"-")}
+function v94b64(o){const b=new TextEncoder().encode(JSON.stringify(o));let s="";b.forEach(c=>s+=String.fromCharCode(c));return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")}
+function v94unb64(t){t=t.replace(/-/g,"+").replace(/_/g,"/");while(t.length%4)t+="=";const s=atob(t);return JSON.parse(new TextDecoder().decode(Uint8Array.from(s,c=>c.charCodeAt(0))))}
+function v94debtLink(s){const items=(s.items||[{product:s.product,qty:s.qty||1,price:s.price||s.total}]).map(i=>({n:i.product||products.find(p=>p.id===i.productId)?.name||"Bidhaa",q:Number(i.qty||1),p:Number(i.price||0)}));
+ const d={o:String(s.id).slice(-8).toUpperCase(),c:s.customer||"",d:s.date,t:Number(s.total||0),b:saleDebtBalance(s),i:items,pay:(s.payments||[]).map(p=>({d:p.date,a:Number(p.amount||0)})),sh:storeName||MPA_SHOP_TITLE,ph:MPA_SHOP_PHONE};
+ return location.origin+location.pathname+"#deni="+v94b64(d)}
+function v94custPhone(s){if(s.customerPhone)return s.customerPhone;const c=customers.find(c=>String(c.name||"").trim().toLowerCase()===String(s.customer||"").trim().toLowerCase());return c?.phone||""}
+function v94custName(s){const c=customers.find(c=>String(c.name||"").trim().toLowerCase()===String(s.customer||"").trim().toLowerCase());return c?.name||s.customer||"Mteja"}
+function v94reminderText(s){return `Habari ${v94custName(s)},\n\n${MPA_SHOP_TITLE} - ${MPA_SHOP_PHONE} tunakukumbusha kulipia deni lako la order ${String(s.id).slice(-8).toUpperCase()} lenye thamani ya ${v94fmt(saleDebtBalance(s))} ulionunua ${v94date(s.date)}.\n\nKuweza kuona mlolongo wa malipo yako katika deni hili, bofya link hapo chini👇🏼\n\n${v94debtLink(s)}\n\nAsante kwa kuendelea kutuamini na kufanya biashara nasi. Wewe ni sehemu muhimu ya familia yetu ya wateja. Tunakukaribisha tena kwa huduma bora, bidhaa zenye ubora na bei rafiki. Karibu sana Micky Phone Accessories and Home Decoration – Tunathamini sana uwepo wako! 🛍️`}
+function v94intl(ph){let d=String(ph||"").replace(/\D/g,"");if(d.startsWith("0"))d="255"+d.slice(1);else if(d.length===9)d="255"+d;return d}
+function openDebtReminder(id){const s=sales.find(x=>String(x.id)===String(id));if(!s)return;const ph=v94custPhone(s);
+ v94modal(`<div class="modalhead"><h2>${translateText("Mkumbushe Deni")}</h2><button class="close" onclick="v94closeModal()">×</button></div>
+ <div class="field"><label>${translateText("Namba ya simu ya mteja")}</label><input id="v94RemPhone" inputmode="tel" value="${esc(ph)}" placeholder="07xx xxx xxx"></div>
+ <div class="field"><label>${translateText("Ujumbe")}</label><textarea id="v94RemText" rows="10" style="font-size:13px">${esc(v94reminderText(s))}</textarea></div>
+ <div class="two"><button class="btn" style="background:#25D366;color:#fff;padding:14px" onclick="v94sendRem('wa')">🟢 WhatsApp</button><button class="btn blue" style="padding:14px" onclick="v94sendRem('sms')">✉️ SMS ${translateText("kawaida")}</button></div>`)}
+function v94sendRem(kind){const ph=document.getElementById("v94RemPhone").value.trim(),txt=document.getElementById("v94RemText").value;if(!ph){toast("Weka namba ya simu ya mteja.");return}
+ const url=kind==="wa"?`https://wa.me/${v94intl(ph)}?text=${encodeURIComponent(txt)}`:`sms:${ph.replace(/\s/g,"")}${/iPhone|iPad|iPod|Mac/.test(navigator.userAgent)?"&":"?"}body=${encodeURIComponent(txt)}`;
+ if(kind==="wa")window.open(url,"_blank");else location.href=url;v94closeModal()}
+
+/* ---- Ukurasa wa mteja kuona deni lake (link) ---- */
+(function(){const m=location.hash.match(/deni=([A-Za-z0-9_-]+)/);if(!m)return;let d;try{d=v94unb64(m[1])}catch(e){return}
+ const go=()=>{const o=document.createElement("div");o.id="v94DebtView";const paid=Math.max(0,d.t-d.b);
+ o.innerHTML=`<div class="v94-wrap" style="max-width:520px;margin:auto"><div style="text-align:center;padding:18px 0"><img src="logo.png" onerror="this.remove()" style="height:60px"><h2 style="margin:8px 0 2px">${esc(d.sh)}</h2><small class="muted">${esc(d.ph)}</small></div>
+ <div class="v94-card"><div class="v94-r"><span>Mteja</span><b>${esc(d.c)}</b></div><div class="v94-r"><span>Order</span><b>#${esc(d.o)}</b></div><div class="v94-r"><span>Tarehe ya kukopa</span><b>${esc(v94date(d.d))}</b></div><div class="v94-r"><span>Thamani ya oda</span><b>${v94fmt(d.t)}</b></div><div class="v94-r"><span>Kilicholipwa</span><b style="color:#16a34a">${v94fmt(paid)}</b></div><div class="v94-r"><span>Deni lililobaki</span><b style="color:#dc2626;font-size:18px">${v94fmt(d.b)}</b></div></div>
+ <h3>Bidhaa ulizochukua</h3><div class="v94-card">${(d.i||[]).map(i=>`<div class="v94-r"><span>${esc(i.n)} × ${i.q}</span><b>${v94fmt(i.p*i.q)}</b></div>`).join("")}</div>
+ <h3>Mlolongo wa malipo</h3><div class="v94-card">${(d.pay||[]).length?d.pay.map(p=>`<div class="v94-r"><span>${esc(v94date(p.d))}</span><b style="color:#16a34a">${v94fmt(p.a)}</b></div>`).join(""):`<div class="muted">Bado hakuna malipo.</div>`}</div>
+ <a class="btn" style="display:block;text-align:center;background:#25D366;color:#fff;padding:14px;margin-top:14px;text-decoration:none" href="https://wa.me/${v94intl(d.ph)}">Wasiliana nasi WhatsApp</a>
+ <p class="muted" style="text-align:center;font-size:12px;margin-top:14px">Asante kwa kuendelea kutuamini. Taarifa hizi ni za wakati link ilipotumwa.</p></div>`;document.body.appendChild(o)};
+ if(document.body)go();else document.addEventListener("DOMContentLoaded",go)})();
+
 </script>
 <div id="saleImageViewer" class="sale-image-viewer hidden" onclick="if(event.target===this)closeSaleImage()"><button type="button" class="sale-image-close" aria-label="Funga" onclick="closeSaleImage()">×</button><img id="saleImageViewerImg" src="icon.svg" alt="Bidhaa" onclick="saleImageTap()" ondblclick="toggleSaleImageZoom()"></div></body>
 </html>
