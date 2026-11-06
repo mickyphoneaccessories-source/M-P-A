@@ -134,6 +134,18 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
 .v94-imgpick{display:flex;align-items:center;gap:12px;margin-bottom:10px;cursor:pointer}.v94-imgpick img{width:64px;height:64px;border-radius:12px;object-fit:cover;background:#f3f3f3}
 .v94-card{background:#fff;border-radius:14px;padding:6px 14px;margin-bottom:10px}.v94-r{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #f0f0f0}.v94-r:last-child{border:0}
 </style>
+<style id="v98css">
+html,body,button,a,input,select,label,.tableitem,.productrow{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.v98-cust{cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;gap:10px}
+.v98-cust.on{background:#eaf1ff}
+.v98-chk{width:24px;height:24px;border-radius:50%;border:2px solid #2450ff;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800;flex:none}
+.v98-cust.on .v98-chk{background:#2450ff}
+.v98-bar{position:sticky;top:0;z-index:5;display:flex;gap:8px;align-items:center;background:#fff;padding:8px 0 10px;border-bottom:1px solid #eee;margin-bottom:6px}
+.v98-bar b{flex:1}
+.v98-pick{display:flex;gap:10px;align-items:center;padding:10px 4px;border-bottom:1px solid #f0f0f0;cursor:pointer}
+.v98-pick img{width:42px;height:42px;border-radius:10px;object-fit:cover}
+.v98-pick.on{background:#eaf1ff}
+</style>
 </head>
 <body>
 <div id="notice" class="notice"></div><div id="refreshIndicator" class="refresh-indicator" aria-label="Inasasisha"></div>
@@ -535,7 +547,7 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
 <script src="translations.js"></script>
 <script>
 // M-P-A v41: do not reload the entire app state on realtime app-state events; only merge notifications.
-const MPA_APP_VERSION = "V97";
+const MPA_APP_VERSION = "V98";
 function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="Toleo: "+MPA_APP_VERSION;}
 let mpaWaitingWorker=null;
 function setUpdateUI(state,msg){
@@ -1175,7 +1187,7 @@ function unlockNotificationAudio(){
   if(!mpaAudioUnlocked){const a=mpaAlertAudio;a.muted=true;const pr=a.play();if(pr&&pr.then)pr.then(()=>{a.pause();a.currentTime=0;a.muted=false;mpaAudioUnlocked=true}).catch(()=>{a.muted=false});}
  }catch(e){}
 }
-if(typeof document!=="undefined"){for(const ev of ["pointerdown","touchend","click","keydown"])document.addEventListener(ev,unlockNotificationAudio,{passive:true});}
+if(typeof document!=="undefined"){let _ua=0;const _u=()=>{if(mpaAudioUnlocked){for(const ev of ["touchend","click","keydown"])document.removeEventListener(ev,_u);return}const t=Date.now();if(t-_ua<4000)return;_ua=t;setTimeout(unlockNotificationAudio,0)};for(const ev of ["touchend","click","keydown"])document.addEventListener(ev,_u,{passive:true});}
 // iPhone Safari has no navigator.vibrate; iOS 18+ gives a haptic tap when a switch checkbox toggles.
 function mpaIosHaptic(){
  try{let l=document.getElementById("mpaHapticLabel");if(!l){l=document.createElement("label");l.id="mpaHapticLabel";l.style.cssText="position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none";const i=document.createElement("input");i.type="checkbox";i.setAttribute("switch","");l.appendChild(i);document.body.appendChild(l);}l.click();}catch(e){}
@@ -2194,7 +2206,7 @@ function renderLists(){
  document.getElementById("expenseList")?.replaceChildren();
  const custQ=(document.getElementById("customerSearch")?.value||"").trim().toLowerCase();
  const custArr=customers.filter(c=>!custQ||String(c.name||"").toLowerCase().includes(custQ)||String(c.phone||"").toLowerCase().includes(custQ));
- document.getElementById("customerList").innerHTML=custArr.length?custArr.map(c=>`<div class="tableitem"><div><b>${esc(c.name)}</b><div class="muted">${esc(c.phone||translateText("Hakuna namba"))}</div></div></div>`).join(""):`<div class='empty'>${translateText(custQ?"Hakuna mteja anayelingana na utafutaji.":"Hakuna wateja.")}</div>`;
+ document.getElementById("customerList").innerHTML=custArr.length?(v98CustBar()+custArr.map(c=>{const id=esc(String(c.id));const on=v98Sel.has(String(c.id));return `<div class="tableitem v98-cust${on?" on":""}" data-cid="${id}">${v98SelMode?`<span class="v98-chk">${on?"✓":""}</span>`:""}<div style="flex:1;min-width:0"><b>${esc(c.name)}</b><div class="muted">${esc(c.phone||translateText("Hakuna namba"))}</div></div>${v98SelMode?"":"<b class=\"muted\">›</b>"}</div>`}).join("")):`<div class='empty'>${translateText(custQ?"Hakuna mteja anayelingana na utafutaji.":"Hakuna wateja.")}</div>`;
  renderExpensePage();
 }
 function renderNotifications(){renderStockRequests();const el=document.getElementById("notificationList");if(!el)return;el.innerHTML=notifications.length?notifications.slice(0,100).map(n=>`<div class="tableitem notif-card ${n.read?"":translateText("unread")}" data-notification-id="${esc(n.id)}" onclick="openNotification('${String(n.id).replace(/'/g,"\\'")}')"><img class="notif-logo" src="logo.png" alt="M-P-A"><div><b>${esc(translateText(n.title))}</b><div>${esc(translateText(n.detail))}</div><div class="muted">${esc(n.user||"")} • ${niceDate(n.date)} ${timeNow(n.date)}</div></div></div>`).join(""):`<div class='empty'>${translateText("Hakuna notification.")}</div>`}
@@ -2619,7 +2631,7 @@ function render(){
 }
 let pullStartY=0,pullTriggered=false,pullBusy=false;
 let mpaRenderQueued=false;
-function scheduleRender(){if(mpaRenderQueued)return;mpaRenderQueued=true;requestAnimationFrame(()=>{mpaRenderQueued=false;try{render()}catch(e){console.warn('render',e)}});}
+function scheduleRender(){if(mpaRenderQueued)return;mpaRenderQueued=true;requestAnimationFrame(()=>setTimeout(()=>{mpaRenderQueued=false;try{render()}catch(e){console.warn('render',e)}},0));}
 function refreshCurrentPage(){
   // Preserve the section and scroll position while rebuilding every view.
   const activePage=document.querySelector(".page.active")?.id||"home";
@@ -2707,7 +2719,7 @@ function v94renderStore(){const st=v94store();if(!st)return v94renderStores();co
  <div class="v94-stats"><div style="background:#ebfbee"><small>${translateText("Bidhaa")}</small><b>${all.length}</b></div><div style="background:#fff9e6"><small>${translateText("Thamani ya kununua")}</small><b>${showP?v94fmt(buy):"****"}</b></div><div style="background:#e8efff"><small>${translateText("Thamani ya kuuza")}</small><b>${showP?v94fmt(sell):"****"}</b></div></div>
  <div class="v94-title">${esc(st.name)}</div>
  ${items.length?items.map(i=>`<div class="v94-item"><img src="${esc(i.image||"icon.svg")}" onerror="this.src='icon.svg'"><div style="flex:1;min-width:0"><b>${esc(i.name)}</b><small>${esc(i.category||"")}${showP?` • ${translateText("Kuuza")}: ${v94fmt(i.price)}`:""}</small></div><div class="v94-qty">${v94fmt(i.qty)}</div><button class="v94-mini" onclick="v94editItem('${esc(String(i.id))}')">✎</button></div>`).join(""):`<div class="v94-empty">😐</div>`}
- </div><div class="v94-bottom"><button class="v94-move" onclick="v94openMove()">— ${translateText("Hamishia Dukani")}</button><button class="v94-new" onclick="v94editItem()">＋ ${translateText("Bidhaa Mpya")}</button></div>`}
+ </div><div class="v94-bottom"><button class="v94-move" onclick="v94openMove()">— ${translateText("Hamishia Dukani")}</button><button class="v94-new" onclick="v98chooseAdd()">＋ ${translateText("Bidhaa Mpya")}</button></div>`}
 function v94deleteStore(){const st=v94store();if(!st)return;if(!confirm(translateText("Futa store hii")+` "${st.name}"?`))return;if((st.items||[]).length&&!confirm(translateText("Store ina bidhaa. Una uhakika kuzifuta zote?")))return;stores=stores.filter(s=>s!==st);v94StoreId=null;v94renderStores();v94save()}
 function v94modal(html){let m=document.getElementById("v94Modal");if(!m){m=document.createElement("div");m.id="v94Modal";document.body.appendChild(m)}m.innerHTML=`<div class="v94-mback" onclick="if(event.target===this)v94closeModal()"><div class="v94-mbox">${html}</div></div>`}
 function v94closeModal(){document.getElementById("v94Modal")?.remove()}
@@ -2739,7 +2751,7 @@ async function v94doMove(){const st=v94store();const it=(st.items||[]).find(i=>S
  if(!it||n<=0){toast("Weka idadi sahihi.");return}if(n>Number(it.qty)){toast("Idadi kwenye store haitoshi.");return}
  if(navigator.onLine===false){toast("Hauko mtandaoni. Unganisha mtandao kuhamisha.");return}
  const btn=document.getElementById("v94MoveBtn");btn.disabled=true;btn.textContent=translateText("Inahamisha…");
- const key=String(it.name).trim().toLowerCase();const ex=products.find(p=>String(p.name||"").trim().toLowerCase()===key&&p.active!==false);
+ const key=String(it.name).trim().toLowerCase();const ex=(it.productId&&products.find(p=>String(p.id)===String(it.productId)&&p.active!==false))||products.find(p=>String(p.name||"").trim().toLowerCase()===key&&p.active!==false);
  let p;if(ex){p={...ex,qty:Number(ex.qty||0)+n,updatedAt:new Date().toISOString()};if(!p.image&&it.image)p.image=it.image}
  else{const id=crypto.randomUUID();p={id,supabaseId:id,name:it.name,category:it.category||"",code:"",buy:Number(it.buy||0),price:Number(it.price||0),qty:n,image:it.image||"",createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),minStock:0}}
  const r=await syncProductToSupabase(p);
@@ -2866,6 +2878,53 @@ async function v97addManual(){
  const st=await saveCloudState().catch(()=>({ok:false}));
  toast("Mteja ameongezwa ✓"+(st&&st.ok===false?" • sync itajaribiwa tena":""));
 }
+
+
+/* ===== V98: Wateja (shika kuchagua/kufuta, gusa kuhariri) + Store kuongeza bidhaa zilizopo ===== */
+let v98SelMode=false;const v98Sel=new Set();
+function v98CustBar(){if(!v98SelMode)return "";const n=v98Sel.size;return `<div class="v98-bar"><button class="btn" onclick="v98exitSel()">✕</button><b>${n} ${translateText("wamechaguliwa")}</b><button class="btn" onclick="v98selAll()">${translateText("Chagua wote")}</button><button class="btn red" ${n?"":"disabled"} onclick="v98delSel()">🗑 ${translateText("Futa")}</button></div>`}
+function v98visibleCust(){const q=(document.getElementById("customerSearch")?.value||"").trim().toLowerCase();return customers.filter(c=>!q||String(c.name||"").toLowerCase().includes(q)||String(c.phone||"").toLowerCase().includes(q))}
+function v98exitSel(){v98SelMode=false;v98Sel.clear();renderLists()}
+function v98selAll(){const v=v98visibleCust();const all=v.every(c=>v98Sel.has(String(c.id)));v.forEach(c=>all?v98Sel.delete(String(c.id)):v98Sel.add(String(c.id)));renderLists()}
+async function v98delSel(){const n=v98Sel.size;if(!n)return;if(!confirm(translateText("Futa wateja")+" "+n+"?"))return;customers=customers.filter(c=>!v98Sel.has(String(c.id)));v98SelMode=false;v98Sel.clear();renderLists();const st=await saveCloudState().catch(()=>({ok:false}));toast(n+" "+translateText("wateja wamefutwa ✓")+(st&&st.ok===false?" • sync itajaribiwa tena":""))}
+function v98editCust(id){const c=customers.find(x=>String(x.id)===String(id));if(!c)return;
+ v94modal(`<div class="modalhead"><h2>${translateText("Hariri mteja")}</h2><button class="close" onclick="v94closeModal()">×</button></div>
+ <div class="field"><label>${translateText("Jina")}</label><input id="v98cN" value="${esc(c.name||"")}"></div>
+ <div class="field"><label>${translateText("Namba")}</label><input id="v98cP" type="tel" inputmode="tel" value="${esc(c.phone||"")}"></div>
+ <button class="btn blue" style="width:100%;padding:14px" onclick="v98saveCust('${esc(String(c.id))}')">${translateText("Hifadhi")}</button>
+ <button class="btn red" style="width:100%;margin-top:8px" onclick="v98Sel.clear();v98Sel.add('${esc(String(c.id))}');v94closeModal();v98delSel()">🗑 ${translateText("Futa mteja")}</button>`)}
+async function v98saveCust(id){const c=customers.find(x=>String(x.id)===String(id));if(!c)return;const n=document.getElementById("v98cN").value.trim(),p=document.getElementById("v98cP").value.trim();if(!n&&!p){toast("Andika jina au namba.");return}
+ if(p&&customers.some(x=>x!==c&&v97norm(x.phone)&&v97norm(x.phone)===v97norm(p))){toast("Mteja huyo tayari yupo.");return}
+ c.name=n||p;c.phone=p;v94closeModal();renderLists();const st=await saveCloudState().catch(()=>({ok:false}));toast(translateText("Mteja amehifadhiwa ✓")+(st&&st.ok===false?" • sync itajaribiwa tena":""))}
+(function v98custEvents(){const box=()=>document.getElementById("customerList");let t=null,longed=false,sx=0,sy=0;
+ const row=e=>e.target.closest&&e.target.closest(".v98-cust");
+ document.addEventListener("pointerdown",e=>{const r=row(e);if(!r||!box()?.contains(r))return;longed=false;sx=e.clientX;sy=e.clientY;clearTimeout(t);t=setTimeout(()=>{longed=true;if(!v98SelMode){v98SelMode=true;v98Sel.clear()}v98Sel.add(r.dataset.cid);try{navigator.vibrate&&navigator.vibrate(15)}catch(_){}renderLists()},500)});
+ document.addEventListener("pointermove",e=>{if(t&&(Math.abs(e.clientX-sx)>10||Math.abs(e.clientY-sy)>10)){clearTimeout(t);t=null}});
+ ["pointerup","pointercancel"].forEach(ev=>document.addEventListener(ev,()=>{clearTimeout(t);t=null}));
+ document.addEventListener("contextmenu",e=>{if(row(e))e.preventDefault()});
+ document.addEventListener("click",e=>{const r=row(e);if(!r||!box()?.contains(r))return;if(longed){longed=false;return}const id=r.dataset.cid;
+  if(v98SelMode){v98Sel.has(id)?v98Sel.delete(id):v98Sel.add(id);if(!v98Sel.size)v98SelMode=false;renderLists()}else v98editCust(id)});
+})();
+/* Store: chagua bidhaa iliyopo au mpya kabisa */
+let v98StorePick=null;
+function v98chooseAdd(){v98StorePick=null;
+ v94modal(`<div class="modalhead"><h2>${translateText("Ongeza bidhaa kwenye Stoo")}</h2><button class="close" onclick="v94closeModal()">×</button></div>
+ <button class="btn blue" style="width:100%;padding:14px" onclick="v94closeModal();v94editItem()">＋ ${translateText("Bidhaa mpya kabisa")}</button>
+ <p class="muted" style="margin:12px 0 6px;font-size:13px">${translateText("Au chagua bidhaa iliyopo tayari kwenye mfumo:")}</p>
+ <div class="field"><input id="v98sQ" autocomplete="off" placeholder="🔍 ${esc(translateText("Tafuta bidhaa"))}" oninput="v98renderPick()"></div>
+ <div id="v98sList" style="max-height:38vh;overflow:auto"></div>
+ <div class="field" style="margin-top:10px"><label>${translateText("Idadi ya kuweka stoo")}</label><input id="v98sQty" type="number" inputmode="numeric" min="1" value="1"></div>
+ <button class="btn" style="width:100%;padding:14px;background:#16a34a;color:#fff" onclick="v98addExisting()">✓ ${translateText("Ongeza kwenye Stoo")}</button>`);
+ v98renderPick()}
+function v98renderPick(){const b=document.getElementById("v98sList");if(!b)return;const q=(document.getElementById("v98sQ")?.value||"").trim().toLowerCase();
+ const arr=products.filter(p=>p.active!==false&&(!q||String(p.name||"").toLowerCase().includes(q)||String(p.category||"").toLowerCase().includes(q))).slice(0,150);
+ b.innerHTML=arr.length?arr.map(p=>`<div class="v98-pick${String(v98StorePick)===String(p.id)?" on":""}" onclick="v98StorePick='${esc(String(p.id))}';v98renderPick()"><img src="${esc(p.image||"icon.svg")}" loading="lazy" onerror="this.src='icon.svg'"><div style="flex:1;min-width:0"><b>${esc(p.name)}</b><br><small class="muted">${esc(p.category||"")} • ${translateText("Dukani")}: ${v94fmt(p.qty)}</small></div>${String(v98StorePick)===String(p.id)?"✓":""}</div>`).join(""):`<div class="muted" style="padding:10px">${translateText("Hakuna bidhaa inayolingana.")}</div>`}
+function v98addExisting(){const st=v94store();if(!st)return;const p=products.find(x=>String(x.id)===String(v98StorePick));if(!p){toast("Chagua bidhaa kwanza.");return}
+ const n=Math.floor(Number(document.getElementById("v98sQty").value||0));if(n<=0){toast("Weka idadi sahihi.");return}
+ st.items=st.items||[];let it=st.items.find(i=>String(i.productId)===String(p.id))||st.items.find(i=>!i.productId&&String(i.name).trim().toLowerCase()===String(p.name).trim().toLowerCase());
+ if(it){it.qty=Number(it.qty||0)+n;it.productId=p.id;it.updatedAt=new Date().toISOString()}
+ else st.items.unshift({id:crypto.randomUUID(),productId:p.id,name:p.name,category:p.category||"",buy:Number(p.buy||0),price:Number(p.price||0),qty:n,image:(p.image&&!String(p.image).startsWith("data:"))?p.image:"",updatedAt:new Date().toISOString()});
+ v94closeModal();v94renderStore();toast(`${p.name} × ${n} ${translateText("imeongezwa stoo ✓")}`);v94save()}
 
 /* ===== V96: DarSMS (Sender ID) ===== */
 async function v96sendDarsms(to,message,btn){if(!sbClient){toast("Hakuna mtandao.");return false}if(navigator.onLine===false){toast("Hauko mtandaoni.");return false}

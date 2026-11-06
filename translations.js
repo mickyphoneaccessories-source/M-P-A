@@ -44,3 +44,5 @@ Object.assign(MPA_TRANSLATIONS,{
 "- Banking":"- Banking",
 "- Branches":"- Branches"
 });
+
+Object.assign(MPA_TRANSLATIONS,{"wamechaguliwa":"selected","Chagua wote":"Select all","Futa":"Delete","Futa wateja":"Delete customers","wateja wamefutwa ✓":"customers deleted ✓","Hariri mteja":"Edit customer","Hifadhi":"Save","Futa mteja":"Delete customer","Mteja amehifadhiwa ✓":"Customer saved ✓","Ongeza bidhaa kwenye Stoo":"Add product to Store","Bidhaa mpya kabisa":"Brand-new product","Au chagua bidhaa iliyopo tayari kwenye mfumo:":"Or pick a product already in the system:","Idadi ya kuweka stoo":"Quantity to put in store","Ongeza kwenye Stoo":"Add to Store","Dukani":"In shop","Hakuna bidhaa inayolingana.":"No matching product.","Chagua bidhaa kwanza.":"Choose a product first.","imeongezwa stoo ✓":"added to store ✓"});
