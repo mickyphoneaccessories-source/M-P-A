@@ -185,7 +185,7 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
 <main>
   <section id="home" class="page active">
     <div class="hero">
-      <div><h2>Karibu M-P-A 👋</h2><p>Simamia bidhaa, stock, mauzo na matumizi yako sehemu moja.</p></div>
+      <div onclick="openBulkSms()" style="cursor:pointer" title="Tuma SMS kwa wateja"><h2>Karibu M-P-A 👋</h2><p>Simamia bidhaa, stock, mauzo na matumizi yako sehemu moja.</p></div>
       <div class="heroimg">📦<br>📱</div>
     </div>
     <div class="quickgrid">
@@ -293,7 +293,7 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
 
   <section id="customers" class="page">
     <div class="sectiontitle">Wateja</div>
-    <div class="card"><div class="two"><div class="field"><label>Jina</label><input id="cName" placeholder="Jina la mteja"></div><div class="field"><label>Namba</label><input id="cPhone" placeholder="07..."></div></div><button class="btn blue" onclick="addCustomer()">Ongeza mteja</button></div>
+    <div class="card"><div class="two"><div class="field"><label>Jina</label><input id="cName" placeholder="Jina la mteja"></div><div class="field"><label>Namba</label><input id="cPhone" placeholder="07..."></div></div><div class="two"><button class="btn blue" onclick="addCustomer()">Ongeza mteja</button><button class="btn" type="button" onclick="pickCustomersFromContacts()">📇 Contacts</button></div></div>
     <div id="customerList" class="card"></div>
   </section>
 
@@ -402,17 +402,18 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
       <div class="settings-group-title">ZIADA</div>
       <div class="settings-ios-list">
         <button type="button" onclick="openStores()"><span class="setting-icon" style="background:#ff2b83">🛍</span><span class="setting-main">Store zangu <small>- Bidhaa za akiba</small></span><b>›</b></button>
-        <button type="button" onclick="toggleSettingsPanel('storePanel')"><span class="setting-icon" style="background:#b400ff">⌂</span><span class="setting-main">Stoo Zangu</span><b>›</b></button>
+        <button type="button" onclick="toggleSettingsPanel('storePanel')"><span class="setting-icon" style="background:#b400ff">⌂</span><span class="setting-main">Jina la Duka</span><b>›</b></button>
         <button onclick="toast('Malipo - Banking: itaunganishwa hapa.')"><span class="setting-icon" style="background:#9fc1ff">▣</span><span class="setting-main">Malipo <small>- Huduma za benki</small></span><b>›</b></button>
         <button onclick="toast('Alika Wafanyabiashara: tumia Ongeza Muuzaji.')"><span class="setting-icon" style="background:#2450ff">♟</span><span class="setting-main">Alika Wafanyabiashara</span><b>›</b></button>
         <button type="button" onclick="toggleSettingsPanel('languagePanel')"><span class="setting-icon" style="background:#111">◎</span><span class="setting-main">Badilisha Lugha <small data-runtime-copy id="settingsLanguageValue">Kiswahili</small></span><b>›</b></button>
         <div id="languagePanel" class="settings-inline settings-subpanel" hidden><b>Lugha</b><div class="langgrid"><button data-runtime-copy id="langSw" class="btn langbtn active" onclick="setLanguage('sw')">🇹🇿 Kiswahili</button><button data-runtime-copy id="langEn" class="btn langbtn" onclick="setLanguage('en')">🇬🇧 Kiingereza</button></div></div>
-        <div id="storePanel" class="settings-inline settings-subpanel" hidden><b>Stoo Zangu / Store</b><div class="field"><label>Jina la Store</label><input id="storeNameInput" placeholder="Micky Phone Accessories"></div><button class="btn blue" onclick="saveStore()">Hifadhi Store</button></div>
+        <div id="storePanel" class="settings-inline settings-subpanel" hidden><b>Jina la Duka</b><div class="field"><label>Jina la Store</label><input id="storeNameInput" placeholder="Micky Phone Accessories"></div><button class="btn blue" onclick="saveStore()">Hifadhi Store</button></div>
         <div id="branchesPanel" class="settings-inline settings-subpanel" hidden><b>Maduka yangu Mengine / Branches</b><div class="sectiontitle" style="font-size:16px">Matawi</div><div class="two"><input id="branchName" class="field" style="margin:0" placeholder="Jina la branch"><button class="btn" onclick="addBranch()">＋ Ongeza Tawi</button></div><div id="branchList"></div><div class="field" style="margin-top:12px"><label>Branch inayotumika</label><select id="activeBranchSelect" onchange="setActiveBranch(this.value)"><option value="">Duka kuu</option></select></div></div>
       </div>
       <div class="settings-group-title">USALAMA</div>
       <div class="settings-ios-list">
         <button onclick="openPinModal()"><span class="setting-icon" style="background:#111">✕</span><span class="setting-main">Badilisha kuingia kwa Admin</span><b>›</b></button>
+        <button type="button" onclick="openSessionPassword()"><span class="setting-icon" style="background:#16a34a">🔑</span><span class="setting-main">Weka password mpya <small>- bila ya zamani</small></span><b>›</b></button>
         <button onclick="enableBiometric()"><span class="setting-icon" style="background:#999">♧</span><span class="setting-main">Wezesha alama za vidole au sura</span><b>›</b></button>
       </div>
       <div class="settings-group-title">MSAADA</div>
@@ -534,7 +535,7 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
 <script src="translations.js"></script>
 <script>
 // M-P-A v41: do not reload the entire app state on realtime app-state events; only merge notifications.
-const MPA_APP_VERSION = "V94";
+const MPA_APP_VERSION = "V96";
 function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="Toleo: "+MPA_APP_VERSION;}
 let mpaWaitingWorker=null;
 function setUpdateUI(state,msg){
@@ -1378,8 +1379,9 @@ async function login(){
      data={user:set.data?.user||result.user||null,session:set.data?.session||result.session};
      if(!data.user){const current=await sbClient.auth.getUser();data.user=current.data?.user||null;}
    }else{
-     const result=await sbClient.auth.signInWithPassword({email,password:p});
-     data=result.data;error=result.error;
+     // V95: on a new browser the username→email map is empty; try the known admin email too.
+     const tries=[email];if(loginRole==="admin"&&!u.includes("@"))Object.keys(KNOWN_LOGIN_ROLES).filter(k=>KNOWN_LOGIN_ROLES[k]==="admin").forEach(k=>{if(!tries.includes(k))tries.push(k)});
+     for(const em of tries){const result=await sbClient.auth.signInWithPassword({email:em,password:p});data=result.data;error=result.error;if(!error&&data?.user){email=em;if(!u.includes("@"))try{rememberAdminLogin(u,em)}catch(_){}break}}
    }
  }catch(e){
    console.warn("M-P-A sign-in error",e);
@@ -2750,7 +2752,9 @@ function v94b64(o){const b=new TextEncoder().encode(JSON.stringify(o));let s="";
 function v94unb64(t){t=t.replace(/-/g,"+").replace(/_/g,"/");while(t.length%4)t+="=";const s=atob(t);return JSON.parse(new TextDecoder().decode(Uint8Array.from(s,c=>c.charCodeAt(0))))}
 function v94debtLink(s){const items=(s.items||[{product:s.product,qty:s.qty||1,price:s.price||s.total}]).map(i=>({n:i.product||products.find(p=>p.id===i.productId)?.name||"Bidhaa",q:Number(i.qty||1),p:Number(i.price||0)}));
  const d={o:String(s.id).slice(-8).toUpperCase(),c:s.customer||"",d:s.date,t:Number(s.total||0),b:saleDebtBalance(s),i:items,pay:(s.payments||[]).map(p=>({d:p.date,a:Number(p.amount||0)})),sh:storeName||MPA_SHOP_TITLE,ph:MPA_SHOP_PHONE};
- return location.origin+location.pathname+"#deni="+v94b64(d)}
+ const ymd=x=>{const t=new Date(x);return isNaN(t)?"":t.toISOString().slice(2,10).replace(/-/g,"")};
+ const c=[d.o,d.c,ymd(d.d),d.t,d.b,items.map(i=>[i.n,i.q,i.p]),d.pay.map(p=>[ymd(p.d),p.a])];
+ return location.origin+location.pathname.replace(/index\.html$/,"")+"#d="+v94b64(c)}
 function v94custPhone(s){if(s.customerPhone)return s.customerPhone;const c=customers.find(c=>String(c.name||"").trim().toLowerCase()===String(s.customer||"").trim().toLowerCase());return c?.phone||""}
 function v94custName(s){const c=customers.find(c=>String(c.name||"").trim().toLowerCase()===String(s.customer||"").trim().toLowerCase());return c?.name||s.customer||"Mteja"}
 function v94reminderText(s){return `Habari ${v94custName(s)},\n\n${MPA_SHOP_TITLE} - ${MPA_SHOP_PHONE} tunakukumbusha kulipia deni lako la order ${String(s.id).slice(-8).toUpperCase()} lenye thamani ya ${v94fmt(saleDebtBalance(s))} ulionunua ${v94date(s.date)}.\n\nKuweza kuona mlolongo wa malipo yako katika deni hili, bofya link hapo chini👇🏼\n\n${v94debtLink(s)}\n\nAsante kwa kuendelea kutuamini na kufanya biashara nasi. Wewe ni sehemu muhimu ya familia yetu ya wateja. Tunakukaribisha tena kwa huduma bora, bidhaa zenye ubora na bei rafiki. Karibu sana Micky Phone Accessories and Home Decoration – Tunathamini sana uwepo wako! 🛍️`}
@@ -2759,13 +2763,14 @@ function openDebtReminder(id){const s=sales.find(x=>String(x.id)===String(id));i
  v94modal(`<div class="modalhead"><h2>${translateText("Mkumbushe Deni")}</h2><button class="close" onclick="v94closeModal()">×</button></div>
  <div class="field"><label>${translateText("Namba ya simu ya mteja")}</label><input id="v94RemPhone" inputmode="tel" value="${esc(ph)}" placeholder="07xx xxx xxx"></div>
  <div class="field"><label>${translateText("Ujumbe")}</label><textarea id="v94RemText" rows="10" style="font-size:13px">${esc(v94reminderText(s))}</textarea></div>
- <div class="two"><button class="btn" style="background:#25D366;color:#fff;padding:14px" onclick="v94sendRem('wa')">🟢 WhatsApp</button><button class="btn blue" style="padding:14px" onclick="v94sendRem('sms')">✉️ SMS ${translateText("kawaida")}</button></div>`)}
+ <div class="two"><button class="btn" style="background:#25D366;color:#fff;padding:14px" onclick="v94sendRem('wa')">🟢 WhatsApp</button><button class="btn blue" style="padding:14px" onclick="v94sendRem('sms')">✉️ SMS ${translateText("kawaida")}</button></div><button id="v96RemBtn" class="btn" style="width:100%;background:#111;color:#f5c400;padding:14px;margin-top:8px" onclick="v96remDarsms()">📨 ${translateText("Tuma kwa jina la duka")} (DarSMS)</button>`)}
 function v94sendRem(kind){const ph=document.getElementById("v94RemPhone").value.trim(),txt=document.getElementById("v94RemText").value;if(!ph){toast("Weka namba ya simu ya mteja.");return}
  const url=kind==="wa"?`https://wa.me/${v94intl(ph)}?text=${encodeURIComponent(txt)}`:`sms:${ph.replace(/\s/g,"")}${/iPhone|iPad|iPod|Mac/.test(navigator.userAgent)?"&":"?"}body=${encodeURIComponent(txt)}`;
  if(kind==="wa")window.open(url,"_blank");else location.href=url;v94closeModal()}
 
 /* ---- Ukurasa wa mteja kuona deni lake (link) ---- */
-(function(){const m=location.hash.match(/deni=([A-Za-z0-9_-]+)/);if(!m)return;let d;try{d=v94unb64(m[1])}catch(e){return}
+(function(){const m=location.hash.match(/(?:deni|d)=([A-Za-z0-9_-]+)/);if(!m)return;let d;try{d=v94unb64(m[1])}catch(e){return}
+ if(Array.isArray(d)){const dt=x=>x?("20"+x.slice(0,2)+"-"+x.slice(2,4)+"-"+x.slice(4,6)+"T12:00:00Z"):"";d={o:d[0],c:d[1],d:dt(d[2]),t:+d[3],b:+d[4],i:(d[5]||[]).map(a=>({n:a[0],q:+a[1],p:+a[2]})),pay:(d[6]||[]).map(a=>({d:dt(a[0]),a:+a[1]})),sh:MPA_SHOP_TITLE,ph:MPA_SHOP_PHONE}}
  const go=()=>{const o=document.createElement("div");o.id="v94DebtView";const paid=Math.max(0,d.t-d.b);
  o.innerHTML=`<div class="v94-wrap" style="max-width:520px;margin:auto"><div style="text-align:center;padding:18px 0"><img src="logo.png" onerror="this.remove()" style="height:60px"><h2 style="margin:8px 0 2px">${esc(d.sh)}</h2><small class="muted">${esc(d.ph)}</small></div>
  <div class="v94-card"><div class="v94-r"><span>Mteja</span><b>${esc(d.c)}</b></div><div class="v94-r"><span>Order</span><b>#${esc(d.o)}</b></div><div class="v94-r"><span>Tarehe ya kukopa</span><b>${esc(v94date(d.d))}</b></div><div class="v94-r"><span>Thamani ya oda</span><b>${v94fmt(d.t)}</b></div><div class="v94-r"><span>Kilicholipwa</span><b style="color:#16a34a">${v94fmt(paid)}</b></div><div class="v94-r"><span>Deni lililobaki</span><b style="color:#dc2626;font-size:18px">${v94fmt(d.b)}</b></div></div>
@@ -2775,6 +2780,51 @@ function v94sendRem(kind){const ph=document.getElementById("v94RemPhone").value.
  <p class="muted" style="text-align:center;font-size:12px;margin-top:14px">Asante kwa kuendelea kutuamini. Taarifa hizi ni za wakati link ilipotumwa.</p></div>`;document.body.appendChild(o)};
  if(document.body)go();else document.addEventListener("DOMContentLoaded",go)})();
 
+
+/* ===== V95 ===== */
+async function pickCustomersFromContacts(){
+ if(!(navigator.contacts&&typeof navigator.contacts.select==="function")){const k=mpaDeviceKind();toast(k==="ios"?"iPhone: Settings → Apps → Safari → Advanced → Feature Flags → washa “Contact Picker API”, kisha jaribu tena.":k==="android"?"Fungua mfumo kwa Google Chrome ili kuchagua contacts.":"Kompyuta haina contacts za simu. Andika jina na namba.");return}
+ let list=[];try{list=await navigator.contacts.select(["name","tel"],{multiple:true})}catch(e){toast("Contacts hazikufunguka.");return}
+ if(!list||!list.length)return;const norm=x=>String(x||"").replace(/\D/g,"").slice(-9);let added=0,skipped=0;
+ for(const c of list){const name=String(c.name?.[0]||"").trim(),phone=String(c.tel?.[0]||"").replace(/\s/g,"");if(!name&&!phone)continue;
+  if(phone&&customers.some(x=>norm(x.phone)===norm(phone))){skipped++;continue}
+  customers.unshift({id:crypto.randomUUID(),name:name||phone,phone});added++}
+ if(!added){toast(skipped?"Wateja hao tayari wapo.":"Hakuna mteja aliyeongezwa.");return}
+ try{render()}catch(e){}const st=await saveCloudState();toast(added+" wateja wameongezwa ✓"+(skipped?" ("+skipped+" walikuwepo)":"")+(st&&st.ok===false?" • sync itajaribiwa tena":""))}
+function v95phones(){const seen=new Set();return customers.map(c=>({name:c.name,phone:String(c.phone||"").replace(/[^\d+]/g,"")})).filter(c=>{const k=c.phone.replace(/\D/g,"").slice(-9);if(k.length<9||seen.has(k))return false;seen.add(k);return true})}
+function openBulkSms(){if(!isRealAdmin()){toast("Admin pekee anatuma SMS kwa wateja.");return}const list=v95phones();
+ v94modal(`<div class="modalhead"><h2>${translateText("SMS kwa wateja")}</h2><button class="close" onclick="v94closeModal()">×</button></div>
+ <p class="muted">${list.length} ${translateText("wateja wenye namba")}</p>
+ <div class="field"><label>${translateText("Ujumbe")}</label><textarea id="v95BulkText" rows="7">${esc(MPA_SHOP_TITLE+":\n")}</textarea></div>
+ <button id="v96BulkBtn" class="btn" style="width:100%;background:#111;color:#f5c400;padding:14px;margin-bottom:8px" onclick="v96bulkDarsms()">📨 ${translateText("Tuma kwa jina la duka")} (DarSMS)</button><div class="two"><button class="btn blue" style="padding:14px" onclick="v95sendBulk()">✉️ ${translateText("Tuma SMS kwa wote")}</button><button class="btn" style="padding:14px" onclick="v95copyBulk()">📋 ${translateText("Nakili ujumbe")}</button></div>
+ <div style="margin-top:12px;max-height:40vh;overflow:auto">${list.map((c,i)=>`<div class="v94-r" style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #8883"><span>${esc(c.name||"")}<br><small class="muted">${esc(c.phone)}</small></span><button class="btn" style="background:#25D366;color:#fff;padding:8px 12px" onclick="v95waOne(${i})">WhatsApp</button></div>`).join("")||`<div class="muted">${translateText("Hakuna mteja mwenye namba.")}</div>`}</div>`)}
+function v95sendBulk(){const list=v95phones(),t=document.getElementById("v95BulkText").value.trim();if(!t){toast("Andika ujumbe.");return}if(!list.length){toast("Hakuna mteja mwenye namba.");return}
+ const nums=list.map(c=>c.phone).join(","),ios=/iPhone|iPad|iPod|Mac/.test(navigator.userAgent);
+ location.href=ios?`sms:/open?addresses=${nums}&body=${encodeURIComponent(t)}`:`sms:${nums}?body=${encodeURIComponent(t)}`}
+function v95copyBulk(){const t=document.getElementById("v95BulkText").value;navigator.clipboard?.writeText(t).then(()=>toast("Ujumbe umenakiliwa ✓"),()=>toast("Haikunakiliwa."))}
+function v95waOne(i){const c=v95phones()[i],t=document.getElementById("v95BulkText").value;if(c)window.open(`https://wa.me/${v94intl(c.phone)}?text=${encodeURIComponent(t)}`,"_blank")}
+async function openSessionPassword(){if(authProfile?.role!=="admin"){toast("Admin pekee.");return}const u=(await sbClient.auth.getUser()).data?.user;if(!u){toast("Ingia upya kwanza.");return}
+ v94modal(`<div class="modalhead"><h2>${translateText("Weka password mpya")}</h2><button class="close" onclick="v94closeModal()">×</button></div>
+ <p class="muted">${translateText("Akaunti unayoingilia sasa:")}<br><b>${esc(u.email||"")}</b></p>
+ <div class="field"><label>${translateText("Password mpya (angalau 6)")}</label><input id="v95Pw1" type="password" autocomplete="new-password"></div>
+ <div class="field"><label>${translateText("Rudia password mpya")}</label><input id="v95Pw2" type="password" autocomplete="new-password"></div>
+ <button id="v95PwBtn" class="btn blue" style="width:100%;padding:14px" onclick="saveSessionPassword()">${translateText("Hifadhi password mpya")}</button>`)}
+async function saveSessionPassword(){const a=document.getElementById("v95Pw1").value,b=document.getElementById("v95Pw2").value;if(a.length<6){toast("Password iwe angalau herufi/namba 6.");return}if(a!==b){toast("Password mbili hazifanani.");return}
+ const btn=document.getElementById("v95PwBtn");btn.disabled=true;try{const r=await sbClient.auth.updateUser({password:a});if(r.error){toast("Haijahifadhiwa: "+r.error.message);return}v94closeModal();alert(translateText("Password mpya imehifadhiwa ✓ Sasa unaweza kuingia Chrome/Safari kwa email au jina lako na password hii."))}finally{btn.disabled=false}}
+
+/* ===== V96: DarSMS (Sender ID) ===== */
+async function v96sendDarsms(to,message,btn){if(!sbClient){toast("Hakuna mtandao.");return false}if(navigator.onLine===false){toast("Hauko mtandaoni.");return false}
+ const old=btn?.textContent;if(btn){btn.disabled=true;btn.textContent=translateText("Inatuma…")}
+ try{const {data,error}=await sbClient.functions.invoke("mpa-send-sms",{body:{to,message}});
+  if(error){let m=error.message;try{const b=await error.context.clone().json();m=b.error||m}catch(e){}throw new Error(m)}
+  if(data?.error)throw new Error(data.error);toast(translateText("SMS imetumwa kwa")+" "+(data?.count||to.length)+" ✓");return true}
+ catch(e){alert(translateText("SMS haijatumwa: ")+(e.message||e));return false}
+ finally{if(btn){btn.disabled=false;btn.textContent=old}}}
+async function v96bulkDarsms(){const list=v95phones(),t=document.getElementById("v95BulkText").value.trim();if(!t){toast("Andika ujumbe.");return}if(!list.length){toast("Hakuna mteja mwenye namba.");return}
+ if(!confirm(translateText("Tuma SMS kwa wateja")+" "+list.length+"? "+translateText("Itatumia credits za DarSMS.")))return;
+ if(await v96sendDarsms(list.map(c=>c.phone),t,document.getElementById("v96BulkBtn")))v94closeModal()}
+async function v96remDarsms(){const ph=document.getElementById("v94RemPhone").value.trim(),t=document.getElementById("v94RemText").value.trim();if(!ph){toast("Weka namba ya simu ya mteja.");return}
+ if(await v96sendDarsms([ph],t,document.getElementById("v96RemBtn")))v94closeModal()}
 </script>
 <div id="saleImageViewer" class="sale-image-viewer hidden" onclick="if(event.target===this)closeSaleImage()"><button type="button" class="sale-image-close" aria-label="Funga" onclick="closeSaleImage()">×</button><img id="saleImageViewerImg" src="icon.svg" alt="Bidhaa" onclick="saleImageTap()" ondblclick="toggleSaleImageZoom()"></div></body>
 </html>
