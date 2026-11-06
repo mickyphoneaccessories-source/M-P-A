@@ -293,7 +293,7 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
 
   <section id="customers" class="page">
     <div class="sectiontitle">Wateja</div>
-    <div class="card"><div class="two"><div class="field"><label>Jina</label><input id="cName" placeholder="Jina la mteja"></div><div class="field"><label>Namba</label><input id="cPhone" placeholder="07..."></div></div><div class="two"><button class="btn blue" onclick="addCustomer()">Ongeza mteja</button><button class="btn" type="button" onclick="pickCustomersFromContacts()">📇 Contacts</button></div></div>
+    <div class="card"><div class="field"><input id="customerSearch" autocomplete="off" placeholder="🔍 Tafuta mteja: jina au namba" oninput="renderLists()"></div><div class="two"><div class="field"><label>Jina</label><input id="cName" placeholder="Jina la mteja"></div><div class="field"><label>Namba</label><input id="cPhone" placeholder="07..."></div></div><div class="two"><button class="btn blue" onclick="addCustomer()">Ongeza mteja</button><button class="btn" type="button" onclick="openCustomerContacts()">📇 Contacts</button></div></div>
     <div id="customerList" class="card"></div>
   </section>
 
@@ -393,6 +393,8 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
         <button onclick="showPage('deleted',null)"><span class="setting-icon" style="background:#ff3040">▣</span><span class="setting-main">Zilizofutwa na kusawazishwa</span><b>›</b></button>
         <button id="archivedProductsBtn" onclick="openArchivedProducts()"><span class="setting-icon" style="background:#6b7280">🗑</span><span class="setting-main">Bidhaa zilizofutwa <small>- Rudisha au futa kabisa</small></span><b>›</b></button>
         <button onclick="showPage('stockTools',null)"><span class="setting-icon" style="background:#e4c20e">✎</span><span class="setting-main">Stock <small>- Hariri na bidhaa zilizoharibika</small></span><b>›</b></button>
+        <button type="button" onclick="toggleSettingsPanel('storePanel')"><span class="setting-icon" style="background:#ff2b83">⌂</span><span class="setting-main">Jina la Duka</span><b>›</b></button>
+        <div id="storePanel" class="settings-inline settings-subpanel" hidden><b>Jina la Duka</b><div class="field"><label>Jina la Store</label><input id="storeNameInput" placeholder="Micky Phone Accessories"></div><button class="btn blue" onclick="saveStore()">Hifadhi Store</button></div>
       </div>
       <div class="settings-group-title">RASILIMALI WATU</div>
       <div class="settings-ios-list">
@@ -401,19 +403,17 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
       </div>
       <div class="settings-group-title">ZIADA</div>
       <div class="settings-ios-list">
-        <button type="button" onclick="openStores()"><span class="setting-icon" style="background:#ff2b83">🛍</span><span class="setting-main">Store zangu <small>- Bidhaa za akiba</small></span><b>›</b></button>
-        <button type="button" onclick="toggleSettingsPanel('storePanel')"><span class="setting-icon" style="background:#b400ff">⌂</span><span class="setting-main">Jina la Duka</span><b>›</b></button>
-        <button onclick="toast('Malipo - Banking: itaunganishwa hapa.')"><span class="setting-icon" style="background:#9fc1ff">▣</span><span class="setting-main">Malipo <small>- Huduma za benki</small></span><b>›</b></button>
-        <button onclick="toast('Alika Wafanyabiashara: tumia Ongeza Muuzaji.')"><span class="setting-icon" style="background:#2450ff">♟</span><span class="setting-main">Alika Wafanyabiashara</span><b>›</b></button>
-        <button type="button" onclick="toggleSettingsPanel('languagePanel')"><span class="setting-icon" style="background:#111">◎</span><span class="setting-main">Badilisha Lugha <small data-runtime-copy id="settingsLanguageValue">Kiswahili</small></span><b>›</b></button>
+        <button type="button" onclick="toggleSettingsPanel('branchesPanel')"><span class="setting-icon" style="background:#ff2b83">🛍</span><span class="setting-main">Maduka yangu Mengine <small>- Branches</small></span><b>›</b></button>
+        <button type="button" onclick="openStores()"><span class="setting-icon" style="background:#b400ff">🏬</span><span class="setting-main">Stoo Zangu</span><b>›</b></button>
+        <button onclick="toast('Malipo - Banking: itaunganishwa hapa.')"><span class="setting-icon" style="background:#9fc1ff">👛</span><span class="setting-main">Malipo <small>- Banking</small></span><b>›</b></button>
+        <button onclick="toast('Alika Wafanyabiashara: tumia Ongeza Muuzaji.')"><span class="setting-icon" style="background:#2450ff">👥</span><span class="setting-main">Alika Wafanyabiashara</span><b>›</b></button>
+        <button type="button" onclick="toggleSettingsPanel('languagePanel')"><span class="setting-icon" style="background:#111">🌐</span><span class="setting-main">Badilisha Lugha <small data-runtime-copy id="settingsLanguageValue" style="color:#11be27">Kiswahili</small></span><b>›</b></button>
         <div id="languagePanel" class="settings-inline settings-subpanel" hidden><b>Lugha</b><div class="langgrid"><button data-runtime-copy id="langSw" class="btn langbtn active" onclick="setLanguage('sw')">🇹🇿 Kiswahili</button><button data-runtime-copy id="langEn" class="btn langbtn" onclick="setLanguage('en')">🇬🇧 Kiingereza</button></div></div>
-        <div id="storePanel" class="settings-inline settings-subpanel" hidden><b>Jina la Duka</b><div class="field"><label>Jina la Store</label><input id="storeNameInput" placeholder="Micky Phone Accessories"></div><button class="btn blue" onclick="saveStore()">Hifadhi Store</button></div>
-        <div id="branchesPanel" class="settings-inline settings-subpanel" hidden><b>Maduka yangu Mengine / Branches</b><div class="sectiontitle" style="font-size:16px">Matawi</div><div class="two"><input id="branchName" class="field" style="margin:0" placeholder="Jina la branch"><button class="btn" onclick="addBranch()">＋ Ongeza Tawi</button></div><div id="branchList"></div><div class="field" style="margin-top:12px"><label>Branch inayotumika</label><select id="activeBranchSelect" onchange="setActiveBranch(this.value)"><option value="">Duka kuu</option></select></div></div>
+        <div id="branchesPanel" class="settings-inline settings-subpanel" hidden><b>Maduka yangu Mengine - Branches</b><div class="sectiontitle" style="font-size:16px">Matawi</div><div class="two"><input id="branchName" class="field" style="margin:0" placeholder="Jina la branch"><button class="btn" onclick="addBranch()">＋ Ongeza Tawi</button></div><div id="branchList"></div><div class="field" style="margin-top:12px"><label>Branch inayotumika</label><select id="activeBranchSelect" onchange="setActiveBranch(this.value)"><option value="">Duka kuu</option></select></div></div>
       </div>
       <div class="settings-group-title">USALAMA</div>
       <div class="settings-ios-list">
         <button onclick="openPinModal()"><span class="setting-icon" style="background:#111">✕</span><span class="setting-main">Badilisha kuingia kwa Admin</span><b>›</b></button>
-        <button type="button" onclick="openSessionPassword()"><span class="setting-icon" style="background:#16a34a">🔑</span><span class="setting-main">Weka password mpya <small>- bila ya zamani</small></span><b>›</b></button>
         <button onclick="enableBiometric()"><span class="setting-icon" style="background:#999">♧</span><span class="setting-main">Wezesha alama za vidole au sura</span><b>›</b></button>
       </div>
       <div class="settings-group-title">MSAADA</div>
@@ -525,7 +525,7 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
 
 <div id="goalModal" class="modalback"><div class="modal"><div class="modalhead"><h2>🎯 Lengo la Mauzo</h2><button class="close" onclick="closeModal('goalModal')">×</button></div><div class="field"><label id="goalInputLabel">Lengo la mwezi (TZS)</label><input id="goalInput" type="text" inputmode="numeric" data-money="1" min="0" placeholder="Mfano 10,000,000"></div><button class="btn blue" style="width:100%" onclick="saveGoal()">Hifadhi Lengo</button></div></div>
 <div id="pinModal" class="modalback"><div class="modal"><div class="modalhead"><h2>🔐 Kuingia kwa Admin</h2><button class="close" aria-label="Funga" onclick="closeModal('pinModal')">×</button></div>
-<div id="adminStep1"><p class="hint" style="text-align:left;margin:0 0 12px">Hatua 1 kati ya 2: Andika jina na password unazotumia sasa kuingia.</p><div class="field"><label>Jina la kuingia la sasa (au email)</label><input id="adminOldName" autocomplete="username"></div><div class="field"><label>Password ya sasa</label><input id="adminCurrentPassword" type="password" autocomplete="current-password"></div><button class="btn blue" id="adminNextBtn" onclick="adminLoginNext()">Endelea ›</button></div>
+<div id="adminStep1"><p class="hint" style="text-align:left;margin:0 0 12px">Hatua 1 kati ya 2: Andika jina na password unazotumia sasa kuingia.</p><div class="field"><label>Jina la kuingia la sasa (au email)</label><input id="adminOldName" autocomplete="username"></div><div class="field"><label>Password ya sasa</label><input id="adminCurrentPassword" type="password" autocomplete="current-password"></div><button class="btn blue" id="adminNextBtn" onclick="adminLoginNext()">Endelea ›</button><div style="margin-top:16px;padding-top:14px;border-top:1px solid #eee"><p class="hint" style="text-align:left;margin:0 0 10px">Au: weka password mpya bila kutumia password ya zamani (ukiwa umeingia sasa).</p><button class="btn" style="width:100%;background:#16a34a;color:#fff" onclick="closeModal('pinModal');openSessionPassword()">🔑 Weka password mpya bila password ya zamani</button></div></div>
 <div id="adminStep2" style="display:none"><p class="hint" style="text-align:left;margin:0 0 12px">Hatua 2 kati ya 2: Weka jina jipya la kuingia na password mpya (angalau herufi/namba 6), kisha rudia password.</p><div class="field"><label>Jina jipya la kuingia</label><input id="adminLoginName" autocomplete="username"></div><div class="field"><label>Password mpya</label><input id="newPin" type="password" autocomplete="new-password"></div><div class="field"><label>Rudia password mpya</label><input id="newPin2" type="password" autocomplete="new-password"></div><button class="btn blue" onclick="changePin()">Hifadhi</button><button class="btn" style="margin-top:8px" onclick="adminLoginBack()">‹ Rudi</button></div>
 </div></div>
 <div id="clearDataModal" class="modalback"><div class="modal"><div class="modalhead"><h2>Futa data ulizochagua</h2><button class="close" aria-label="Funga" onclick="closeModal('clearDataModal')">×</button></div><div id="clearOptions"></div><button class="btn red" onclick="clearSelectedData()">Futa zilizochaguliwa</button></div></div>
@@ -535,7 +535,7 @@ html[lang="en"] .sale-history-item:after{content:"View details  ›"}
 <script src="translations.js"></script>
 <script>
 // M-P-A v41: do not reload the entire app state on realtime app-state events; only merge notifications.
-const MPA_APP_VERSION = "V96";
+const MPA_APP_VERSION = "V97";
 function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="Toleo: "+MPA_APP_VERSION;}
 let mpaWaitingWorker=null;
 function setUpdateUI(state,msg){
@@ -2192,7 +2192,9 @@ async function deleteExpense(id){
 function renderExpensePage(){const q=(document.getElementById("expenseSearch")?.value||"").toLowerCase(),day=document.getElementById("expenseDay")?.value||"";let arr=expenses.filter(e=>(!day||dateKey(e.date)===day)&&(!q||(e.name+" "+(e.category||"")+" "+(e.note||"")).toLowerCase().includes(q)));const total=arr.reduce((a,e)=>a+Number(e.amount||0),0),groups={};arr.forEach(e=>{const k=e.category||"Nyingine";groups[k]=(groups[k]||0)+Number(e.amount||0)});const keys=Object.keys(groups).sort((a,b)=>groups[b]-groups[a]);document.getElementById("expenseSumAmount").textContent=money(total);document.getElementById("expenseSumCount").textContent=arr.length;document.getElementById("expenseSumGroups").textContent=keys.length;document.getElementById("expenseSumTop").textContent=keys[0]||"-";document.getElementById("expensePageList").innerHTML=arr.length?arr.map(e=>`<div class="expense-item" data-expense-id="${e.id}" onclick='openExpenseDetails(${JSON.stringify(String(e.id))})'><div><b>${esc(e.name)}</b><small>${esc(e.category||translateText("Nyingine"))} • ${niceDate(e.date)} • ${esc(e.user||"")}</small>${e.note?`<small>${esc(e.note)}</small>`:""}</div><strong>${money(e.amount)}</strong><span>›</span></div>`).join(""):`<div class='empty'>${translateText("Hakuna matumizi.")}</div>`;document.getElementById("expenseGroupList").innerHTML=keys.length?keys.map(k=>`<div class="tableitem"><div style="flex:1"><b>${esc(k)}</b><div class="group-bar"><i style="width:${total?groups[k]/total*100:0}%"></i></div></div><strong>${money(groups[k])}</strong></div>`).join(""):`<div class='empty'>${translateText("Hakuna makundi.")}</div>`}
 function renderLists(){
  document.getElementById("expenseList")?.replaceChildren();
- document.getElementById("customerList").innerHTML=customers.length?customers.map(c=>`<div class="tableitem"><div><b>${esc(c.name)}</b><div class="muted">${esc(c.phone||translateText("Hakuna namba"))}</div></div></div>`).join(""):`<div class='empty'>${translateText("Hakuna wateja.")}</div>`;
+ const custQ=(document.getElementById("customerSearch")?.value||"").trim().toLowerCase();
+ const custArr=customers.filter(c=>!custQ||String(c.name||"").toLowerCase().includes(custQ)||String(c.phone||"").toLowerCase().includes(custQ));
+ document.getElementById("customerList").innerHTML=custArr.length?custArr.map(c=>`<div class="tableitem"><div><b>${esc(c.name)}</b><div class="muted">${esc(c.phone||translateText("Hakuna namba"))}</div></div></div>`).join(""):`<div class='empty'>${translateText(custQ?"Hakuna mteja anayelingana na utafutaji.":"Hakuna wateja.")}</div>`;
  renderExpensePage();
 }
 function renderNotifications(){renderStockRequests();const el=document.getElementById("notificationList");if(!el)return;el.innerHTML=notifications.length?notifications.slice(0,100).map(n=>`<div class="tableitem notif-card ${n.read?"":translateText("unread")}" data-notification-id="${esc(n.id)}" onclick="openNotification('${String(n.id).replace(/'/g,"\\'")}')"><img class="notif-logo" src="logo.png" alt="M-P-A"><div><b>${esc(translateText(n.title))}</b><div>${esc(translateText(n.detail))}</div><div class="muted">${esc(n.user||"")} • ${niceDate(n.date)} ${timeNow(n.date)}</div></div></div>`).join(""):`<div class='empty'>${translateText("Hakuna notification.")}</div>`}
@@ -2811,6 +2813,59 @@ async function openSessionPassword(){if(authProfile?.role!=="admin"){toast("Admi
  <button id="v95PwBtn" class="btn blue" style="width:100%;padding:14px" onclick="saveSessionPassword()">${translateText("Hifadhi password mpya")}</button>`)}
 async function saveSessionPassword(){const a=document.getElementById("v95Pw1").value,b=document.getElementById("v95Pw2").value;if(a.length<6){toast("Password iwe angalau herufi/namba 6.");return}if(a!==b){toast("Password mbili hazifanani.");return}
  const btn=document.getElementById("v95PwBtn");btn.disabled=true;try{const r=await sbClient.auth.updateUser({password:a});if(r.error){toast("Haijahifadhiwa: "+r.error.message);return}v94closeModal();alert(translateText("Password mpya imehifadhiwa ✓ Sasa unaweza kuingia Chrome/Safari kwa email au jina lako na password hii."))}finally{btn.disabled=false}}
+
+/* ===== V97: Wateja – kutafuta mteja na kuchagua contacts kwa utafutaji ===== */
+let v97Picked=[];
+function v97norm(x){return String(x??"").replace(/\D/g,"").slice(-9)}
+function openCustomerContacts(){
+ v94modal(`<div class="modalhead"><h2>${translateText("Chagua contacts")}</h2><button class="close" onclick="v94closeModal()">×</button></div>
+ <div class="field"><label>${translateText("Tafuta contact")}</label><input id="v97cQ" autocomplete="off" placeholder="${esc(translateText("Andika jina au namba"))}" oninput="v97renderPicked()"></div>
+ <button class="btn blue" style="width:100%;padding:14px" onclick="v97pullContacts()">📇 ${translateText("Fungua contacts za simu")}</button>
+ <p class="muted" style="font-size:12px;margin:8px 0">${translateText("Chagua contacts unazotaka, kisha andika jina au namba hapo juu ili kupata yoyote.")}</p>
+ <div id="v97cList" style="max-height:34vh;overflow:auto"></div>
+ <div class="field" style="margin-top:12px"><label>${translateText("Au andika mteja")}</label><input id="v97cName" autocomplete="off" placeholder="${esc(translateText("Jina la mteja"))}"><input id="v97cPhone" style="margin-top:8px" type="tel" inputmode="tel" autocomplete="off" placeholder="${esc(translateText("Namba ya simu (07...)"))}"></div>
+ <div class="two"><button class="btn" style="padding:14px" onclick="v97addManual()">＋ ${translateText("Ongeza mteja")}</button><button class="btn blue" style="padding:14px" onclick="v97addPicked()">✓ ${translateText("Ongeza wateja waliochaguliwa")}</button></div>`);
+ v97renderPicked();
+}
+async function v97pullContacts(){
+ if(!(navigator.contacts&&typeof navigator.contacts.select==="function")){const k=mpaDeviceKind();toast(k==="ios"?"iPhone: Settings → Apps → Safari → Advanced → Feature Flags → washa “Contact Picker API”, kisha jaribu tena.":k==="android"?"Fungua mfumo kwa Google Chrome ili kuchagua contacts.":"Kompyuta haina contacts za simu. Andika jina na namba hapo chini.");return}
+ let list=[];try{list=await navigator.contacts.select(["name","tel"],{multiple:true})}catch(e){toast("Contacts hazikufunguka.");return}
+ if(!list||!list.length)return;
+ for(const c of list){const name=String(c.name?.[0]||"").trim(),phone=String(c.tel?.[0]||"").replace(/\s/g,"");if(!name&&!phone)continue;
+  const key=v97norm(phone)||name.toLowerCase();
+  if(!v97Picked.some(p=>(v97norm(p.phone)||String(p.name).toLowerCase())===key))v97Picked.push({name:name||phone,phone,checked:true});}
+ v97renderPicked();toast(list.length+" "+translateText("contacts zimeongezwa kwenye orodha ✓"));
+}
+function v97renderPicked(){
+ const box=document.getElementById("v97cList");if(!box)return;
+ const q=(document.getElementById("v97cQ")?.value||"").trim().toLowerCase();
+ const rows=v97Picked.map((c,i)=>({c,i})).filter(({c})=>!q||String(c.name||"").toLowerCase().includes(q)||String(c.phone||"").toLowerCase().includes(q));
+ box.innerHTML=rows.length?rows.map(({c,i})=>{const dup=v97norm(c.phone)&&customers.some(x=>v97norm(x.phone)===v97norm(c.phone));return `<label class="v94-r" style="align-items:center"><span style="display:flex;gap:10px;align-items:center;min-width:0"><input type="checkbox" ${c.checked!==false?"checked":""} onchange="v97Picked[${i}].checked=this.checked"><span style="min-width:0"><b>${esc(c.name||"")}</b><br><small class="muted">${esc(c.phone||translateText("Hakuna namba"))}</small></span></span>${dup?`<small class="muted">${translateText("Tayari yupo")}</small>`:""}</label>`}).join(""):`<div class="muted" style="padding:10px 0">${v97Picked.length?translateText("Hakuna contact inayolingana na utafutaji."):translateText("Bonyeza “Fungua contacts za simu” ili kuchagua contacts.")}</div>`;
+}
+async function v97addPicked(){
+ const chosen=v97Picked.filter(c=>c.checked!==false);
+ if(!chosen.length){toast("Chagua angalau contact moja.");return}
+ let added=0,skipped=0;
+ for(const c of chosen){const name=String(c.name||"").trim(),phone=String(c.phone||"").replace(/\s/g,"");if(!name&&!phone)continue;
+  if(phone&&customers.some(x=>v97norm(x.phone)===v97norm(phone))){skipped++;continue}
+  customers.unshift({id:crypto.randomUUID(),name:name||phone,phone});added++}
+ if(!added){toast(skipped?"Wateja hao tayari wapo.":"Hakuna mteja aliyeongezwa.");return}
+ v97Picked=v97Picked.filter(c=>c.checked===false);
+ try{render()}catch(e){}
+ const st=await saveCloudState().catch(()=>({ok:false}));
+ toast(added+" wateja wameongezwa ✓"+(skipped?" ("+skipped+" walikuwepo)":"")+(st&&st.ok===false?" • sync itajaribiwa tena":""));
+ v97renderPicked();
+}
+async function v97addManual(){
+ const n=(document.getElementById("v97cName")?.value||"").trim(),p=(document.getElementById("v97cPhone")?.value||"").trim();
+ if(!n&&!p){toast("Andika jina au namba.");return}
+ if(p&&customers.some(x=>v97norm(x.phone)===v97norm(p))){toast("Mteja huyo tayari yupo.");return}
+ customers.unshift({id:crypto.randomUUID(),name:n||p,phone:p});
+ const nEl=document.getElementById("v97cName"),pEl=document.getElementById("v97cPhone");if(nEl)nEl.value="";if(pEl)pEl.value="";
+ try{render()}catch(e){}
+ const st=await saveCloudState().catch(()=>({ok:false}));
+ toast("Mteja ameongezwa ✓"+(st&&st.ok===false?" • sync itajaribiwa tena":""));
+}
 
 /* ===== V96: DarSMS (Sender ID) ===== */
 async function v96sendDarsms(to,message,btn){if(!sbClient){toast("Hakuna mtandao.");return false}if(navigator.onLine===false){toast("Hauko mtandaoni.");return false}
