@@ -290,7 +290,7 @@ html,body,button,a,input,select,label,.tableitem,.productrow{touch-action:manipu
  </section>
   <section id="expenses" class="page">
     <div class="expense-page">
-      <div class="expense-searchrow"><div class="expense-search">⌕ <input id="expenseSearch" oninput="renderExpensePage()" placeholder="Tafuta Matumizi"></div><div class="expense-day"><span>Chagua siku</span><input id="expenseDay" type="date" onchange="renderExpensePage()"></div></div>
+      <div class="expense-searchrow"><div class="expense-search">⌕ <input id="expenseSearch" oninput="renderExpensePage()" placeholder="Tafuta Matumizi"></div><div class="expense-day"><span>Chagua siku</span><input id="expenseDay" type="date" onchange="expenseDayUserSelected=this.value!==dateKey(now());renderExpensePage()"></div></div>
       <div class="expense-tabs"><button id="expenseTabAll" class="active" onclick="setExpenseTab('all')">Yote</button><button id="expenseTabGroups" onclick="setExpenseTab('groups')">Makundi ya Matumizi</button></div>
       <div class="expense-summary4"><div><small>Matumizi</small><b id="expenseSumAmount">TZS 0</b></div><div><small>Idadi</small><b id="expenseSumCount">0</b></div><div><small>Makundi</small><b id="expenseSumGroups">0</b></div><div><small>Kundi Kubwa</small><b id="expenseSumTop">-</b></div></div>
       <div id="expenseAllView">
@@ -547,7 +547,7 @@ html,body,button,a,input,select,label,.tableitem,.productrow{touch-action:manipu
 <script src="translations.js"></script>
 <script>
 // M-P-A v41: do not reload the entire app state on realtime app-state events; only merge notifications.
-const MPA_APP_VERSION = "V100";
+const MPA_APP_VERSION = "V101";
 function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="Toleo: "+MPA_APP_VERSION;}
 let mpaWaitingWorker=null;
 function setUpdateUI(state,msg){
@@ -1582,7 +1582,7 @@ function showPage(id,btn){
  if(["reports","analyticsSales","analyticsProfit","analyticsProducts","analyticsExpenses","analyticsCustomers","settings","purchases","deleted","stockTools","notifications","users","userDetail"].includes(id))document.getElementById("navMore")?.classList.add("active");
  if(id==="expenses")document.getElementById("navExpenses")?.classList.add("active");
  if((id==="users"||id==="userDetail")&&!can("manage_users")){toast("Huna ruhusa ya kusimamia users.");showPage("home",document.getElementById("navHome"));return}
- try{sessionStorage.setItem("mpaCurrentPage",id)}catch(e){}window.scrollTo(0,0);if(id==="sales"&&!salesDayUserSelected)ensureSalesDayIsToday(true);scheduleRender();
+ try{sessionStorage.setItem("mpaCurrentPage",id)}catch(e){}window.scrollTo(0,0);if(id==="sales"&&!salesDayUserSelected)ensureSalesDayIsToday(true);if(id==="expenses"&&!expenseDayUserSelected)ensureExpenseDayIsToday(true);scheduleRender();
 }
 function clearProductForm(){
  selectedImage="";productImagePromise=Promise.resolve();
@@ -2154,7 +2154,7 @@ async function addCustomer(){
 }
 async function addExpense(){
  if(!can("manage_expenses")){toast("Huna ruhusa ya kuongeza matumizi.");return}
- return runOnce("expense-quick-save",async()=>{const name=document.getElementById("eName")?.value.trim(),amount=Number(document.getElementById("eAmount")?.value||0);if(!name||!amount)return {ok:false};const item={id:crypto.randomUUID(),name,category:"Nyingine",amount,date:now().toISOString(),user:currentUser(),note:""};expenses.unshift(item);const state=await saveAll({renderNow:false});if(!state.ok){expenses=expenses.filter(x=>x.id!==item.id);return state}notify("Matumizi yamehifadhiwa",name+" • "+money(amount),"expenses",item.id);toast("Matumizi yamehifadhiwa Supabase ✓");render();return {ok:true}});
+ return runOnce("expense-quick-save",async()=>{const name=document.getElementById("eName")?.value.trim(),amount=Number(document.getElementById("eAmount")?.value||0);if(!name||!amount)return {ok:false};const item={id:crypto.randomUUID(),name,category:"Nyingine",amount,date:now().toISOString(),recordedAt:now().toISOString(),user:currentUser(),note:""};expenses.unshift(item);const state=await saveAll({renderNow:false});if(!state.ok){expenses=expenses.filter(x=>x.id!==item.id);return state}notify("Matumizi yamehifadhiwa",name+" • "+money(amount),"expenses",item.id);toast("Matumizi yamehifadhiwa Supabase ✓");render();return {ok:true}});
 }
 
 let expenseTab="all";
@@ -2164,7 +2164,7 @@ async function saveExpenseRecord(){
  return runOnce("expense-save",async()=>{
   const name=document.getElementById("expenseName").value.trim(),amount=parseMoney(document.getElementById("expenseAmountModal").value),category=document.getElementById("expenseCategory").value||"Nyingine",date=document.getElementById("expenseDate").value||dateKey(now()),note=document.getElementById("expenseNote").value.trim();
   if(!name||!amount){toast("Jaza aina ya matumizi na kiasi.");return {ok:false}}
-  const item={id:crypto.randomUUID(),name,category,amount,date:new Date(date+"T12:00:00").toISOString(),user:currentUser(),note};expenses.unshift(item);
+  const item={id:crypto.randomUUID(),name,category,amount,date:new Date(date+"T12:00:00").toISOString(),recordedAt:now().toISOString(),user:currentUser(),note};expenses.unshift(item);
   const state=await saveAll({renderNow:false});
   if(!state.ok){expenses=expenses.filter(x=>x.id!==item.id);return state}
   closeModal("expenseModal");notify("Matumizi yamehifadhiwa",name+" • "+money(amount),"expenses",item.id);toast("Matumizi yamehifadhiwa Supabase ✓");render();return {ok:true};
@@ -2205,7 +2205,11 @@ async function deleteExpense(id){
  });
 }
 
-function renderExpensePage(){const q=(document.getElementById("expenseSearch")?.value||"").toLowerCase(),day=document.getElementById("expenseDay")?.value||"";let arr=expenses.filter(e=>(!day||dateKey(e.date)===day)&&(!q||(e.name+" "+(e.category||"")+" "+(e.note||"")).toLowerCase().includes(q)));const total=arr.reduce((a,e)=>a+Number(e.amount||0),0),groups={};arr.forEach(e=>{const k=e.category||"Nyingine";groups[k]=(groups[k]||0)+Number(e.amount||0)});const keys=Object.keys(groups).sort((a,b)=>groups[b]-groups[a]);document.getElementById("expenseSumAmount").textContent=money(total);document.getElementById("expenseSumCount").textContent=arr.length;document.getElementById("expenseSumGroups").textContent=keys.length;document.getElementById("expenseSumTop").textContent=keys[0]||"-";document.getElementById("expensePageList").innerHTML=arr.length?arr.map(e=>`<div class="expense-item" data-expense-id="${e.id}" onclick='openExpenseDetails(${JSON.stringify(String(e.id))})'><div><b>${esc(e.name)}</b><small>${esc(e.category||translateText("Nyingine"))} • ${niceDate(e.date)} • ${esc(e.user||"")}</small>${e.note?`<small>${esc(e.note)}</small>`:""}</div><strong>${money(e.amount)}</strong><span>›</span></div>`).join(""):`<div class='empty'>${translateText("Hakuna matumizi.")}</div>`;document.getElementById("expenseGroupList").innerHTML=keys.length?keys.map(k=>`<div class="tableitem"><div style="flex:1"><b>${esc(k)}</b><div class="group-bar"><i style="width:${total?groups[k]/total*100:0}%"></i></div></div><strong>${money(groups[k])}</strong></div>`).join(""):`<div class='empty'>${translateText("Hakuna makundi.")}</div>`}
+function expenseRecordedAt(e){const t=Date.parse(e.recordedAt||e.createdAt||e.date||"");return Number.isFinite(t)?t:0}
+function newestExpenses(list){return list.map((e,i)=>({e,i})).sort((a,b)=>expenseRecordedAt(b.e)-expenseRecordedAt(a.e)||a.i-b.i).map(x=>x.e)}
+let expenseDayUserSelected=false;
+function ensureExpenseDayIsToday(force=false){const el=document.getElementById("expenseDay");if(!el)return;const t=dateKey(now());el.max=t;if(force||!el.value||(!expenseDayUserSelected&&el.value!==t)){el.value=t;renderExpensePage()}}
+function renderExpensePage(){const q=(document.getElementById("expenseSearch")?.value||"").toLowerCase(),dayEl=document.getElementById("expenseDay");if(dayEl){dayEl.max=dateKey(now());if(!dayEl.value)dayEl.value=dateKey(now())}const day=dayEl?.value||dateKey(now());let arr=newestExpenses(expenses.filter(e=>dateKey(e.date)===day&&(!q||(e.name+" "+(e.category||"")+" "+(e.note||"")).toLowerCase().includes(q))));const total=arr.reduce((a,e)=>a+Number(e.amount||0),0),groups={};arr.forEach(e=>{const k=e.category||"Nyingine";groups[k]=(groups[k]||0)+Number(e.amount||0)});const keys=Object.keys(groups).sort((a,b)=>groups[b]-groups[a]);document.getElementById("expenseSumAmount").textContent=money(total);document.getElementById("expenseSumCount").textContent=arr.length;document.getElementById("expenseSumGroups").textContent=keys.length;document.getElementById("expenseSumTop").textContent=keys[0]||"-";document.getElementById("expensePageList").innerHTML=arr.length?arr.map(e=>`<div class="expense-item" data-expense-id="${e.id}" onclick='openExpenseDetails(${JSON.stringify(String(e.id))})'><div><b>${esc(e.name)}</b><small>${esc(e.category||translateText("Nyingine"))} • ${niceDate(e.date)} • ${timeNow(e.recordedAt||e.date)} • ${esc(e.user||"")}</small>${e.note?`<small>${esc(e.note)}</small>`:""}</div><strong>${money(e.amount)}</strong><span>›</span></div>`).join(""):`<div class='empty'>${translateText("Hakuna matumizi.")}</div>`;document.getElementById("expenseGroupList").innerHTML=keys.length?keys.map(k=>`<div class="tableitem"><div style="flex:1"><b>${esc(k)}</b><div class="group-bar"><i style="width:${total?groups[k]/total*100:0}%"></i></div></div><strong>${money(groups[k])}</strong></div>`).join(""):`<div class='empty'>${translateText("Hakuna makundi.")}</div>`}
 function renderLists(){
  document.getElementById("expenseList")?.replaceChildren();
  const custQ=(document.getElementById("customerSearch")?.value||"").trim().toLowerCase();
@@ -2666,11 +2670,12 @@ function startSalesDayWatcher(){
    lastSalesDate=today;
    // New day: the normal sales view starts on today's date.
    if(!salesDayUserSelected)ensureSalesDayIsToday(true);
+   expenseDayUserSelected=false;ensureExpenseDayIsToday(true);
    syncSalesFromSupabase({silent:true}).then(()=>{renderSalesHistory();render();});
   }
  },30000);
 }
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState!=="hidden"){lastSalesDate=dateKey(now());if(!salesDayUserSelected&&!document.getElementById("salesDay")?.value)ensureSalesDayIsToday();}});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState!=="hidden"){ensureExpenseDayIsToday();lastSalesDate=dateKey(now());if(!salesDayUserSelected&&!document.getElementById("salesDay")?.value)ensureSalesDayIsToday();}});
 
 window.addEventListener("load",async()=>{
  // Anza kwenye login ya muuzaji (Username + PIN); Admin anaweza kuchagua kichupo cha Admin.
