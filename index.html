@@ -547,7 +547,7 @@ html,body,button,a,input,select,label,.tableitem,.productrow{touch-action:manipu
 <script src="translations.js"></script>
 <script>
 // M-P-A v41: do not reload the entire app state on realtime app-state events; only merge notifications.
-const MPA_APP_VERSION = "V101";
+const MPA_APP_VERSION = "V102";
 function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="Toleo: "+MPA_APP_VERSION;}
 let mpaWaitingWorker=null;
 function setUpdateUI(state,msg){
@@ -1631,6 +1631,8 @@ async function addProduct(){
    // Keep stable identity on unknown outcome so retry cannot create duplicates.
    const id=document.getElementById('productModal').dataset.pendingId||crypto.randomUUID();document.getElementById('productModal').dataset.pendingId=id;
    const p={id,supabaseId:id,name,category,code:'',buy,price,qty,image:selectedImage||'',createdAt:now().toISOString(),updatedAt:now().toISOString(),minStock:0};
+   // V102: bidhaa mpya ya user inasubiri idhini ya Admin kabla ya kuingia kwenye mfumo.
+   if(!isRealAdmin()){const rq=await submitStockRequest({type:'create',product:p,qty,changes:p});if(rq.ok){delete document.getElementById('productModal').dataset.pendingId;}return rq;}
    const remote=await syncProductToSupabase(p);
    if(!remote.ok){toast(remote.unknown?'Ombi limechukua muda mrefu; hifadhi bado haijathibitishwa. Jaribu kuhakiki kwa kusawazisha.':'Bidhaa haijahifadhiwa. Jaribu tena; taarifa ulizoingiza zimebaki.');return remote;}
    delete document.getElementById('productModal').dataset.pendingId;
@@ -1639,7 +1641,7 @@ async function addProduct(){
    closeModal('productModal');render();notify('Bidhaa mpya imeongezwa',name,'products',id);
    toast('Bidhaa imehifadhiwa; taarifa za ziada zitasawazishwa nyuma ya pazia.');return {ok:true};
   }catch(e){toast(e.message||'Bidhaa haijahifadhiwa. Jaribu tena; taarifa ulizoingiza zimebaki.');return {ok:false,error:e};}
-  finally{if(button){button.disabled=false;button.textContent=translateText('Hifadhi Bidhaa');}}
+  finally{if(button){button.disabled=false;button.textContent=translateText(isRealAdmin()?'Hifadhi Bidhaa':'Omba Ruhusa kwa Admin');}}
  });
 }
 function editProduct(id){productImagePromise=Promise.resolve();
@@ -1688,7 +1690,7 @@ async function submitStockRequest({type,product,qty=0,note="",changes=null,befor
  if(!res?.ok){stockRequests=stockRequests.filter(r=>r.id!==req.id);notifications=notifications.filter(n=>notifBefore.has(String(n.id)));updateNotifDot();renderNotifications();toast("Ombi halijatumwa; jaribu tena.");return {ok:false}}
  renderStockRequests();renderProducts();return {ok:true,request:req};
 }
-function stockRequestText(r){if(r.type==="add")return translateText("Ongeza stock")+" +"+r.qty;if(r.type==="remove")return translateText("Punguza stock")+" -"+r.qty;const lab={name:"Jina",category:"Kategoria",buy:"Bei ya kununua",price:"Bei ya kuuza",image:"Picha"};return Object.keys(r.changes||{}).map(k=>k==="image"?translateText("Picha mpya"):translateText(lab[k]||k)+": "+esc(String(k==="buy"||k==="price"?money(r.before?.[k]):r.before?.[k]??""))+" → "+esc(String(k==="buy"||k==="price"?money(r.changes[k]):r.changes[k]))).join("<br>")}
+function stockRequestText(r){if(r.type==="create"){const c=r.changes||{};return translateText("Bidhaa mpya")+": "+esc(c.name||r.productName||"")+"<br>"+translateText("Idadi")+": "+esc(String(c.qty??r.qty??0))+" • "+translateText("Bei ya kuuza")+": "+money(c.price||0)+(c.category?"<br>"+translateText("Kategoria")+": "+esc(c.category):"")}if(r.type==="add")return translateText("Ongeza stock")+" +"+r.qty;if(r.type==="remove")return translateText("Punguza stock")+" -"+r.qty;const lab={name:"Jina",category:"Kategoria",buy:"Bei ya kununua",price:"Bei ya kuuza",image:"Picha"};return Object.keys(r.changes||{}).map(k=>k==="image"?translateText("Picha mpya"):translateText(lab[k]||k)+": "+esc(String(k==="buy"||k==="price"?money(r.before?.[k]):r.before?.[k]??""))+" → "+esc(String(k==="buy"||k==="price"?money(r.changes[k]):r.changes[k]))).join("<br>")}
 function openStockRequest(id){const r=stockRequests.find(x=>String(x.id)===String(id));if(r&&isRealAdmin()&&r.status==="pending"){openRequestReview(r);return}showPage("notifications",null);renderStockRequests();setTimeout(()=>{const el=document.querySelector(`[data-request-id="${CSS.escape(String(id))}"]`);if(el){el.scrollIntoView({behavior:"smooth",block:"center"});el.style.outline="2px solid #f59e0b"}},80)}
 function openRequestReview(r){let m=document.getElementById("requestReviewModal");if(!m){m=document.createElement("div");m.id="requestReviewModal";m.className="modalback";m.style.zIndex=240;document.body.appendChild(m)}const p=products.find(x=>String(x.id)===String(r.productId)||String(x.supabaseId)===String(r.productId));const img=(r.changes&&r.changes.image)||p?.image;m.innerHTML=`<div class="modal"><div class="modalhead"><h2>${translateText("Ombi la mabadiliko")}</h2><button class="close" onclick="closeModal('requestReviewModal')">×</button></div>${img?`<img src="${esc(img)}" alt="" style="width:100%;max-height:200px;object-fit:contain;border-radius:12px;margin-bottom:10px">`:""}<div class="card" style="padding:12px"><b>${esc(r.productName||"")}</b><div class="muted">${translateText("Idadi ya sasa")}: ${esc(String(p?.qty??"-"))}</div><div style="margin:10px 0;font-size:16px">${stockRequestText(r)}</div><div class="muted">${esc(r.user||"")} • ${niceDate(r.createdAt)} ${timeNow(r.createdAt)}${r.note?" • "+esc(r.note):""}</div></div><div style="display:flex;gap:10px;margin-top:12px"><button class="btn green" style="flex:1" onclick="reviewDecide('${esc(r.id)}',true)">${translateText("Thibitisha")}</button><button class="btn red" style="flex:1" onclick="reviewDecide('${esc(r.id)}',false)">${translateText("Kataa")}</button></div></div>`;m.classList.add("show")}
 async function reviewDecide(id,ok){closeModal("requestReviewModal");const res=await decideStockRequest(id,ok);if(res&&res.ok===false&&!res.busy){const r=stockRequests.find(x=>String(x.id)===String(id));if(r&&r.status==="pending")openRequestReview(r)}}
@@ -1707,6 +1709,8 @@ async function decideStockRequest(id,approve){
   const r=stockRequests.find(x=>String(x.id)===String(id));if(!r||r.status!=="pending")return {ok:false};
   const p=products.find(x=>String(x.id)===String(r.productId)||String(x.supabaseId)===String(r.productId));
   if(approve){
+   if(r.type==="create"){const c=r.changes||{};if(!p){const np={...c,id:c.id||r.productId,supabaseId:c.id||r.productId,qty:Number(c.qty||0),createdAt:now().toISOString(),updatedAt:now().toISOString()};const remote=await syncProductToSupabase(np);if(!remote.ok){toast("Haijathibitishwa; Supabase haikupokea.");return remote}products.unshift(np);if(np.qty>0)movements.unshift({id:crypto.randomUUID(),productId:np.id,type:"add",qty:np.qty,user:r.user,note:"Stock ya kuanzia • "+translateText("imethibitishwa na")+" "+currentUser(),date:now().toISOString()});}}
+   else{
    if(!p){toast("Bidhaa haijapatikana.");return {ok:false}}
    const before=JSON.parse(JSON.stringify(p));
    if(r.type==="remove"&&r.qty>p.qty){toast("Stock haitoshi kwa sasa.");return {ok:false}}
@@ -1715,14 +1719,17 @@ async function decideStockRequest(id,approve){
    const remote=await syncProductToSupabase(p);
    if(!remote.ok){Object.assign(p,before);toast("Haijathibitishwa; Supabase haikupokea.");render();return remote}
    if(r.type!=="edit")movements.unshift({id:crypto.randomUUID(),productId:p.id,type:r.type,qty:r.qty,user:r.user,note:(r.note||"")+" • "+translateText("imethibitishwa na")+" "+currentUser(),date:now().toISOString()});
+   }
   }
+  // Picha ya ombi la bidhaa mpya haihitajiki tena baada ya uamuzi (inapunguza ukubwa wa data).
+  if(r.type==="create"&&r.changes&&r.changes.image)r.changes={...r.changes,image:""};
   r.status=approve?"approved":"rejected";r.decidedBy=currentUser();r.updatedAt=now().toISOString();
   await saveCloudState();
   notify((approve?"Ombi limekubaliwa: ":"Ombi limekataliwa: ")+(r.productName||""),"","notifications",r.id);
   toast(approve?"Mabadiliko yamethibitishwa ✓":"Ombi limekataliwa");render();renderStockRequests();return {ok:true};
  });
 }
-function resetProductModalButton(){const pq=document.getElementById("pQty");if(pq){pq.readOnly=false;pq.disabled=false;}const es=document.getElementById("editStockSection");if(es)es.style.display="none";const b=document.querySelector("#productModal .btn.blue");if(b){b.textContent=translateText("Hifadhi Bidhaa");b.onclick=addProduct}}
+function resetProductModalButton(){const pq=document.getElementById("pQty");if(pq){pq.readOnly=false;pq.disabled=false;}const es=document.getElementById("editStockSection");if(es)es.style.display="none";const b=document.querySelector("#productModal .btn.blue");if(b){b.textContent=translateText(isRealAdmin()?"Hifadhi Bidhaa":"Omba Ruhusa kwa Admin");b.onclick=addProduct}}
 // ===== V81: Bidhaa zilizofutwa (active=false) — Admin anaweza kurudisha au kufuta kabisa =====
 let archivedProducts=[];
 function isAdminNow(){return currentUserObj().role==="admin"}
@@ -2465,7 +2472,7 @@ function setLanguage(lang,{persist=true}={}){
  if(persist){try{localStorage.setItem('mpa-language-v71',next)}catch(e){}}
  if(persist&&changed){render();renderOnlineSale();if(document.getElementById('saleDetailModal').classList.contains('show')&&window.mpaOpenSaleId)openSaleDetails(window.mpaOpenSaleId);if(document.getElementById('receiptModal').classList.contains('show')&&window.mpaReceiptId)openReceipt(window.mpaReceiptId);if(document.getElementById('expenseDetailModal').classList.contains('show')&&window.mpaExpenseId)openExpenseDetails(window.mpaExpenseId);setLogin(loginRole);toast(next==='sw'?'Kiswahili kimechaguliwa ✓':'English selected ✓');}
  applyLanguage();
- if(document.getElementById('productModal').classList.contains('show')){document.getElementById('productModalTitle').textContent=translateText(selectedStockId?'Edit Bidhaa':'Bidhaa Mpya');document.querySelector('#productModal .btn.blue').textContent=translateText(selectedStockId?'Hifadhi Mabadiliko':'Hifadhi Bidhaa');}
+ if(document.getElementById('productModal').classList.contains('show')){document.getElementById('productModalTitle').textContent=translateText(selectedStockId?'Edit Bidhaa':'Bidhaa Mpya');document.querySelector('#productModal .btn.blue').textContent=translateText(!isRealAdmin()?'Omba Ruhusa kwa Admin':selectedStockId?'Hifadhi Mabadiliko':'Hifadhi Bidhaa');}
 }
 function saveStore(){if(!can("manage_settings")){toast("Admin/ruhusa inahitajika.");return}storeName=document.getElementById("storeNameInput").value.trim()||"Micky Phone Accessories";saveCloudState();document.querySelector('.brandtext b').textContent=storeName;notify("Jina la store limebadilishwa",storeName,"settings",null)}
 function addBranch(){if(!can("manage_branches")){toast("Huna ruhusa ya kuongeza branch.");return}const n=document.getElementById("branchName").value.trim();if(!n){toast("Andika jina la branch.");return}branches.push({id:Date.now(),name:n});document.getElementById("branchName").value="";saveAll();notify("Branch imeongezwa",n,"settings",null)}
