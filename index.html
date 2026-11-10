@@ -212,7 +212,7 @@ html,body,button,a,input,select,label,.tableitem,.productrow{touch-action:manipu
     </div>
     <div class="sectiontitle">Muhtasari wa leo</div>
     <div class="stats">
-      <div class="stat"><small>Mauzo ya leo</small><strong id="todaySales">TZS 0</strong></div>
+      <div class="stat"><small>Fedha zilizopokelewa leo</small><strong id="todaySales">TZS 0</strong><small class="red" id="todayDebtBalance">Deni lililobaki: TZS 0</small></div>
       <div class="stat"><small>Faida ya leo</small><strong id="todayProfit">TZS 0</strong></div>
       <div class="stat"><small>Bidhaa</small><strong id="productCount">0</strong></div>
       <div class="stat"><small>Units za stock</small><strong id="stockUnits">0</strong></div>
@@ -242,14 +242,14 @@ html,body,button,a,input,select,label,.tableitem,.productrow{touch-action:manipu
         <div class="sales-search"><span>⌕</span><input id="salesSearch" oninput="renderSalesHistory()" placeholder="Tafuta Mauzo"></div>
         <div class="sales-date"><span>◼</span><input id="salesDay" type="date" onchange="salesDayUserSelected=true;renderSalesHistory()"><span>⌄</span></div>
       </div>
-      <div class="sales-tabs"><button id="salesTabAll" class="active" onclick="setSalesTab('all')">Yote</button><button id="salesTabPaid" onclick="setSalesTab('paid')">Yaliyolipiwa</button><button id="salesTabDebt" onclick="setSalesTab('debt')">Madeni</button></div>
+      <div class="sales-tabs"><button id="salesTabAll" class="active" onclick="setSalesTab('all')">Fedha za siku</button><button id="salesTabPaid" onclick="setSalesTab('paid')">Mauzo yaliyolipwa</button><button id="salesTabDebt" onclick="setSalesTab('debt')">Madeni</button></div>
       <div class="sales-summary4">
-        <div><small>Mauzo</small><b id="salesSummaryTotal">TZS 0</b></div>
+        <div><small id="salesSummaryLabel">Fedha zilizopokelewa</small><b id="salesSummaryTotal">TZS 0</b></div>
         <div><small>Oda</small><b id="salesSummaryOrders">0</b></div>
         <div><small>Bidhaa</small><b id="salesSummaryItems">0</b></div>
         <div><small>Wateja</small><b id="salesSummaryCustomers">0</b></div>
       </div>
-      <div class="sales-day-title" data-runtime-copy id="salesDayTitle">Today</div>
+      <div class="sales-day-title" data-runtime-copy id="salesDayTitle">Today</div><div id="salesDebtBalance" class="red" style="margin-bottom:14px"></div>
       <div id="salesList" class="sales-history-list"></div>
       <button class="sales-float" onclick="openSaleEntry()">＋ Rekodi Mauzo</button>
     </div>
@@ -547,7 +547,7 @@ html,body,button,a,input,select,label,.tableitem,.productrow{touch-action:manipu
 <script src="translations.js"></script>
 <script>
 // M-P-A v41: do not reload the entire app state on realtime app-state events; only merge notifications.
-const MPA_APP_VERSION = "V102";
+const MPA_APP_VERSION = "V103";
 function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="Toleo: "+MPA_APP_VERSION;}
 let mpaWaitingWorker=null;
 function setUpdateUI(state,msg){
@@ -894,6 +894,26 @@ function saleProfit(s){return saleFigures(s).profit??0}
 function saleRecordedAt(s){const t=Date.parse(s.recordedAt||s.createdAt||s.date||'');return Number.isFinite(t)?t:0}
 function newestSales(list){return list.map((s,i)=>({s,i})).sort((a,b)=>saleRecordedAt(b.s)-saleRecordedAt(a.s)||a.i-b.i).map(x=>x.s)}
 function dailySalesFigures(list,spend){const out={subtotal:0,total:0,discount:0,cost:0,profit:0,missing:0,expenses:spend};list.forEach(s=>{const f=saleFigures(s);out.subtotal+=f.subtotal;out.total+=f.total;out.discount+=f.discount;if(f.cost===null||f.profit===null)out.missing++;else{out.cost+=f.cost;out.profit+=f.profit}});out.net=out.profit-spend;return out}
+// V103: receipt ledger is a view of existing sales, never another stock/profit event.
+function isCreditSale(s){return s.creditSale===true||saleDebtBalance(s)>0||(Array.isArray(s.payments)&&s.payments.length>0)}
+function cashReceiptEntries(list){
+ const out=[];
+ list.forEach(s=>{
+  const total=Math.max(0,Number(s.total||0)),payments=Array.isArray(s.payments)?s.payments:[];
+  const paymentTotal=payments.reduce((a,p)=>a+Math.max(0,Number(p.amount)||0),0);
+  const knownInitial=s.initialAmountPaid!==undefined&&s.initialAmountPaid!==null&&Number.isFinite(Number(s.initialAmountPaid));
+  // Legacy debt with missing receipt dates is not attributed to its sale day.
+  const initial=knownInitial?Math.max(0,Math.min(total,Number(s.initialAmountPaid))):isCreditSale(s)?0:Math.max(0,total-saleDebtBalance(s)-paymentTotal);
+  if(initial>0)out.push({...s,sourceSaleId:s.id,receiptKind:'sale',total:initial,date:s.date,recordedAt:s.recordedAt||s.date});
+  let remaining=Math.max(0,total-initial);
+  payments.forEach((p,i)=>{
+   const amount=Math.min(remaining,Math.max(0,Number(p.amount)||0));remaining-=amount;
+   if(amount>0&&Number.isFinite(Date.parse(p.date)))out.push({...s,id:String(s.id)+':payment:'+i,sourceSaleId:s.id,receiptKind:'debt',total:amount,date:p.date,recordedAt:p.date,user:p.user||s.user});
+  });
+ });
+ return out;
+}
+function cashReceivedOn(list,day){return cashReceiptEntries(list).filter(r=>dateKey(r.date)===day).reduce((a,r)=>a+r.total,0)}
 function supabaseSaleRow(s){
  const branchId=(activeBranch&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(activeBranch)))?String(activeBranch):null;
  const saleId=s.supabaseId||crypto.randomUUID();
@@ -980,7 +1000,7 @@ async function syncSalesFromSupabase({silent=false,preloadedSales}={}){
     return {productId:p?.id||i.product_id,product:p?.name||priorSale?.items?.find(x=>String(x.productId)===String(i.product_id))?.product||'Bidhaa',qty,price,buy,lineTotal:Number(i.total??price*qty)};
    });
    const total=Number(r.total||0),subtotal=Number(r.subtotal||total),discount=Number(r.discount||0),remotePaid=Number(r.paid)!==0;
-   return {id:r.id,items,productId:items[0]?.productId,product:items[0]?.product||'Bidhaa',qty:items[0]?.qty||0,price:items[0]?.price||0,discount,total,subtotal,profit:saleFigures({items,total,subtotal,discount,profit:r.profit??priorSale?.profit}).profit,customer:saleReadNotes(r.notes).customer||r.customer_name||priorSale?.customer||'Mteja',customerPhone:saleReadNotes(r.notes).customerPhone||priorSale?.customerPhone||'',payments:saleReadNotes(r.notes).payments||[],amountPaid:Number.isFinite(Number(r.debt))&&r.debt!==null?Math.max(0,total-Number(r.debt)):(remotePaid?total:0),debt:Number.isFinite(Number(r.debt))&&r.debt!==null?Number(r.debt):(remotePaid?0:total),recordedAt:saleReadNotes(r.notes).recordedAt||priorSale?.recordedAt||r.created_at||r.sale_date,date:r.sale_date||r.created_at||now().toISOString(),user:priorSale?.user||users.find(u=>String(u.id)===String(r.sold_by))?.username||r.sold_by||'Admin',paid:(Number.isFinite(Number(r.debt))&&r.debt!==null)?Number(r.debt)<=0:remotePaid,note:saleReadNotes(r.notes).note,branchId:r.branch_id||'',supabaseId:r.id,supabaseSynced:true,pendingSync:false};
+   return {id:r.id,items,productId:items[0]?.productId,product:items[0]?.product||'Bidhaa',qty:items[0]?.qty||0,price:items[0]?.price||0,discount,total,subtotal,profit:saleFigures({items,total,subtotal,discount,profit:r.profit??priorSale?.profit}).profit,customer:saleReadNotes(r.notes).customer||r.customer_name||priorSale?.customer||'Mteja',customerPhone:saleReadNotes(r.notes).customerPhone||priorSale?.customerPhone||'',payments:saleReadNotes(r.notes).payments||[],initialAmountPaid:saleReadNotes(r.notes).initialAmountPaid??priorSale?.initialAmountPaid,creditSale:saleReadNotes(r.notes).creditSale===true||priorSale?.creditSale===true,amountPaid:Number.isFinite(Number(r.debt))&&r.debt!==null?Math.max(0,total-Number(r.debt)):(remotePaid?total:0),debt:Number.isFinite(Number(r.debt))&&r.debt!==null?Number(r.debt):(remotePaid?0:total),recordedAt:saleReadNotes(r.notes).recordedAt||priorSale?.recordedAt||r.created_at||r.sale_date,date:r.sale_date||r.created_at||now().toISOString(),user:priorSale?.user||users.find(u=>String(u.id)===String(r.sold_by))?.username||r.sold_by||'Admin',paid:(Number.isFinite(Number(r.debt))&&r.debt!==null)?Number(r.debt)<=0:remotePaid,note:saleReadNotes(r.notes).note,branchId:r.branch_id||'',supabaseId:r.id,supabaseSynced:true,pendingSync:false};
   });
   remoteMapped.push(...reused);
   const remoteMappedFiltered=remoteMapped.filter(r=>!deletedSaleIds.includes(String(r.supabaseId||r.id)));
@@ -1006,7 +1026,7 @@ async function loadCloudState({preserveSales=false}={}){
  if(!sbClient||!authProfile)return {ok:false,skipped:true};
  try{
     // V88 Egress: usipakue products/sales ndani ya app-state; majedwali yake ndiyo chanzo.
-  const keys=["deletedSaleIds","deletedExpenseIds","deletedProductIds","deletedUserIds","customers","expenses","movements","notifications","stockRequests","branches","stores","users","goalTarget","monthlyGoals","activeBranch","storeName","language","fontSize","imageVersions"];
+  const keys=["deletedSaleIds","deletedExpenseIds","deletedProductIds","deletedUserIds","customers","expenses","movements","notifications","stockRequests","branches","stores","users","goalTarget","monthlyGoals","activeBranch","storeName","fontSize","imageVersions"];
   if(!preserveSales)keys.push("sales");
   const {data:row,error}=await sbClient.from("mpa_app_state").select("updated_at,"+keys.map(k=>k+":payload->"+k).join(",")).eq("scope",cloudStateScope).maybeSingle();
   if(error)throw error;
@@ -1042,7 +1062,7 @@ async function loadCloudState({preserveSales=false}={}){
    goalTarget=currentGoalTarget();
    activeBranch=String(st.activeBranch||"");
    storeName=String(st.storeName||"Micky Phone Accessories");
-   language=readLanguagePreference(st.language);
+   language=readLanguagePreference();
    fontSize=Number(st.fontSize||100);
   }
   if(!users.length)users=DEFAULT_USERS.map(u=>({...u}));
@@ -1099,7 +1119,7 @@ async function saveCloudState(){
     {const nm=new Map();for(const it of (Array.isArray(remoteState.notifications)?remoteState.notifications:[]))if(it&&it.id!=null)nm.set(String(it.id),it);for(const it of notifications){if(!it||it.id==null)continue;const o=nm.get(String(it.id));nm.set(String(it.id),o?{...o,...it,read:!!(o.read||it.read)}:it)}notifications=[...nm.values()].sort((a,b)=>new Date(b.date||0)-new Date(a.date||0)).slice(0,200);}
     if(remoteState.monthlyGoals&&typeof remoteState.monthlyGoals==="object"){for(const [k,v] of Object.entries(remoteState.monthlyGoals))if(Number(v)>0&&!(Number(monthlyGoals?.[k])>0))monthlyGoals[k]=v;}
     const safeUsers=users.map(({password,...u})=>({...u}));
-    const payload={products:stateProductsForSave(products),sales,customers,expenses,movements,notifications:notifications.slice(0,200),stockRequests:snapshotStockRequests(stockRequests),users:safeUsers,goalTarget:currentGoalTarget(),monthlyGoals,branches,stores,activeBranch,storeName,language,fontSize,deletedSaleIds,deletedExpenseIds,deletedProductIds,deletedUserIds,imageVersions};
+    const payload={products:stateProductsForSave(products),sales,customers,expenses,movements,notifications:notifications.slice(0,200),stockRequests:snapshotStockRequests(stockRequests),users:safeUsers,goalTarget:currentGoalTarget(),monthlyGoals,branches,stores,activeBranch,storeName,fontSize,deletedSaleIds,deletedExpenseIds,deletedProductIds,deletedUserIds,imageVersions};
     // Add a unique token for read-after-write verification.
     const stamp=now().toISOString()+"-"+Math.random().toString(36).slice(2,10);
     payload.__mpaWriteToken=stamp;
@@ -1925,7 +1945,7 @@ async function makeSale(){
   const profit=saleProfit({items,total,subtotal,discount});const recordedAt=now().toISOString();
   const oldQty=new Map();
   items.forEach(x=>{const p=products.find(y=>y.id===x.productId);oldQty.set(p.id,p.qty);p.qty-=x.qty;movements.unshift({id:crypto.randomUUID(),productId:p.id,type:"sale",qty:x.qty,user:currentUser(),note:"Mauzo",date:new Date(saleDate+"T12:00:00").toISOString()})});
-  const order={id:crypto.randomUUID(),items,productId:items[0].productId,product:items[0].product,qty:items[0].qty,price:items[0].price,discount,total,subtotal,profit,customer,recordedAt,date:saleDate===dateKey(now())?recordedAt:new Date(saleDate+"T12:00:00+03:00").toISOString(),user:currentUser(),paid:salePaid,note,customerPhone,amountPaid:salePaid?total:0,debt:salePaid?0:total,payments:[]};order.branchId=activeBranch||"";
+  const order={id:crypto.randomUUID(),items,productId:items[0].productId,product:items[0].product,qty:items[0].qty,price:items[0].price,discount,total,subtotal,profit,customer,recordedAt,date:saleDate===dateKey(now())?recordedAt:new Date(saleDate+"T12:00:00+03:00").toISOString(),user:currentUser(),paid:salePaid,note,customerPhone,amountPaid:salePaid?total:0,initialAmountPaid:salePaid?total:0,creditSale:!salePaid,debt:salePaid?0:total,payments:[]};order.branchId=activeBranch||"";
   const saleSync=await syncSaleToSupabase(order);
   if(!saleSync.ok){
    // Dedicated sales table ikigoma, usifute mauzo yaliyofanyika. Yahifadhi kwenye Supabase app-state
@@ -1954,20 +1974,26 @@ function showSavedSale(order){
  const day=document.getElementById('salesDay');if(day)day.value=dateKey(order.date);
  salesDayUserSelected=true;
  const search=document.getElementById('salesSearch');if(search)search.value='';
- saleCart=[];setSalesTab('all');closeSaleEntry();showPage('sales');render();window.scrollTo(0,0);
+ saleCart=[];setSalesTab(isCreditSale(order)?'debt':'all');closeSaleEntry();showPage('sales');render();window.scrollTo(0,0);
 }
 function setSalesTab(tab){salesTab=tab;document.querySelectorAll('.sales-tabs button').forEach(x=>x.classList.remove('active'));document.getElementById(tab==='all'?'salesTabAll':tab==='paid'?'salesTabPaid':'salesTabDebt').classList.add('active');renderSalesHistory()}
 function saleItemsCount(s){return s.items?s.items.reduce((a,x)=>a+Number(x.qty||0),0):Number(s.qty||0)}
 function saleProductsText(s){return s.items?s.items.map(x=>x.product+" × "+x.qty).join(", "):((s.product||"Mauzo")+" × "+(s.qty||1))}
 function renderSalesHistory(){
- const search=(document.getElementById("salesSearch")?.value||"").toLowerCase(),day=document.getElementById("salesDay")?.value||dateKey(now());
- let arr=salesTab==="debt"?[...sales].filter(s=>saleDebtBalance(s)>0).sort((a,b)=>new Date(b.date)-new Date(a.date)):[...sales].filter(s=>dateKey(s.date)===day);
- if(salesTab==='paid')arr=arr.filter(s=>saleDebtBalance(s)<=0);if(salesTab==='debt')arr=arr.filter(s=>saleDebtBalance(s)>0);
+ const search=(document.getElementById("salesSearch")?.value||"").toLowerCase(),day=document.getElementById("salesDay")?.value||dateKey(now()),debtView=salesTab==='debt';
+ let arr=debtView?sales.filter(isCreditSale):cashReceiptEntries(sales).filter(r=>dateKey(r.date)===day&&(salesTab!=='paid'||r.receiptKind==='sale'));
  if(search)arr=arr.filter(s=>(saleProductsText(s)+" "+(s.customer||"")+" "+(s.user||"")).toLowerCase().includes(search));
- arr=newestSales(arr);const total=arr.reduce((a,s)=>a+Number(s.total||0),0),orders=arr.length,items=arr.reduce((a,s)=>a+saleItemsCount(s),0),customers=new Set(arr.map(s=>s.customer||"Mteja")).size;
- document.getElementById("salesSummaryTotal").textContent=money(total);document.getElementById("salesSummaryOrders").textContent=orders;document.getElementById("salesSummaryItems").textContent=items;document.getElementById("salesSummaryCustomers").textContent=customers;
- const d=new Date(day+"T12:00:00");document.getElementById("salesDayTitle").textContent=salesTab==="debt"?translateText("Madeni yote"):day===dateKey(now())?translateText("Today"):d.toLocaleDateString("en-GB",{day:"2-digit",month:"2-digit",year:"numeric"});
- const el=document.getElementById("salesList");el.innerHTML=arr.length?arr.slice(0,100).map(s=>`<div class="sale-history-item" data-sale-id="${s.id}" onclick='openSaleDetails(${JSON.stringify(String(s.id))})'><div class="sale-history-top"><b>${translateText("Order #: " )}${String(s.id).slice(-8)}</b><span>${niceDate(s.date)}</span><span>${timeNow(s.recordedAt||s.date)}</span></div><div class="sale-history-meta"><span>${translateText("Mteja: " )}${esc(s.customer||translateText("Unknown"))}<br>${translateText("Muuzaji: " )}${esc(s.user||translateText("Admin"))}</span><strong>${money(s.total)}</strong></div><div class="sale-history-status ${saleDebtBalance(s)>0?translateText('debt'):translateText('paid')}">${saleDebtBalance(s)>0?translateText('Haijalipwa'):translateText('Imelipwa')}${s.discount?` • Punguzo ${money(s.discount)}`:""}</div><div class="muted" style="margin-top:7px">${esc(saleProductsText(s))} <span style="float:right;color:var(--blue)">›</span></div></div>`).join(""):`<div class='empty'>${translateText("Hakuna mauzo kwa siku hii.")}</div>`;
+ arr=newestSales(arr);
+ const total=arr.reduce((a,s)=>a+(debtView?saleDebtBalance(s):Number(s.total||0)),0),unique=new Map(arr.map(s=>[String(s.sourceSaleId||s.id),s]));
+ document.getElementById('salesSummaryLabel').textContent=translateText(debtView?'Deni lililobaki':'Fedha zilizopokelewa');
+ document.getElementById("salesSummaryTotal").textContent=money(total);document.getElementById("salesSummaryOrders").textContent=unique.size;document.getElementById("salesSummaryItems").textContent=[...unique.values()].reduce((a,s)=>a+saleItemsCount(s),0);document.getElementById("salesSummaryCustomers").textContent=new Set(arr.map(s=>s.customer||"Mteja")).size;
+ document.getElementById('salesDebtBalance').textContent=translateText('Deni lililobaki')+': '+money(sales.reduce((a,s)=>a+saleDebtBalance(s),0));
+ const d=new Date(day+"T12:00:00");document.getElementById("salesDayTitle").textContent=debtView?translateText("Madeni na historia ya malipo"):day===dateKey(now())?translateText("Today"):d.toLocaleDateString("en-GB",{day:"2-digit",month:"2-digit",year:"numeric"});
+ const el=document.getElementById("salesList");el.innerHTML=arr.length?arr.slice(0,100).map(s=>{
+  const sourceId=s.sourceSaleId||s.id,balance=saleDebtBalance(s);
+  return `<div class="sale-history-item" data-sale-id="${esc(String(sourceId))}"><div class="sale-history-top"><b>${translateText("Order #: ")}${esc(String(sourceId).slice(-8))}</b><span>${niceDate(s.date)}</span><span>${timeNow(s.recordedAt||s.date)}</span></div><div class="sale-history-meta"><span>${translateText("Mteja: ")}${esc(s.customer||translateText("Unknown"))}<br>${translateText("Muuzaji: ")}${esc(s.user||translateText("Admin"))}</span><strong>${money(debtView?balance:s.total)}</strong></div><div class="sale-history-status ${balance>0?'debt':'paid'}">${debtView?translateText(balance>0?'Deni lililobaki':'Deni limelipwa lote'):translateText(s.receiptKind==='debt'?'Malipo ya deni':'Imelipwa')}${!debtView&&balance>0?' • '+translateText('Deni lililobaki')+': '+money(balance):''}</div>${debtView?`<div class="muted">${translateText('Thamani ya oda')}: ${money(s.total)} • ${translateText('Kilicholipwa')}: ${money(Number(s.total||0)-balance)}</div>`:''}<div class="muted" style="margin-top:7px">${esc(saleProductsText(s))} <span style="float:right;color:var(--blue)">›</span></div></div>`;
+ }).join(""):`<div class='empty'>${translateText(debtView?'Hakuna madeni.':'Hakuna fedha zilizopokelewa kwa siku hii.')}</div>`;
+ el.querySelectorAll('[data-sale-id]').forEach(row=>row.addEventListener('click',()=>openSaleDetails(row.dataset.saleId)));
 }
 let salesDayUserSelected=false;
 function ensureSalesDayIsToday(force=false){
@@ -1993,8 +2019,8 @@ function clearSalesFilter(){salesDayUserSelected=false;document.getElementById("
 function normalizePhone(v){let d=String(v||"").replace(/[^\d+]/g,"");if(d.startsWith("+"))d=d.slice(1);return d.replace(/\D/g,"")}
 function validDebtCustomer(name,phone){if(!String(name||"").trim())return {ok:false,field:"name",error:"Weka jina la mteja kwa mauzo ambayo hayajalipwa."};const d=normalizePhone(phone);if(d.length<7||d.length>15)return {ok:false,field:"phone",error:"Weka namba sahihi ya simu ya mteja."};return {ok:true,phone:d}}
 function saleDebtBalance(s){if(!s)return 0;if(s.debt!==undefined&&s.debt!==null&&Number.isFinite(Number(s.debt)))return Math.max(0,Number(s.debt));return s.paid===false?Math.max(0,Number(s.total||0)-Number(s.amountPaid||0)):0}
-function saleRecordNotes(s){const meta={customer:s.customer||"",customerPhone:s.customerPhone||"",payments:Array.isArray(s.payments)?s.payments:[],recordedAt:s.recordedAt||"",note:s.note||""};if(!meta.recordedAt&&!meta.customerPhone&&!meta.payments.length&&(!meta.customer||meta.customer==="Mteja"))return String(s.note||"");return "MPA77:"+JSON.stringify(meta)}
-function saleReadNotes(n){const t=String(n||"");if(!t.startsWith("MPA77:"))return {note:t};try{const m=JSON.parse(t.slice(6));return {customer:m.customer||"",customerPhone:m.customerPhone||"",payments:Array.isArray(m.payments)?m.payments:[],recordedAt:m.recordedAt||"",note:m.note||""}}catch(e){return {note:t}}}
+function saleRecordNotes(s){const meta={customer:s.customer||"",customerPhone:s.customerPhone||"",payments:Array.isArray(s.payments)?s.payments:[],recordedAt:s.recordedAt||"",initialAmountPaid:s.initialAmountPaid,creditSale:isCreditSale(s),note:s.note||""};if(!meta.recordedAt&&!meta.customerPhone&&!meta.payments.length&&(!meta.customer||meta.customer==="Mteja"))return String(s.note||"");return "MPA77:"+JSON.stringify(meta)}
+function saleReadNotes(n){const t=String(n||"");if(!t.startsWith("MPA77:"))return {note:t};try{const m=JSON.parse(t.slice(6));return {customer:m.customer||"",customerPhone:m.customerPhone||"",payments:Array.isArray(m.payments)?m.payments:[],recordedAt:m.recordedAt||"",initialAmountPaid:m.initialAmountPaid,creditSale:m.creditSale===true,note:m.note||""}}catch(e){return {note:t}}}
 function mpaDeviceKind(){const ua=navigator.userAgent||"";if(/iPhone|iPad|iPod/i.test(ua)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1))return "ios";if(/Android/i.test(ua))return "android";return "desktop"}
 function fillSaleContact(name,phone){focusSaleCustomer();const n=document.getElementById("saleCustomer"),t=document.getElementById("saleCustomerPhone");if(name&&n)n.value=String(name).trim();if(phone&&t)t.value=String(phone).trim();document.getElementById("saleContactHelp")?.classList.add("hidden");toast("Mteja amewekwa ✓")}
 function parseVCard(text){const raw=String(text||"").replace(/\r\n[ \t]/g,"").split(/\r?\n/);let name="",phone="";for(const line of raw){const i=line.indexOf(":");if(i<0)continue;const key=line.slice(0,i).toUpperCase(),val=line.slice(i+1).trim();if(!name&&key.split(";")[0]==="FN")name=val;if(!name&&key.split(";")[0]==="N"){const parts=val.split(";");name=[parts[1],parts[0]].filter(Boolean).join(" ")}if(!phone&&key.split(";")[0].replace(/^ITEM\d+\./,"")==="TEL")phone=val.replace(/^tel:/i,"")}return {name:name.replace(/\\,/g,",").replace(/\\;/g,";"),phone}}
@@ -2025,7 +2051,7 @@ async function paySaleDebt(){
   if(amt>bal){toast("Kiasi kinazidi deni lililobaki ("+money(bal)+").");return {ok:false}}
   if(!sbClient||!authProfile||!s.supabaseId||s.pendingSync){toast("Mauzo haya bado hayajasawazishwa; vuta chini kusawazisha kisha jaribu tena.");return {ok:false}}
   const payment={amount:amt,date:now().toISOString(),user:currentUser()};
-  const next={...s,payments:[...(s.payments||[]),payment],debt:bal-amt,amountPaid:Number(s.total||0)-(bal-amt)};next.paid=next.debt<=0;
+  const next={...s,creditSale:true,payments:[...(s.payments||[]),payment],debt:bal-amt,amountPaid:Number(s.total||0)-(bal-amt)};next.paid=next.debt<=0;
   const btn=document.getElementById("debtPayBtn");if(btn)btn.disabled=true;
   try{
    const {data,error}=await sbClient.from("sales").update({debt:next.debt,paid:next.paid?1:0,payment_status:next.paid?"paid":"partial",notes:saleRecordNotes(next)}).eq("id",s.supabaseId).eq("debt",bal).select("id,debt").maybeSingle();
@@ -2048,16 +2074,16 @@ function openSaleDetails(id){window.mpaOpenSaleId=id;
  const html=`<div class="sale-detail">
    <div class="sale-detail-head"><button class="sale-detail-back" onclick="closeModal('saleDetailModal')">‹</button><h2>${translateText("Order #" )}${String(s.id).slice(-8)}</h2><span class="sale-detail-date">${niceDate(s.date)}</span>${canDelete?`<button type="button" class="sale-delete-top" aria-label="${esc(translateText("Futa mauzo"))}" title="${esc(translateText("Futa Mauzo"))}" data-action="delete-sale" data-id="${esc(String(s.id))}"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg></button>`:""}</div>
    <div class="sale-detail-card">
-    <div class="sale-detail-row"><span class="sale-detail-label">${translateText("Malipo" )}</span><span class="sale-detail-value">${money(s.total)}</span></div>
+    <div class="sale-detail-row"><span class="sale-detail-label">${translateText("Thamani ya oda" )}</span><span class="sale-detail-value">${money(s.total)}</span></div>
     <div class="sale-detail-row"><span class="sale-detail-label">${translateText("Hali" )}</span><span class="sale-detail-value ${saleDebtBalance(s)>0?'red':'green'}">${saleDebtBalance(s)>0?translateText('Haijalipwa'):translateText('Imelipwa')}</span></div>
-    ${saleDebtBalance(s)>0||Number(s.amountPaid||0)<Number(s.total||0)&&s.payments?.length?`<div class="sale-detail-row"><span class="sale-detail-label">${translateText("Kilicholipwa")}</span><span class="sale-detail-value green">${money(Math.max(0,Number(s.total||0)-saleDebtBalance(s)))}</span></div><div class="sale-detail-row"><span class="sale-detail-label">${translateText("Deni lililobaki")}</span><span class="sale-detail-value red">${money(saleDebtBalance(s))}</span></div>`:""}
+    ${isCreditSale(s)?`<div class="sale-detail-row"><span class="sale-detail-label">${translateText("Kilicholipwa")}</span><span class="sale-detail-value green">${money(Math.max(0,Number(s.total||0)-saleDebtBalance(s)))}</span></div><div class="sale-detail-row"><span class="sale-detail-label">${translateText("Deni lililobaki")}</span><span class="sale-detail-value red">${money(saleDebtBalance(s))}</span></div>`:""}
     <div class="sale-detail-row"><span class="sale-detail-label">${translateText("Muuzaji" )}</span><span class="sale-detail-value">${esc(s.user||translateText('Admin'))}</span></div>
     <div class="sale-detail-row"><span class="sale-detail-label">${translateText("Mteja" )}</span><span class="sale-detail-value">${esc(s.customer||translateText('Unknown'))}</span></div>
     ${s.customerPhone?`<div class="sale-detail-row"><span class="sale-detail-label">${translateText("Simu")}</span><span class="sale-detail-value"><a href="tel:${esc(s.customerPhone)}">${esc(s.customerPhone)}</a></span></div>`:""}
    </div>
    ${saleDebtBalance(s)>0?`<button type="button" class="btn" style="width:100%;margin:10px 0 0;background:#fff4e5;color:#b45309;border:1px solid #f5c27a" onclick="openDebtReminder('${esc(String(s.id))}')">🔔 ${translateText("Mkumbushe Deni")}</button>`:""}
    ${saleDebtBalance(s)>0&&can("pay_debts")?`<button type="button" class="btn green" style="width:100%;margin:10px 0" data-action="pay-debt" data-id="${esc(String(s.id))}">${translateText("💰 Lipa Deni")}</button>`:""}
-   ${(s.payments||[]).length?`<div class="sale-detail-products-title">${translateText("Malipo ya deni")}</div>`+(s.payments||[]).map(p=>`<div class="sale-detail-row"><span class="sale-detail-label">${niceDate(p.date)} • ${esc(p.user||"")}</span><span class="sale-detail-value green">${money(p.amount)}</span></div>`).join(""):""}
+   ${(s.payments||[]).length?`<div class="sale-detail-products-title">${translateText("Malipo ya deni")}</div>`+newestSales((s.payments||[]).map(p=>({...p,recordedAt:p.date}))).map(p=>`<div class="sale-detail-row"><span class="sale-detail-label">${niceDate(p.date)} • ${timeNow(p.date)} • ${esc(p.user||"")}</span><span class="sale-detail-value green">${money(p.amount)}</span></div>`).join(""):""}
    <div class="sale-detail-products-title">${translateText("Bidhaa za oda" )}</div>
    ${items.map(i=>{const p=products.find(x=>x.id===i.productId);return `<div class="sale-detail-product"><img src="${esc(p?.image||'icon.svg')}" onerror="this.src='icon.svg'"><div><b>${esc(i.product||p?.name||'Bidhaa')}</b><small>@${money(i.price||p?.price||0)}</small></div><div class="qty">${Number(i.qty||1)}</div><div class="line">${money(i.lineTotal||(Number(i.price||p?.price||0)*Number(i.qty||1)))}</div></div>`}).join('')}
    <div class="sale-detail-totals"><div><span>${translateText("Jumla ya Oda" )}</span><b>${money(s.subtotal||s.total)}</b></div><div><span>${translateText("Punguzo" )}</span><b>${money(s.discount||0)}</b></div><div><strong>${translateText("THAMANI YA ODA" )}</strong><strong>${money(s.total)}</strong></div></div>
@@ -2422,7 +2448,7 @@ function fillYearSelect(id){const el=document.getElementById(id);if(!el)return;c
 function monthSales(year){const vals=Array(12).fill(0);sales.forEach(s=>{const d=new Date(s.date);if(d.getFullYear()===Number(year))vals[d.getMonth()]+=Number(s.total||0)});return vals}
 function renderSalesAnalytics(){fillYearSelect("salesYear");const y=Number(document.getElementById("salesYear").value||now().getFullYear());document.getElementById("salesYearLabel").textContent=y;const vals=monthSales(y),total=vals.reduce((a,b)=>a+b,0),max=Math.max(...vals,0),bi=vals.indexOf(max);document.getElementById("salesYearTotal").textContent=money(total);document.getElementById("salesBestMonth").textContent=max?monthName(bi):"-";document.getElementById("salesBestValue").textContent=money(max);const maxH=Math.max(...vals,1);document.getElementById("salesBarChart").innerHTML=vals.map((v,i)=>`<div class="bar-col" onclick="showSalesMonth(${y},${i},this)"><span class="bar-value">${v?money(v).replace("TZS ",""):""}</span><div class="bar" style="height:${Math.max(3,v/maxH*270)}px"></div><span class="bar-label">${monthName(i)}</span></div>`).join("");renderSalesDay()}
 function renderSalesDay(){const input=document.getElementById('salesAnalysisDay'),box=document.getElementById('salesDayAnalysis');if(!input||!box)return;if(!input.value)input.value=dateKey(now());const list=newestSales(sales.filter(s=>dateKey(s.date)===input.value));const spend=expenses.filter(e=>dateKey(e.date)===input.value).reduce((a,e)=>a+Number(e.amount||0),0),f=dailySalesFigures(list,spend),best=list.filter(s=>saleFigures(s).profit!==null).sort((a,b)=>saleProfit(b)-saleProfit(a))[0];
- const values=[['Mauzo kabla ya punguzo',f.subtotal],['Punguzo kwa ujumla',f.discount],['Mauzo halisi',f.total],['Gharama ya mauzo',f.missing?null:f.cost],['Faida halisi',f.missing?null:f.profit],['Matumizi ya siku',f.expenses],['Faida baada ya matumizi',f.missing?null:f.net],['Faida kubwa kwa mauzo moja',best?saleProfit(best):0]];
+ const values=[['Fedha zilizopokelewa',cashReceivedOn(sales,input.value)],['Malipo ya deni',cashReceiptEntries(sales).filter(r=>r.receiptKind==='debt'&&dateKey(r.date)===input.value).reduce((a,r)=>a+r.total,0)],['Mauzo ya mkopo',list.filter(isCreditSale).reduce((a,s)=>a+Number(s.total||0),0)],['Mauzo kabla ya punguzo',f.subtotal],['Punguzo kwa ujumla',f.discount],['Mauzo halisi',f.total],['Gharama ya mauzo',f.missing?null:f.cost],['Faida halisi',f.missing?null:f.profit],['Matumizi ya siku',f.expenses],['Faida baada ya matumizi',f.missing?null:f.net],['Faida kubwa kwa mauzo moja',best?saleProfit(best):0]];
  box.innerHTML=`<div class="analytics-cards">${values.map(([k,v])=>`<div><small>${translateText(k)}</small><b>${v===null?translateText('Haijathibitishwa'):money(v)}</b></div>`).join('')}</div>${best?`<p>${translateText('Mauzo yenye faida kubwa')}: #${esc(String(best.id).slice(-8))} · ${esc(saleProductsText(best))}</p>`:''}${f.missing?`<p class="muted">${translateText('Baadhi ya mauzo hayana gharama ya kununua iliyohifadhiwa; faida haijathibitishwa.')}</p>`:''}<div class="analysis-table"><div class="th"><span>${translateText('Mauzo')}</span><span>${translateText('Punguzo')}</span><span>${translateText('Faida')}</span></div>${list.map(s=>`<div class="analysis-row"><span>#${esc(String(s.id).slice(-8))}<small style="display:block">${esc(saleProductsText(s))}</small>${money(s.total)}</span><span>${money(s.discount)}</span><span>${saleFigures(s).profit===null?'—':money(saleProfit(s))}</span></div>`).join('')}</div>`;
 }
 function showSalesMonth(y,i,el){document.querySelectorAll(".bar-col").forEach(x=>x.classList.remove("selected"));el.classList.add("selected");const v=monthSales(y)[i];toast(monthName(i)+" "+y+": "+money(v))}
@@ -2469,7 +2495,7 @@ function changeFontSize(step){const n=Number(fontSize||100)+step*5;setFontSize(n
 function applyFontSize(){setFontSize(Number(fontSize||100))}
 function setLanguage(lang,{persist=true}={}){
  const next=lang==='en'?'en':'sw',changed=language!==next;language=next;
- if(persist){try{localStorage.setItem('mpa-language-v71',next)}catch(e){}}
+ if(persist)writeLanguagePreference(next);
  if(persist&&changed){render();renderOnlineSale();if(document.getElementById('saleDetailModal').classList.contains('show')&&window.mpaOpenSaleId)openSaleDetails(window.mpaOpenSaleId);if(document.getElementById('receiptModal').classList.contains('show')&&window.mpaReceiptId)openReceipt(window.mpaReceiptId);if(document.getElementById('expenseDetailModal').classList.contains('show')&&window.mpaExpenseId)openExpenseDetails(window.mpaExpenseId);setLogin(loginRole);toast(next==='sw'?'Kiswahili kimechaguliwa ✓':'English selected ✓');}
  applyLanguage();
  if(document.getElementById('productModal').classList.contains('show')){document.getElementById('productModalTitle').textContent=translateText(selectedStockId?'Edit Bidhaa':'Bidhaa Mpya');document.querySelector('#productModal .btn.blue').textContent=translateText(!isRealAdmin()?'Omba Ruhusa kwa Admin':selectedStockId?'Hifadhi Mabadiliko':'Hifadhi Bidhaa');}
@@ -2637,13 +2663,14 @@ function startSupabaseRealtime(){
 }
 
 function render(){
+ language=readLanguagePreference();
  const u=currentUserObj();const roleEl=document.getElementById("roleText");if(roleEl)roleEl.textContent=translateText(u.role==="admin"?"Msimamizi":"Mtumiaji");const userEl=document.getElementById("userText");if(userEl)userEl.textContent=u.username;const settingsUserEl=document.getElementById("settingsUser");if(settingsUserEl)settingsUserEl.textContent=u.username;const storeNameEl=document.getElementById("storeNameInput");if(storeNameEl)storeNameEl.value=storeName;renderBranches();
  refreshCategories();renderProducts();if(document.getElementById("onlineSale").classList.contains("active"))renderOnlineSale();updateSaleProducts();calculateSale();renderSalesHistory();renderLists();renderNotifications();renderMovements();renderUsers();if(document.getElementById("userDetail")?.classList.contains("active"))renderUserDetail();updateNotifDot();if(["reports","analyticsSales","analyticsProfit","analyticsProducts","analyticsExpenses","analyticsCustomers"].some(id=>document.getElementById(id)?.classList.contains("active")))initAnalytics();applyFontSize();
  applyLanguage();
  renderHomeDebts();
- const today=dateKey(now());const ts=sales.filter(s=>dateKey(s.date)===today);const salesToday=ts.reduce((a,s)=>a+s.total,0),profitToday=ts.reduce((a,s)=>a+saleProfit(s),0);
+ const today=dateKey(now());const ts=sales.filter(s=>dateKey(s.date)===today);const salesToday=cashReceivedOn(sales,today),profitToday=ts.reduce((a,s)=>a+saleProfit(s),0);
  const all=sales.reduce((a,s)=>a+s.total,0),profit=sales.reduce((a,s)=>a+saleProfit(s),0),ex=expenses.reduce((a,e)=>a+e.amount,0),units=products.reduce((a,p)=>a+p.qty,0);
- document.getElementById("todaySales").textContent=money(salesToday);document.getElementById("todayProfit").textContent=money(profitToday);document.getElementById("productCount").textContent=products.length;document.getElementById("stockUnits").textContent=units;
+ document.getElementById("todaySales").textContent=money(salesToday);document.getElementById("todayDebtBalance").textContent=translateText("Deni lililobaki")+": "+money(sales.reduce((a,s)=>a+saleDebtBalance(s),0));document.getElementById("todayProfit").textContent=money(profitToday);document.getElementById("productCount").textContent=products.length;document.getElementById("stockUnits").textContent=units;
  const allSalesEl=document.getElementById("allSales"),allProfitEl=document.getElementById("allProfit"),allExpensesEl=document.getElementById("allExpenses"),netProfitEl=document.getElementById("netProfit");if(allSalesEl)allSalesEl.textContent=money(all);if(allProfitEl)allProfitEl.textContent=money(profit);if(allExpensesEl)allExpensesEl.textContent=money(ex);if(netProfitEl)netProfitEl.textContent=money(profit-ex);
  const dnow=now(),daysInMonth=new Date(dnow.getFullYear(),dnow.getMonth()+1,0).getDate(),daysLeft=Math.max(1,daysInMonth-dnow.getDate()),monthStart=new Date(dnow.getFullYear(),dnow.getMonth(),1),monthSalesTotal=sales.filter(x=>{const d=new Date(x.date);return d>=monthStart&&d<new Date(dnow.getFullYear(),dnow.getMonth()+1,1)}).reduce((a,x)=>a+Number(x.total||0),0),target=currentGoalTarget(),pct=target>0?Math.min(100,Math.round(monthSalesTotal/target*100)):0,remaining=Math.max(0,target-monthSalesTotal),dailyNeed=Math.ceil(remaining/daysLeft);const prevStart=new Date(dnow.getFullYear(),dnow.getMonth()-1,1),prevEnd=new Date(dnow.getFullYear(),dnow.getMonth(),1),prevMonth=sales.filter(x=>{const d=new Date(x.date);return d>=prevStart&&d<prevEnd}).reduce((a,x)=>a+Number(x.total||0),0),compare=prevMonth?Math.round((monthSalesTotal-prevMonth)/prevMonth*100):0;const goalTargetEl=document.getElementById("goalTarget"),goalTargetSmallEl=document.getElementById("goalTargetSmall"),goalBarEl=document.getElementById("goalBar"),goalSalesEl=document.getElementById("goalSales"),goalPercentEl=document.getElementById("goalPercent"),goalCompareEl=document.getElementById("goalCompare"),goalMessageEl=document.getElementById("goalMessage");const goalTitle=document.querySelector("#home .goalhead span");if(goalTitle)goalTitle.textContent=translateText("🎯 Lengo la mauzo ")+monthLabel(dnow);if(goalTargetEl)goalTargetEl.textContent=money(target);if(goalTargetSmallEl)goalTargetSmallEl.textContent=money(target);if(goalBarEl&&goalBarEl.style)goalBarEl.style.width=pct+"%";if(goalSalesEl)goalSalesEl.textContent=money(monthSalesTotal);if(goalPercentEl)goalPercentEl.textContent=pct+"%";if(goalCompareEl)goalCompareEl.textContent=(compare>=0?compare+"% ↗":""+compare+"% ↘")+translateText(" vs mwezi uliopita");if(goalMessageEl)goalMessageEl.textContent=remaining>0?translateText(`Ili utimize lengo lako, kwa siku ${daysLeft} zilizobaki unahitaji kuuza wastani wa ${money(dailyNeed)} kwa siku kwa mwezi huu.`):translateText("Hongera! Umetimiza lengo la mauzo la mwezi huu.");
  if(!(target>0)){const a=document.getElementById("goalTarget"),b=document.getElementById("goalTargetSmall"),m=document.getElementById("goalMessage");if(a)a.textContent=translateText("Halijawekwa");if(b)b.textContent="-";if(m)m.textContent=translateText(isRealAdmin()?"Gusa hapa kuweka lengo la mwezi huu.":"Admin bado hajaweka lengo la mwezi huu.");}
@@ -2785,7 +2812,7 @@ function v94date(d){const x=new Date(d);if(isNaN(x))return "";const f=new Intl.D
 function v94b64(o){const b=new TextEncoder().encode(JSON.stringify(o));let s="";b.forEach(c=>s+=String.fromCharCode(c));return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")}
 function v94unb64(t){t=t.replace(/-/g,"+").replace(/_/g,"/");while(t.length%4)t+="=";const s=atob(t);return JSON.parse(new TextDecoder().decode(Uint8Array.from(s,c=>c.charCodeAt(0))))}
 function v94debtLink(s){const items=(s.items||[{product:s.product,qty:s.qty||1,price:s.price||s.total}]).map(i=>({n:i.product||products.find(p=>p.id===i.productId)?.name||"Bidhaa",q:Number(i.qty||1),p:Number(i.price||0)}));
- const d={o:String(s.id).slice(-8).toUpperCase(),c:s.customer||"",d:s.date,t:Number(s.total||0),b:saleDebtBalance(s),i:items,pay:(s.payments||[]).map(p=>({d:p.date,a:Number(p.amount||0)})),sh:storeName||MPA_SHOP_TITLE,ph:MPA_SHOP_PHONE};
+ const d={o:String(s.id).slice(-8).toUpperCase(),c:s.customer||"",d:s.date,t:Number(s.total||0),b:saleDebtBalance(s),i:items,pay:newestSales((s.payments||[]).map(p=>({...p,recordedAt:p.date}))).map(p=>({d:p.date,a:Number(p.amount||0)})),sh:storeName||MPA_SHOP_TITLE,ph:MPA_SHOP_PHONE};
  const ymd=x=>{const t=new Date(x);return isNaN(t)?"":t.toISOString().slice(2,10).replace(/-/g,"")};
  const c=[d.o,d.c,ymd(d.d),d.t,d.b,items.map(i=>[i.n,i.q,i.p]),d.pay.map(p=>[ymd(p.d),p.a])];
  return location.origin+location.pathname.replace(/index\.html$/,"")+"#d="+v94b64(c)}
