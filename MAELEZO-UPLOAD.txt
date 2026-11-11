@@ -1,0 +1,26 @@
+M-P-A V104 - FLAT GITHUB UPLOAD
+
+Hii ZIP ina mafaili ya tovuti yote katika sehemu moja (root).
+Pakia mafaili yote yaliyomo ndani ya ZIP kwenye GitHub repository root.
+
+Mafaili ya tovuti:
+- index.html
+- translations.js
+- service-worker.js
+- manifest.webmanifest
+- icon.svg
+- logo.png
+- html2canvas.min.js
+- supabase.js
+
+MUHIMU:
+1. Hifadhi nakala ya V103 kwanza.
+2. ZIP hii ni ya mafaili ya tovuti/hosting pekee.
+3. Edge Function ya SMS haipakiwi pamoja na mafaili ya tovuti. Inahitaji kusasishwa tofauti kwenye Supabase:
+   Edge Functions -> mpa-send-sms -> Edit -> weka code ya mpa-send-sms.ts -> Deploy.
+4. Usipakie API Key kwenye GitHub au index.html.
+5. SwalaSMS Sender ID ikishakubaliwa, weka SWALA_API_KEY na SWALA_SENDER_ID kwenye Supabase Secrets.
+6. DARSMS secrets za zamani zibaki kama zilivyo.
+7. Baada ya kupakia, refresh app na ujaribu kwanza kwa SMS moja kwenda namba yako.
+
+Faili za tests na nyaraka za ndani zimeondolewa kwenye ZIP hii kwa sababu hazihitajiki kwenye hosting.
