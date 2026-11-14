@@ -56,3 +56,28 @@ Object.assign(MPA_TRANSLATIONS,{'Uchambuzi wa siku':'Daily sales analysis','Mauz
 Object.assign(MPA_TRANSLATIONS,{"Bin Card":"Bin Card","Arifa zimewashwa":"Notifications turned on","Arifa zimezimwa kwenye kifaa hiki":"Notifications turned off on this device","Chagua aina ya sauti":"Choose sound type","Kawaida (MPA)":"Default (MPA)","Kengele":"Bell","Kengele kali":"Loud alarm","Laini":"Soft","Pop fupi":"Short pop","Funga":"Close","Mauzo yamelipwa kwa njia gani?":"How was this sale paid?","Chagua kisha mauzo yatahifadhiwa":"Choose and the sale will be saved","Taslimu":"Cash","Simu":"Mobile money","Ghairi":"Cancel","SMS ya shukrani imetumwa kwa":"Thank-you SMS sent to","Tuma kwa jina la duka kupitia":"Send with shop name via","Itatumia credits za":"This will use credits from","Duka":"Shop","Tafuta bidhaa":"Search product","Zilizoingia":"Stock in","Zilizotoka":"Stock out","Mauzo":"Sales","Faida":"Profit","ya bidhaa zilizouzwa":"from items sold","Zilizobaki dukani sasa":"Left in shop now","Mwanzo":"Opening","Ingia":"In","Toka":"Out","Baki":"Balance","Thamani ya baki":"Balance value","Hakuna bidhaa zilizoingia au kutoka siku hii.":"No stock moved on this day.","Bidhaa stoo":"Store items","Idadi iliyobaki":"Quantity left","Thamani":"Value","Zilizohamishiwa dukani leo":"Moved to shop this day","Bei ya kununua":"Purchase price","Stoo hii haina bidhaa.":"This store has no items.","Baki sasa":"Balance now","Tarehe":"Date","Hakuna kumbukumbu.":"No records."});
 
 Object.assign(MPA_TRANSLATIONS,{"Tafuta jina au namba ya mteja":"Search customer name or number","Hakuna mteja anayelingana.":"No matching customer."});
+Object.assign(MPA_TRANSLATIONS,{
+"Admin pekee anaweza kubadilisha SMS otomatiki.":"Only Admin can change automatic SMS.",
+"SMS otomatiki":"Automatic SMS",
+"Chagua huduma na arifa unazotaka. Ratiba ya Supabase ndiyo hutuma hata app ikifungwa.":"Choose the service and alerts you want. The Supabase schedule sends them even when the app is closed.",
+"Stock chini ya 5":"Stock below 5",
+"Admin apate SMS bidhaa inaposhuka chini ya 5":"Admin receives an SMS when a product falls below 5",
+"Mikumbusho ya madeni":"Debt reminders",
+"Mteja akumbushwe kila baada ya siku 3":"Remind the customer every 3 days",
+"Huduma ya kutumia":"Service to use",
+"Namba ya Admin ya kupokea arifa za stock":"Admin phone number for stock alerts",
+"Hifadhi mipangilio":"Save settings",
+"Kagua na tuma zinazostahili sasa":"Check and send due messages now",
+"Kitufe cha mwisho kinaweza kutuma SMS halisi na kutumia salio. Kwa kazi otomatiki, sakinisha mpa-auto-sms na ratiba kutoka sms-setup.":"The last button can send real SMS and use credits. For automatic delivery, install mpa-auto-sms and its schedule from sms-setup.",
+"Weka namba sahihi ya Admin, mfano +255767203506.":"Enter a valid Admin number, for example +255767203506.",
+"Mipangilio haijahifadhiwa. Jaribu tena.":"Settings were not saved. Try again.",
+"Mipangilio ya SMS otomatiki imehifadhiwa":"Automatic SMS settings saved",
+"Kagua sasa na tuma SMS zinazostahili? Salio la huduma uliyochagua litatumika.":"Check now and send due SMS? Your selected service credits will be used.",
+"Ukaguzi umekamilika":"Check completed",
+"SMS za stock":"stock SMS",
+"za madeni":"debt SMS",
+"Baadhi hazijatumwa; kagua Secrets na salio.":"Some were not sent; check Secrets and your balance.",
+"SMS otomatiki haijafanya kazi":"Automatic SMS did not run",
+"- Stock inayolingia na kutoka":"- Incoming and outgoing stock",
+"- Stock na madeni":"- Stock and debts"
+});

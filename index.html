@@ -6,9 +6,9 @@
 <meta name="theme-color" content="#080808">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="logo.png">
-<title>M-P-A V86 • Micky Phone Accessories</title>
+<title>M-P-A V106 • Micky Phone Accessories</title>
 <meta name="description" content="Micky Phone Accessories — bidhaa, mauzo na usimamizi wa duka.">
-<meta property="og:title" content="Micky Phone Accessories V75">
+<meta property="og:title" content="Micky Phone Accessories V106">
 <meta property="og:description" content="Bidhaa, mauzo na usimamizi wa Micky Phone Accessories.">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary">
@@ -18,14 +18,16 @@
 body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;font-size:calc(16px * var(--fontScale,1))}
 button,input,select,textarea{font:inherit}button{border:0;cursor:pointer}
 .hidden{display:none!important}
-.login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(circle at 50% 0,#3b3000,#090909 42%,#000)}
-.loginbox{width:min(460px,100%);background:#111;border:1px solid #6d5600;border-radius:28px;padding:26px 20px;color:#fff;box-shadow:0 0 45px #000}
+.login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(circle at 50% 0,#3b3000,#090909 42%,#000);position:relative;isolation:isolate;overflow:hidden}
+.login:before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:url("logo-watermark-dark.png") center 38%/min(150vw,760px) no-repeat;opacity:.1}
+.loginbox{position:relative;width:min(460px,100%);background:rgba(17,17,17,.91);border:1px solid #6d5600;border-radius:28px;padding:26px 20px;color:#fff;box-shadow:0 0 45px #000}
 .logoBig{width:150px;height:150px;object-fit:contain;display:block;margin:auto;border-radius:50%}
 .login h1{text-align:center;color:var(--gold);margin:8px 0 4px}.sub{text-align:center;color:#aaa;margin:0 0 20px}
 .tabs{display:grid;grid-template-columns:1fr 1fr;background:#292929;border-radius:24px;padding:4px;margin-bottom:20px}.tabs button{padding:12px;border-radius:20px;background:transparent;color:#aaa;font-weight:700}.tabs button.active{background:linear-gradient(135deg,var(--gold),#ffb400);color:#111}
 .field{margin:12px 0}.field label{display:block;margin-bottom:6px;font-weight:700}.field input,.field select,.field textarea{width:100%;padding:13px;border:1px solid #d8dadd;border-radius:12px;outline:0;background:#fff}.goldbtn{width:100%;padding:14px;border-radius:13px;background:linear-gradient(135deg,var(--gold),#ffb400);font-weight:800}.hint{text-align:center;color:#777;font-size:12px;margin-top:14px}
 .app{min-height:100vh;padding-bottom:84px;zoom:var(--fontScale,1)}.header{background:#fff;position:sticky;top:0;z-index:30;border-bottom:1px solid var(--line);padding:10px 14px 8px}.brandrow{display:flex;align-items:center;gap:10px}.avatar{width:45px;height:45px;border-radius:50%;background:#f1f2f4;display:grid;place-items:center;font-weight:800;font-size:20px}.brandtext{min-width:0}.brandtext b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}.brandtext small{color:#8a8d94}.headactions{margin-left:auto;display:flex;gap:7px}.iconbtn{width:42px;height:42px;border-radius:12px;background:#f3f4f6;position:relative}.dot{position:absolute;min-width:10px;height:10px;padding:0 3px;border-radius:12px;background:#ef3150;color:#fff;right:6px;top:5px;display:grid;place-items:center;font-size:8px;font-weight:800;line-height:10px;box-shadow:0 0 0 2px #fff}.dot.count{min-width:18px;height:18px;top:3px;right:3px;font-size:10px;line-height:18px;padding:0 4px}
 main{max-width:900px;margin:auto;padding:16px}.page{display:none}.page.active{display:block}
+#home.active{position:relative;isolation:isolate}#home.active:before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:url("logo-watermark.png") center 90px/min(76vw,470px) no-repeat fixed;opacity:.055}
 .hero{background:#d8f8dc;border-radius:24px;padding:22px 20px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:145px}.hero h2{margin:0 0 8px;font-size:21px}.hero p{margin:0;color:#39463c;line-height:1.45}.heroimg{width:125px;height:100px;object-fit:contain}
 .quickgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:10px 0 22px}.quick{background:#fff;border-radius:18px;padding:13px 8px;text-align:center;border:1px solid #f0f1f2}.quick .qi{width:52px;height:52px;border-radius:50%;margin:0 auto 8px;display:grid;place-items:center;font-size:24px}.quick span{font-size:13px;color:#45474d;line-height:1.25}.sectiontitle{font-size:20px;font-weight:800;margin:18px 0 12px}
 .goal{background:#fffdf6;border:1px dashed #cfd1d6;border-radius:20px;padding:18px}.goalhead{display:flex;justify-content:space-between;gap:10px;font-size:15px}.goalbar{height:10px;background:#f4c9c9;border-radius:20px;overflow:hidden;margin:18px 0 8px}.goalbar>i{display:block;height:100%;background:#c51f2b;width:0}.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.stat{background:#fff;border-radius:18px;padding:15px;border:1px solid #eceef1}.stat small{color:var(--muted)}.stat strong{display:block;font-size:20px;margin-top:6px}
@@ -417,6 +419,8 @@ html,body,button,a,input,select,label,.tableitem,.productrow{touch-action:manipu
       <div class="settings-ios-list">
         <button type="button" onclick="toggleSettingsPanel('branchesPanel')"><span class="setting-icon" style="background:#ff2b83">🛍</span><span class="setting-main">Maduka yangu Mengine <small>- Branches</small></span><b>›</b></button>
         <button type="button" onclick="openStores()"><span class="setting-icon" style="background:#b400ff">🏬</span><span class="setting-main">Stoo Zangu</span><b>›</b></button>
+        <button onclick="v104openBinCard()"><span class="setting-icon" style="background:#0f766e">▦</span><span class="setting-main">Bin Card <small>- Stock inayolingia na kutoka</small></span><b>›</b></button>
+        <button onclick="v106openAutoSms()"><span class="setting-icon" style="background:#0369a1">✉</span><span class="setting-main">SMS otomatiki <small>- Stock na madeni</small></span><b>›</b></button>
         <button onclick="toast('Malipo - Banking: itaunganishwa hapa.')"><span class="setting-icon" style="background:#9fc1ff">👛</span><span class="setting-main">Malipo <small>- Banking</small></span><b>›</b></button>
         <button onclick="toast('Alika Wafanyabiashara: tumia Ongeza Muuzaji.')"><span class="setting-icon" style="background:#2450ff">👥</span><span class="setting-main">Alika Wafanyabiashara</span><b>›</b></button>
         <button type="button" onclick="toggleSettingsPanel('languagePanel')"><span class="setting-icon" style="background:#111">🌐</span><span class="setting-main">Badilisha Lugha <small data-runtime-copy id="settingsLanguageValue" style="color:#11be27">Kiswahili</small></span><b>›</b></button>
@@ -453,7 +457,6 @@ html,body,button,a,input,select,label,.tableitem,.productrow{touch-action:manipu
       <div class="settings-ios-list">
         <button onclick="v104toggleNotif()"><span class="setting-icon" style="background:#11be27">🔔</span><span class="setting-main">Ruhusu arifa</span><span id="v104NotifSwitch" class="v104-switch"></span></button>
         <button onclick="v104openSounds()"><span class="setting-icon" style="background:#f59e0b">🔊</span><span class="setting-main">Jaribu sauti na mtetemo</span><b id="v104SoundName">›</b></button>
-        <button onclick="v104openBinCard()"><span class="setting-icon" style="background:#0f766e">📇</span><span class="setting-main">Bin Card</span><b>›</b></button>
         <button onclick="clearData()"><span class="setting-icon" style="background:#ff3040">⌫</span><span class="setting-main">Futa data ulizochagua</span><b>›</b></button>
       </div>
     </div>
@@ -548,7 +551,7 @@ html,body,button,a,input,select,label,.tableitem,.productrow{touch-action:manipu
 <script src="translations.js"></script>
 <script>
 // M-P-A v41: do not reload the entire app state on realtime app-state events; only merge notifications.
-const MPA_APP_VERSION = "V105";
+const MPA_APP_VERSION = "V106";
 function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="Toleo: "+MPA_APP_VERSION;}
 let mpaWaitingWorker=null;
 function setUpdateUI(state,msg){
@@ -662,6 +665,7 @@ let imageVersions={};const mpaImageCache=new Map();
 let products=[], sales=[], customers=[], expenses=[], movements=[], notifications=[], stockRequests=[];
 let stores=[];
 let goalTarget=10000000, monthlyGoals={}, branches=[], activeBranch="", storeName="Micky Phone Accessories", language=readLanguagePreference(), fontSize=100;
+let smsAutomation={stockEnabled:true,debtEnabled:true,provider:"darsms",adminPhone:"+255767203506"};
 function monthKey(d=now()){return dateKey(d).slice(0,7);}
 function monthLabel(d=now()){return new Date(d).toLocaleDateString(language==='en'?'en-GB':'sw-TZ',{month:"long",timeZone:MPA_TIMEZONE});}
 function currentGoalTarget(){const k=monthKey();const v=Number(monthlyGoals?.[k]);return v>0?v:0;}
@@ -1029,7 +1033,7 @@ async function loadCloudState({preserveSales=false}={}){
  if(!sbClient||!authProfile)return {ok:false,skipped:true};
  try{
     // V88 Egress: usipakue products/sales ndani ya app-state; majedwali yake ndiyo chanzo.
-  const keys=["deletedSaleIds","deletedExpenseIds","deletedProductIds","deletedUserIds","customers","expenses","movements","notifications","stockRequests","branches","stores","users","goalTarget","monthlyGoals","activeBranch","storeName","fontSize","imageVersions"];
+  const keys=["deletedSaleIds","deletedExpenseIds","deletedProductIds","deletedUserIds","customers","expenses","movements","notifications","stockRequests","branches","stores","users","goalTarget","monthlyGoals","activeBranch","storeName","fontSize","imageVersions","smsAutomation"];
   if(!preserveSales)keys.push("sales");
   const {data:row,error}=await sbClient.from("mpa_app_state").select("updated_at,"+keys.map(k=>k+":payload->"+k).join(",")).eq("scope",cloudStateScope).maybeSingle();
   if(error)throw error;
@@ -1067,6 +1071,7 @@ async function loadCloudState({preserveSales=false}={}){
    storeName=String(st.storeName||"Micky Phone Accessories");
    language=readLanguagePreference();
    fontSize=Number(v104pref("fontSize")||st.fontSize||100);
+   if(st.smsAutomation&&typeof st.smsAutomation==="object"&&!Array.isArray(st.smsAutomation))smsAutomation={...smsAutomation,...st.smsAutomation};
   }
   if(!users.length)users=DEFAULT_USERS.map(u=>({...u}));
   users=users.map(u=>({...u,active:u.active!==false,permissions:Array.isArray(u.permissions)?u.permissions:[]}));
@@ -1086,7 +1091,7 @@ async function loadCloudState({preserveSales=false}={}){
 }
 // V79: Read/write only the parts of the shared app-state that are needed. Product photos already
 // stored in the products table are not copied into every save, which made saves time out on phones.
-const MPA_STATE_MERGE_SELECT="deletedUserIds:payload->deletedUserIds,deletedProductIds:payload->deletedProductIds,deletedSaleIds:payload->deletedSaleIds,deletedExpenseIds:payload->deletedExpenseIds,stockRequests:payload->stockRequests,notifications:payload->notifications,monthlyGoals:payload->monthlyGoals,users:payload->users,imageVersions:payload->imageVersions";
+const MPA_STATE_MERGE_SELECT="deletedUserIds:payload->deletedUserIds,deletedProductIds:payload->deletedProductIds,deletedSaleIds:payload->deletedSaleIds,deletedExpenseIds:payload->deletedExpenseIds,stockRequests:payload->stockRequests,notifications:payload->notifications,monthlyGoals:payload->monthlyGoals,users:payload->users,imageVersions:payload->imageVersions,smsAutomation:payload->smsAutomation";
 const MPA_STATE_LIVE_SELECT="updated_at,notifications:payload->notifications,stockRequests:payload->stockRequests,users:payload->users,deletedUserIds:payload->deletedUserIds,imageVersions:payload->imageVersions";
 function isInlineImage(v){return /^data:/i.test(String(v||""))}
 function stateProductsForSave(list){return (Array.isArray(list)?list:[]).map(({imageLoaded,__syncedImage,...rest})=>isInlineImage(rest.image)?{...rest,image:"",imageInTable:true}:rest)}
@@ -1112,6 +1117,7 @@ async function saveCloudState(){
     // V79: Only Admin edits users/limits. A user's save must never send back an old copy of users,
     // which silently undid the limits Admin had just saved for that user.
     if(!isRealAdmin()&&Array.isArray(remoteState.users)&&remoteState.users.length){users=remoteState.users.filter(u=>u&&!deletedUserIds.includes(String(u.id)));applyLivePermissions();}
+    if(!isRealAdmin()&&remoteState.smsAutomation&&typeof remoteState.smsAutomation==="object")smsAutomation={...smsAutomation,...remoteState.smsAutomation};
     // V66: Usipungeze orodha ya bidhaa kwa deletedProductIds kabla ya kuhifadhi app-state.
     // Hii ndiyo iliyofanya snapshot ya app-state ipungue hadi bidhaa 23 wakati DB ina 52.
     // Jedwali la products ndilo chanzo cha kweli cha bidhaa; tombstone zinatumika tu kuzuia
@@ -1122,7 +1128,7 @@ async function saveCloudState(){
     {const nm=new Map();for(const it of (Array.isArray(remoteState.notifications)?remoteState.notifications:[]))if(it&&it.id!=null)nm.set(String(it.id),it);for(const it of notifications){if(!it||it.id==null)continue;const o=nm.get(String(it.id));nm.set(String(it.id),o?{...o,...it,read:!!(o.read||it.read)}:it)}notifications=[...nm.values()].sort((a,b)=>new Date(b.date||0)-new Date(a.date||0)).slice(0,200);}
     if(remoteState.monthlyGoals&&typeof remoteState.monthlyGoals==="object"){for(const [k,v] of Object.entries(remoteState.monthlyGoals))if(Number(v)>0&&!(Number(monthlyGoals?.[k])>0))monthlyGoals[k]=v;}
     const safeUsers=users.map(({password,...u})=>({...u}));
-    const payload={products:stateProductsForSave(products),sales,customers,expenses,movements,notifications:notifications.slice(0,200),stockRequests:snapshotStockRequests(stockRequests),users:safeUsers,goalTarget:currentGoalTarget(),monthlyGoals,branches,stores,activeBranch,storeName,fontSize,deletedSaleIds,deletedExpenseIds,deletedProductIds,deletedUserIds,imageVersions};
+    const payload={products:stateProductsForSave(products),sales,customers,expenses,movements,notifications:notifications.slice(0,200),stockRequests:snapshotStockRequests(stockRequests),users:safeUsers,goalTarget:currentGoalTarget(),monthlyGoals,branches,stores,activeBranch,storeName,fontSize,deletedSaleIds,deletedExpenseIds,deletedProductIds,deletedUserIds,imageVersions,smsAutomation};
     // Add a unique token for read-after-write verification.
     const stamp=now().toISOString()+"-"+Math.random().toString(36).slice(2,10);
     payload.__mpaWriteToken=stamp;
@@ -2994,7 +3000,7 @@ async function v96sendDarsms(to,message,btn,provider,quiet){provider=provider===
  const old=btn?.textContent;if(btn){btn.disabled=true;btn.textContent=translateText("Inatuma…")}
  try{const {data,error}=await sbClient.functions.invoke("mpa-send-sms",{body:{to,message,provider,auto:!!quiet}});
   if(error){let m=error.message;try{const b=await error.context.clone().json();m=b.error||m}catch(e){}throw new Error(m)}
-  if(data?.error)throw new Error(data.error);toast(translateText("SMS imetumwa kwa")+" "+(data?.count||to.length)+" ✓");v104setPref("smsProvider",provider);return true}
+  if(data?.error)throw new Error(data.error);toast(translateText("SMS imetumwa kwa")+" "+(data?.count||to.length)+" ✓");v104setPref("smsProvider",provider);if(isRealAdmin()){smsAutomation={...smsAutomation,provider};saveCloudState().catch(()=>{})}return true}
  catch(e){if(quiet)toast(translateText("SMS haijatumwa: ")+(e.message||e));else alert(translateText("SMS haijatumwa: ")+(e.message||e));return false}
  finally{if(btn){btn.disabled=false;btn.textContent=old}}}
 async function v96bulkDarsms(provider){const list=v99selectedPhones(),t=document.getElementById("v95BulkText").value.trim();if(!t){toast("Andika ujumbe.");return}if(!list.length){toast("Chagua angalau mteja mmoja.");return}
@@ -3073,6 +3079,43 @@ function v104openLedger(id){const p=products.find(x=>String(x.id)===String(id));
  v94modal(`<h3 style="margin:0">${esc(p.name)}</h3><p class="muted" style="margin:4px 0 10px">${translateText("Baki sasa")}: <b>${Math.max(0,Number(p.qty||0))}</b> • ${translateText("Thamani")}: ${v104money(Math.max(0,Number(p.qty||0))*Number(p.buy||0))}</p><div style="max-height:60vh;overflow:auto"><table class="v104-ledger"><tr><th>${translateText("Tarehe")}</th><th>${translateText("Ingia")}</th><th>${translateText("Toka")}</th><th>${translateText("Baki")}</th></tr>${rows.map(r=>`<tr><td>${esc(new Date(r.date).toLocaleString("en-GB",{timeZone:"Africa/Dar_es_Salaam",day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}))}<small>${esc(translateText(r.note))}${r.user?" • "+esc(r.user):""}</small></td><td class="green">${r.inQ||""}</td><td class="red">${r.outQ||""}</td><td><b>${r.balance}</b></td></tr>`).join("")||`<tr><td colspan="4">${translateText("Hakuna kumbukumbu.")}</td></tr>`}</table></div><button class="btn" style="width:100%;margin-top:10px" onclick="v94closeModal()">${translateText("Funga")}</button>`)}
 (function(){const st=document.createElement("style");st.textContent=`.v104-switch{margin-left:auto;width:46px;height:28px;border-radius:20px;background:#cbd5e1;position:relative;flex:0 0 auto;transition:background .15s}.v104-switch:after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0003;transition:left .15s}.v104-switch.on{background:#11be27}.v104-switch.on:after{left:21px}
 .v104-bin{position:fixed;inset:0;z-index:240;background:var(--bg,#f4f6fb);overflow:auto;-webkit-overflow-scrolling:touch}.v104-bin-wrap{max-width:720px;margin:0 auto;padding:14px 12px 90px}.v104-bin-top{display:flex;align-items:center;gap:10px}.v104-bin-top h2{margin:0}.v104-bin-filters{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0 8px}.v104-bin-filters input,.v104-bin-filters select,.v104-bin-search{width:100%;padding:12px;border:1px solid #d6dbe6;border-radius:12px;font-size:15px;background:#fff;box-sizing:border-box}.v104-bin-sum{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.v104-bin-sum>div{background:#fff;border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;box-shadow:0 1px 4px #0001}.v104-bin-sum b{font-size:20px}.v104-bin-sum small{color:#64748b;font-size:12px}.v104-bin-row{display:block;width:100%;text-align:left;background:#fff;border:0;border-radius:14px;padding:12px;margin:0 0 8px;box-shadow:0 1px 4px #0001;color:inherit;font:inherit}.v104-bin-name{display:flex;justify-content:space-between;gap:8px}.v104-bin-name small{color:#64748b}.v104-bin-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}.v104-bin-grid span{display:flex;flex-direction:column;font-size:11px;color:#64748b;background:#f1f5f9;border-radius:10px;padding:6px;text-align:center}.v104-bin-grid b{font-size:16px;color:#0f172a}.v104-bin-money{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:#334155}.v104-bin .green,.v104-ledger .green{color:#0a9b3c!important}.v104-bin .red,.v104-ledger .red{color:#e11d48!important}.v104-ledger{width:100%;border-collapse:collapse;font-size:13px}.v104-ledger th,.v104-ledger td{padding:7px 4px;border-bottom:1px solid #eef1f6;text-align:right;vertical-align:top}.v104-ledger th:first-child,.v104-ledger td:first-child{text-align:left}.v104-ledger small{display:block;color:#64748b;font-size:11px}`;document.head.appendChild(st)})();
+/* ===== V106: mipangilio ya SMS otomatiki ya stock na madeni ===== */
+function v106openAutoSms(){
+ if(!isRealAdmin()){toast(translateText("Admin pekee anaweza kubadilisha SMS otomatiki."));return}
+ const c={stockEnabled:true,debtEnabled:true,provider:"darsms",adminPhone:"+255767203506",...smsAutomation};
+ v94modal(`<div class="modalhead"><h2>${translateText("SMS otomatiki")}</h2><button class="close" onclick="v94closeModal()">×</button></div>
+ <p class="muted">${translateText("Chagua huduma na arifa unazotaka. Ratiba ya Supabase ndiyo hutuma hata app ikifungwa.")}</p>
+ <label class="v94-r" style="align-items:center;gap:10px"><input id="v106StockOn" type="checkbox" ${c.stockEnabled!==false?"checked":""}><span><b>${translateText("Stock chini ya 5")}</b><br><small class="muted">${translateText("Admin apate SMS bidhaa inaposhuka chini ya 5")}</small></span></label>
+ <label class="v94-r" style="align-items:center;gap:10px"><input id="v106DebtOn" type="checkbox" ${c.debtEnabled!==false?"checked":""}><span><b>${translateText("Mikumbusho ya madeni")}</b><br><small class="muted">${translateText("Mteja akumbushwe kila baada ya siku 3")}</small></span></label>
+ <div class="field"><label>${translateText("Huduma ya kutumia")}</label><select id="v106Provider"><option value="darsms" ${c.provider==="darsms"?"selected":""}>DarSMS</option><option value="swala" ${c.provider==="swala"?"selected":""}>SwalaSMS</option></select></div>
+ <div class="field"><label>${translateText("Namba ya Admin ya kupokea arifa za stock")}</label><input id="v106AdminPhone" type="tel" inputmode="tel" value="${esc(c.adminPhone||"+255767203506")}" placeholder="+2557xxxxxxxx"></div>
+ <button id="v106SaveAuto" class="btn blue" style="width:100%;padding:14px" onclick="v106saveAutoSms()">${translateText("Hifadhi mipangilio")}</button>
+ <button id="v106RunAuto" class="btn" style="width:100%;padding:14px;margin-top:8px" onclick="v106runAutoSms()">${translateText("Kagua na tuma zinazostahili sasa")}</button>
+ <p class="muted" style="font-size:12px">${translateText("Kitufe cha mwisho kinaweza kutuma SMS halisi na kutumia salio. Kwa kazi otomatiki, sakinisha mpa-auto-sms na ratiba kutoka sms-setup.")}</p>`)
+}
+async function v106saveAutoSms(){
+ if(!isRealAdmin())return false;
+ const phone=v94intl(document.getElementById("v106AdminPhone")?.value||"");
+ if(!/^255\d{9}$/.test(phone)){toast(translateText("Weka namba sahihi ya Admin, mfano +255767203506."));return false}
+ const btn=document.getElementById("v106SaveAuto");if(btn)btn.disabled=true;
+ smsAutomation={stockEnabled:document.getElementById("v106StockOn")?.checked===true,debtEnabled:document.getElementById("v106DebtOn")?.checked===true,provider:document.getElementById("v106Provider")?.value==="swala"?"swala":"darsms",adminPhone:"+"+phone};
+ v104setPref("smsProvider",smsAutomation.provider);
+ const r=await saveCloudState().catch(()=>({ok:false}));if(btn)btn.disabled=false;
+ if(!r?.ok){toast(translateText("Mipangilio haijahifadhiwa. Jaribu tena."));return false}
+ toast(translateText("Mipangilio ya SMS otomatiki imehifadhiwa")+" ✓");return true
+}
+async function v106runAutoSms(){
+ if(!await v106saveAutoSms())return;
+ if(!confirm(translateText("Kagua sasa na tuma SMS zinazostahili? Salio la huduma uliyochagua litatumika.")))return;
+ const btn=document.getElementById("v106RunAuto");if(btn)btn.disabled=true;
+ try{
+  const {data,error}=await sbClient.functions.invoke("mpa-auto-sms",{body:{}});
+  if(error){let m=error.message;try{const b=await error.context.clone().json();m=b.error||m}catch(e){}throw new Error(m)}
+  if(data?.error)throw new Error(data.error);
+  alert(translateText("Ukaguzi umekamilika")+": "+Number(data?.stockSent||0)+" "+translateText("SMS za stock")+", "+Number(data?.debtSent||0)+" "+translateText("za madeni")+"."+(data?.errors?.length?"\n"+translateText("Baadhi hazijatumwa; kagua Secrets na salio."):""));
+ }catch(e){alert(translateText("SMS otomatiki haijafanya kazi")+": "+String(e?.message||e))}
+ finally{if(btn)btn.disabled=false}
+}
 (function(){const _sp=showPage;window.showPage=showPage=function(id){const r=_sp.apply(this,arguments);if(id==="settings")v104syncSettingsUI();return r};if(document.readyState!=="loading")v104syncSettingsUI();else document.addEventListener("DOMContentLoaded",v104syncSettingsUI)})();
 
 </script></body>
