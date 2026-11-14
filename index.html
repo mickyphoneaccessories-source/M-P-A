@@ -275,7 +275,7 @@ html,body,button,a,input,select,label,.tableitem,.productrow{touch-action:manipu
         <div><strong>Jumla:</strong><strong id="saleGrandTotal">TZS 0</strong></div>
       </div>
       <div class="sale-payrow"><button id="saleUnpaid" class="sale-pay unpaid active" onclick="setSalePayment(false)">Haijalipwa</button><button id="salePaid" class="sale-pay paid" onclick="setSalePayment(true)">Imelipwa</button></div>
-      <button id="saveSaleButton" class="btn blue" style="width:100%;margin-top:18px;margin-bottom:105px;padding:16px;font-size:17px;font-weight:900;border-radius:16px" onclick="makeSale()">Hifadhi Mauzo</button>
+      <button id="saveSaleButton" class="btn blue" style="width:100%;margin-top:18px;margin-bottom:105px;padding:16px;font-size:17px;font-weight:900;border-radius:16px" onclick="v104saveSaleClick()">Hifadhi Mauzo</button>
       </div>
   </section>
 
@@ -451,8 +451,9 @@ html,body,button,a,input,select,label,.tableitem,.productrow{touch-action:manipu
       </div>
       <div class="settings-group-title">DATA</div>
       <div class="settings-ios-list">
-        <button onclick="requestBrowserNotifications()"><span class="setting-icon" style="background:#11be27">🔔</span><span class="setting-main">Ruhusu arifa</span><b>›</b></button>
-        <button onclick="testNotificationSignal()"><span class="setting-icon" style="background:#f59e0b">🔊</span><span class="setting-main">Jaribu sauti na mtetemo</span><b>›</b></button>
+        <button onclick="v104toggleNotif()"><span class="setting-icon" style="background:#11be27">🔔</span><span class="setting-main">Ruhusu arifa</span><span id="v104NotifSwitch" class="v104-switch"></span></button>
+        <button onclick="v104openSounds()"><span class="setting-icon" style="background:#f59e0b">🔊</span><span class="setting-main">Jaribu sauti na mtetemo</span><b id="v104SoundName">›</b></button>
+        <button onclick="v104openBinCard()"><span class="setting-icon" style="background:#0f766e">📇</span><span class="setting-main">Bin Card</span><b>›</b></button>
         <button onclick="clearData()"><span class="setting-icon" style="background:#ff3040">⌫</span><span class="setting-main">Futa data ulizochagua</span><b>›</b></button>
       </div>
     </div>
@@ -482,12 +483,12 @@ html,body,button,a,input,select,label,.tableitem,.productrow{touch-action:manipu
   <div class="field"><label>Picha ya bidhaa</label><input id="pImage" type="file" accept="image/*" onchange="previewImage(event)"></div>
   <div class="field"><label>Jina la bidhaa</label><input id="pName" placeholder="Mfano Charger Fast"></div>
   <div class="field"><label>Kategoria</label><input id="pCategory" placeholder="Mfano Charger"></div>
-  <div class="three"><div class="field"><label>Bei ya kununua (TZS)</label><input id="pBuy" type="text" inputmode="numeric" placeholder="15,000"></div><div class="field"><label>Bei ya kuuza (TZS)</label><input id="pPrice" type="text" inputmode="numeric" placeholder="20,000"></div><div class="field"><label>Idadi</label><input id="pQty" type="number" min="0" value="1"></div></div>
+  <div class="three"><div class="field"><label>Bei ya kununua (TZS)</label><input id="pBuy" type="text" inputmode="numeric" placeholder="15,000"></div><div class="field"><label>Bei ya kuuza (TZS)</label><input id="pPrice" type="text" inputmode="numeric" placeholder="20,000"></div><div class="field"><label>Idadi</label><input id="pQty" type="number" inputmode="numeric" min="0" value="" placeholder="0"></div></div>
   <button class="btn blue" style="width:100%" onclick="addProduct()">Hifadhi Bidhaa</button>
   <div id="editStockSection" style="display:none;margin-top:16px;border-top:1px dashed #ddd;padding-top:14px">
   <b>Stock</b>
   <div class="two" style="margin-top:8px"><button type="button" id="stockAddBtn" class="btn green" onclick="changeStock('add')">＋ Ongeza Stock</button><button type="button" id="stockRemoveBtn" class="btn red" onclick="changeStock('remove')">− Punguza Stock</button></div>
-  <div class="field"><label>Idadi</label><input id="stockQty" type="number" min="1" value="1"></div>
+  <div class="field"><label>Idadi</label><input id="stockQty" type="number" inputmode="numeric" min="1" value="" placeholder="0"></div>
   <div class="field"><label>Maelezo</label><input id="stockNote" placeholder="Mfano mzigo mpya"></div>
   <button type="button" class="btn" style="width:100%" id="stockApplyBtn" onclick="applyStockChange()">Thibitisha Stock</button>
   <div id="productHistory" class="card" style="margin-top:12px"></div>
@@ -547,7 +548,7 @@ html,body,button,a,input,select,label,.tableitem,.productrow{touch-action:manipu
 <script src="translations.js"></script>
 <script>
 // M-P-A v41: do not reload the entire app state on realtime app-state events; only merge notifications.
-const MPA_APP_VERSION = "V103";
+const MPA_APP_VERSION = "V104";
 function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="Toleo: "+MPA_APP_VERSION;}
 let mpaWaitingWorker=null;
 function setUpdateUI(state,msg){
@@ -656,7 +657,7 @@ if(/type=recovery/i.test(MPA_URL_AT_LOAD)){try{sessionStorage.setItem(MPA_RESET_
 const sbClient=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{global:{fetch:mpaFetch},auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:mpaAuthStorage}}):null;
 let authProfile=null, loginRole="user", productTab="all", selectedStockId=null, selectedImage="";
 // M-P-A V21: Supabase is the ONLY persistent application datastore.
-let snapshotProducts=[];
+let snapshotProducts=[];const v104q=a=>(Array.isArray(a)?a:[]).map(x=>x&&Number(x.qty)<0?{...x,qty:0}:x);
 let imageVersions={};const mpaImageCache=new Map();
 let products=[], sales=[], customers=[], expenses=[], movements=[], notifications=[], stockRequests=[];
 let stores=[];
@@ -681,12 +682,12 @@ const perms=[
 
 function flattenPermissions(p){if(Array.isArray(p))return p;if(!p||typeof p!=="object")return [];const out=[];Object.values(p).forEach(v=>{if(Array.isArray(v))out.push(...v)});return [...new Set(out)]}
 function currentUser(){return authProfile?.username||"admin"}
-function currentUserObj(){if(authProfile)return {id:authProfile.id,username:authProfile.username||authProfile.display_name||authProfile.id,role:authProfile.role||"user",permissions:flattenPermissions(authProfile.permissions),active:authProfile.active!==false};return users.find(u=>u.username===currentUser())||users[0]||{id:null,username:"admin",role:"admin",permissions:["all"],active:true}}
+let _v104uo=null,_v104up=null,_v104ua=null;function currentUserObj(){if(authProfile){if(_v104ua===authProfile&&_v104up===authProfile.permissions&&_v104uo&&_v104uo.role===(authProfile.role||"user"))return _v104uo;_v104ua=authProfile;_v104up=authProfile.permissions;return _v104uo={id:authProfile.id,username:authProfile.username||authProfile.display_name||authProfile.id,role:authProfile.role||"user",permissions:flattenPermissions(authProfile.permissions),active:authProfile.active!==false}}return users.find(u=>u.username===currentUser())||users[0]||{id:null,username:"admin",role:"admin",permissions:["all"],active:true}}
 function can(p){let u=currentUserObj();return u.role==="admin"||u.permissions.includes("all")||u.permissions.includes(p)}
 async function supabaseProductRow(p){
  const supabaseId=p.supabaseId||p.id||crypto.randomUUID();
  p.supabaseId=supabaseId;
- return {id:supabaseId,name:String(p.name||''),sku:null,category:String(p.category||''),image_url:String(p.image||''),buy_price:Number(p.buy||0),sell_price:Number(p.price||0),stock_qty:Number(p.qty||0),min_stock:Number(p.minStock||0),branch_id:null,active:true,updated_at:now().toISOString()};
+ return {id:supabaseId,name:String(p.name||''),sku:null,category:String(p.category||''),image_url:String(p.image||''),buy_price:Number(p.buy||0),sell_price:Number(p.price||0),stock_qty:Math.max(0,Number(p.qty||0)),min_stock:Number(p.minStock||0),branch_id:null,active:true,updated_at:now().toISOString()};
 }
 async function syncProductToSupabase(p){
  if(!sbClient||!authProfile)return {ok:false,skipped:true,error:new Error('Supabase session haipo')};
@@ -707,7 +708,7 @@ async function syncProductToSupabase(p){
   return {ok:false,error:e};
  }
 }
-function applyRemoteProduct(row){return {id:row.id,supabaseId:row.id,name:row.name||'',category:row.category||'',code:'',buy:Number(row.buy_price||0),price:Number(row.sell_price||0),qty:Number(row.stock_qty||0),minStock:Number(row.min_stock||0),image:row.image_url||'',createdAt:row.created_at||now().toISOString(),updatedAt:row.updated_at||row.created_at||now().toISOString()};}
+function applyRemoteProduct(row){return {id:row.id,supabaseId:row.id,name:row.name||'',category:row.category||'',code:'',buy:Number(row.buy_price||0),price:Number(row.sell_price||0),qty:Math.max(0,Number(row.stock_qty||0)),minStock:Number(row.min_stock||0),image:row.image_url||'',createdAt:row.created_at||now().toISOString(),updatedAt:row.updated_at||row.created_at||now().toISOString()};}
 
 // V67: Hakikisha token ya kuingia ni hai kabla ya kusoma bidhaa. Baada ya refresh ya ukurasa
 // token iliyokwisha muda ilifanya Supabase isome kama mgeni (RLS → bidhaa chache/0).
@@ -724,7 +725,7 @@ async function ensureFreshSession(){
 async function syncProductsReliable(opts={}){
  if(!opts.sessionReady&&!await ensureFreshSession())return {ok:false,error:new Error('Ingia tena ili kusawazisha data.')};
  const result=await syncProductsFromSupabase({silent:true,...opts});
- if(!result?.ok&&!products.length&&snapshotProducts.length){products=snapshotProducts.slice();scheduleRender();}
+ if(!result?.ok&&!products.length&&snapshotProducts.length){products=v104q(snapshotProducts);scheduleRender();}
  return result;
 }
 async function syncProductsFromSupabase({silent=false}={}){
@@ -932,7 +933,7 @@ async function syncSaleToSupabase(s){
   // V68: bidhaa mpya tu ndizo zinapakiwa kikamilifu; zilizopo zinasasishwa stock tu (bila kutuma picha tena).
   await Promise.all(lines.map(async({p})=>{
    if(!p.supabaseId||p.pendingSync){const pr=await syncProductToSupabase(p);if(!pr.ok&&!pr.skipped)throw pr.error||new Error('Product sync failed');}
-   else{const ts=now().toISOString();const {error}=await sbClient.from('products').update({stock_qty:Number(p.qty||0),updated_at:ts}).eq('id',p.supabaseId);if(error)throw error;p.updatedAt=ts;}
+   else{const ts=now().toISOString();const {error}=await sbClient.from('products').update({stock_qty:Math.max(0,Number(p.qty||0)),updated_at:ts}).eq('id',p.supabaseId);if(error)throw error;p.updatedAt=ts;}
    if(!p.supabaseId)throw new Error('Bidhaa haijapata Supabase product ID: '+p.name);
   }));
   const row=supabaseSaleRow(s);saleId=row.id;
@@ -940,6 +941,8 @@ async function syncSaleToSupabase(s){
   const itemRows=lines.map(({item,p})=>({sale_id:saleId,product_id:p.supabaseId,quantity:Number(item.qty||0),unit_price:Number(item.price||0),buy_price:Number(item.buy||0),discount:0,total:Number(item.lineTotal||((item.price||0)*(item.qty||0))),profit:Number(((item.price||0)-(item.buy||0))*(item.qty||0))}));
   if(s.supabaseSynced||s.pendingSync){const {error:de}=await sbClient.from('sale_items').delete().eq('sale_id',saleId);if(de)throw de;}
   if(itemRows.length){const {error:ie}=await sbClient.from('sale_items').insert(itemRows);if(ie)throw ie;}
+  // V104: the app's stock number is authoritative; rewrite after items so a database trigger cannot deduct twice.
+  await Promise.all(lines.map(({p})=>sbClient.from('products').update({stock_qty:Math.max(0,Number(p.qty||0))}).eq('id',p.supabaseId).then(()=>{},()=>{})));
   s.supabaseSynced=true;s.supabaseId=saleId;s.id=saleId;return {ok:true,data:row};
  }catch(e){console.warn('Supabase sale sync failed',e);if(saleCreated&&saleId&&!s.pendingSync){try{await sbClient.from('sale_items').delete().eq('sale_id',saleId);await sbClient.from('sales').delete().eq('id',saleId);}catch(cleanErr){console.warn('Supabase sale rollback failed',cleanErr)}}return {ok:false,error:e};}
 }
@@ -1000,7 +1003,7 @@ async function syncSalesFromSupabase({silent=false,preloadedSales}={}){
     return {productId:p?.id||i.product_id,product:p?.name||priorSale?.items?.find(x=>String(x.productId)===String(i.product_id))?.product||'Bidhaa',qty,price,buy,lineTotal:Number(i.total??price*qty)};
    });
    const total=Number(r.total||0),subtotal=Number(r.subtotal||total),discount=Number(r.discount||0),remotePaid=Number(r.paid)!==0;
-   return {id:r.id,items,productId:items[0]?.productId,product:items[0]?.product||'Bidhaa',qty:items[0]?.qty||0,price:items[0]?.price||0,discount,total,subtotal,profit:saleFigures({items,total,subtotal,discount,profit:r.profit??priorSale?.profit}).profit,customer:saleReadNotes(r.notes).customer||r.customer_name||priorSale?.customer||'Mteja',customerPhone:saleReadNotes(r.notes).customerPhone||priorSale?.customerPhone||'',payments:saleReadNotes(r.notes).payments||[],initialAmountPaid:saleReadNotes(r.notes).initialAmountPaid??priorSale?.initialAmountPaid,creditSale:saleReadNotes(r.notes).creditSale===true||priorSale?.creditSale===true,amountPaid:Number.isFinite(Number(r.debt))&&r.debt!==null?Math.max(0,total-Number(r.debt)):(remotePaid?total:0),debt:Number.isFinite(Number(r.debt))&&r.debt!==null?Number(r.debt):(remotePaid?0:total),recordedAt:saleReadNotes(r.notes).recordedAt||priorSale?.recordedAt||r.created_at||r.sale_date,date:r.sale_date||r.created_at||now().toISOString(),user:priorSale?.user||users.find(u=>String(u.id)===String(r.sold_by))?.username||r.sold_by||'Admin',paid:(Number.isFinite(Number(r.debt))&&r.debt!==null)?Number(r.debt)<=0:remotePaid,note:saleReadNotes(r.notes).note,branchId:r.branch_id||'',supabaseId:r.id,supabaseSynced:true,pendingSync:false};
+   return {id:r.id,items,productId:items[0]?.productId,product:items[0]?.product||'Bidhaa',qty:items[0]?.qty||0,price:items[0]?.price||0,discount,total,subtotal,profit:saleFigures({items,total,subtotal,discount,profit:r.profit??priorSale?.profit}).profit,customer:saleReadNotes(r.notes).customer||r.customer_name||priorSale?.customer||'Mteja',customerPhone:saleReadNotes(r.notes).customerPhone||priorSale?.customerPhone||'',payments:saleReadNotes(r.notes).payments||[],initialAmountPaid:saleReadNotes(r.notes).initialAmountPaid??priorSale?.initialAmountPaid,creditSale:saleReadNotes(r.notes).creditSale===true||priorSale?.creditSale===true,paymentMethod:saleReadNotes(r.notes).paymentMethod||priorSale?.paymentMethod||'',amountPaid:Number.isFinite(Number(r.debt))&&r.debt!==null?Math.max(0,total-Number(r.debt)):(remotePaid?total:0),debt:Number.isFinite(Number(r.debt))&&r.debt!==null?Number(r.debt):(remotePaid?0:total),recordedAt:saleReadNotes(r.notes).recordedAt||priorSale?.recordedAt||r.created_at||r.sale_date,date:r.sale_date||r.created_at||now().toISOString(),user:priorSale?.user||users.find(u=>String(u.id)===String(r.sold_by))?.username||r.sold_by||'Admin',paid:(Number.isFinite(Number(r.debt))&&r.debt!==null)?Number(r.debt)<=0:remotePaid,note:saleReadNotes(r.notes).note,branchId:r.branch_id||'',supabaseId:r.id,supabaseSynced:true,pendingSync:false};
   });
   remoteMapped.push(...reused);
   const remoteMappedFiltered=remoteMapped.filter(r=>!deletedSaleIds.includes(String(r.supabaseId||r.id)));
@@ -1063,7 +1066,7 @@ async function loadCloudState({preserveSales=false}={}){
    activeBranch=String(st.activeBranch||"");
    storeName=String(st.storeName||"Micky Phone Accessories");
    language=readLanguagePreference();
-   fontSize=Number(st.fontSize||100);
+   fontSize=Number(v104pref("fontSize")||st.fontSize||100);
   }
   if(!users.length)users=DEFAULT_USERS.map(u=>({...u}));
   users=users.map(u=>({...u,active:u.active!==false,permissions:Array.isArray(u.permissions)?u.permissions:[]}));
@@ -1243,6 +1246,7 @@ if("serviceWorker" in navigator)navigator.serviceWorker.addEventListener("messag
 // V89: kurasa za web haziwezi kutetemesha iPhone; arifa ya simu (OS) ndiyo hutetemesha.
 function mpaPreferOsAlert(){try{return mpaDeviceKind()!=="desktop"&&("Notification" in window)&&Notification.permission==="granted"}catch(e){return false}}
 function playNotificationSignal(){
+ if(v104soundType()!=="classic"){mpaVibrate([220,80,220,80,320]);v104playTone(v104soundType());return}
  // Vibration + two-tone alert sound for every notification (admin na user), local na remote.
  mpaVibrate([220,80,220,80,320]);
  let played=false;
@@ -1283,6 +1287,7 @@ function conciseNotificationTitle(title){
  return String(title||'Mabadiliko yamefanyika');
 }
 function notify(title,detail,targetPage,targetId,opts={}){
+ const v104on=v104notifOn();
  const shortTitle=conciseNotificationTitle(title);
  const item={id:Date.now()+Math.random(),title:shortTitle,detail:'Taarifa mpya ya M-P-A',user:currentUser(),date:now().toISOString(),read:false,targetPage:targetPage||"notifications",targetId:targetId??null};
  notifications.unshift(item);
@@ -1290,8 +1295,9 @@ function notify(title,detail,targetPage,targetId,opts={}){
  if(opts.persist!==false)saveCloudState();
  updateNotifDot();
  renderNotifications();
- playNotificationSignal();
+ if(v104on)playNotificationSignal();
  if(opts.persist!==false&&opts.push!==false)sendRemotePush(item);
+ if(!v104on)return;
  if(document.hidden||mpaPreferOsAlert())showSystemNotification(item);
  else showNoticeBanner(translateText(item.title),translateText("Gusa kuona"),item.id,4500);
 }
@@ -1457,7 +1463,7 @@ async function seedFromDeviceCache(){
  try{const snap=await readOfflineSnapshot();if(!snap||String(snap.userId)!==String(authProfile?.id))return;
   for(const p of (snap.products||[]))if(p&&p.imageLoaded)mpaImageCache.set(String(p.supabaseId||p.id),{image:p.image||'',imageCheckedAt:Number(p.imageCheckedAt||1)});
   if(!sales.length&&Array.isArray(snap.sales))sales=snap.sales.filter(x=>!x.pendingSync);
-  if(!products.length&&Array.isArray(snap.products)){products=snap.products;scheduleRender();}
+  if(!products.length&&Array.isArray(snap.products)){products=v104q(snap.products);scheduleRender();}
  }catch(e){}
 }
 async function refreshBusinessData(){
@@ -1465,6 +1471,7 @@ async function refreshBusinessData(){
  if(!mpaImageCache.size)await seedFromDeviceCache();
  const statePromise=loadCloudState({preserveSales:true});
  const productPromise=syncProductsReliable({silent:true,sessionReady:true});
+ productPromise.then(()=>{try{scheduleRender()}catch(e){}},()=>{});
  const [stateResult,productResult]=await Promise.all([statePromise,productPromise]);
  // Mapping uses current product/customer snapshot and never changes a draft order.
  const salesResult=await syncSalesFromSupabase({silent:true});
@@ -1489,6 +1496,7 @@ async function forceRefreshApp(){
   const activePage=document.querySelector(".page.active")?.id||"home";
   const scrollY=window.scrollY||0;
   showRefreshIndicator(true);
+  const v104spin=setTimeout(()=>showRefreshIndicator(false),7000);
   let stateResult={ok:false},productResult={ok:false},salesResult={ok:false};
   try{
     ({stateResult,productResult,salesResult}=await refreshBusinessData());
@@ -1510,7 +1518,7 @@ async function forceRefreshApp(){
     console.error("M-P-A full refresh failed",e);
     refreshCurrentPage();
     toast("Usasishaji haujakamilika. Angalia mtandao kisha jaribu tena.");
-  }finally{pullBusy=false;showRefreshIndicator(false);}
+  }finally{clearTimeout(v104spin);pullBusy=false;showRefreshIndicator(false);}
 }
 // V68: Vuta chini ili kusasisha — kiashiria kinafuata kidole, kinasasisha ukiachia.
 (function setupPullDownRefresh(){
@@ -1566,7 +1574,7 @@ async function saveOfflineSnapshot(){try{if(!authProfile)return;const db=await m
 async function readOfflineSnapshot(){try{const db=await mpaIdb();return await new Promise(res=>{const r=db.transaction(MPA_OFFLINE_STORE).objectStore(MPA_OFFLINE_STORE).get("last");r.onsuccess=()=>res(r.result||null);r.onerror=()=>res(null);});}catch(e){return null}}
 async function openOfflineFromSnapshot(sessionUserId){
  const snap=await readOfflineSnapshot();if(!snap||String(snap.userId)!==String(sessionUserId)||!snap.profile)return false;
- authProfile=snap.profile;products=snap.products||[];sales=snap.sales||[];customers=snap.customers||[];expenses=snap.expenses||[];movements=snap.movements||[];notifications=snap.notifications||[];stockRequests=snap.stockRequests||[];
+ authProfile=snap.profile;products=v104q(snap.products);sales=snap.sales||[];customers=snap.customers||[];expenses=snap.expenses||[];movements=snap.movements||[];notifications=snap.notifications||[];stockRequests=snap.stockRequests||[];
  if(snap.goalTarget)goalTarget=snap.goalTarget;if(snap.monthlyGoals)monthlyGoals=snap.monthlyGoals;if(snap.storeName)storeName=snap.storeName;
  mpaOfflineMode=true;sessionLoginDay=dateKey(now());document.getElementById('login').style.display='none';document.getElementById('app').style.display='block';
  render();toast("Hauko mtandaoni");return true;
@@ -1612,7 +1620,7 @@ function clearProductForm(){
   const e=document.getElementById(id);
   if(e){e.value="";e.dataset.hidden="0";e.dataset.real="";}
  });
- const q=document.getElementById("pQty"); if(q)q.value=1;
+ const q=document.getElementById("pQty"); if(q)q.value="";
  const file=document.getElementById("pImage"); if(file)file.value="";
  const title=document.getElementById("productModalTitle"); if(title)title.textContent=translateText("Bidhaa Mpya");
  resetProductModalButton();
@@ -1676,7 +1684,7 @@ function editProduct(id){productImagePromise=Promise.resolve();
  const pq=document.getElementById("pQty");pq.readOnly=true;pq.disabled=true;pq.title=translateText("Badilisha idadi kupitia Ongeza/Punguza Stock");
  const ab=document.getElementById("stockApplyBtn");if(ab){ab.textContent=translateText(isRealAdmin()?"Thibitisha Stock":"Omba Ruhusa kwa Admin");ab.classList.toggle("blue",!isRealAdmin());}
  if(!isRealAdmin())document.querySelector("#productModal .btn.blue").textContent=translateText("Omba Ruhusa kwa Admin");
- const es=document.getElementById("editStockSection");if(es){es.style.display="block";stockMode="add";markStockMode();document.getElementById("stockQty").value=1;document.getElementById("stockNote").value="";renderProductHistory(p.id);}
+ const es=document.getElementById("editStockSection");if(es){es.style.display="block";stockMode="add";markStockMode();document.getElementById("stockQty").value="";document.getElementById("stockNote").value="";renderProductHistory(p.id);}
 }
 async function updateProduct(){
  return runOnce("product-save",async()=>{
@@ -1734,7 +1742,7 @@ async function decideStockRequest(id,approve){
    if(!p){toast("Bidhaa haijapatikana.");return {ok:false}}
    const before=JSON.parse(JSON.stringify(p));
    if(r.type==="remove"&&r.qty>p.qty){toast("Stock haitoshi kwa sasa.");return {ok:false}}
-   if(r.type==="add")p.qty+=r.qty;else if(r.type==="remove")p.qty-=r.qty;else Object.assign(p,r.changes||{});
+   if(r.type==="add")p.qty+=r.qty;else if(r.type==="remove")p.qty=Math.max(0,Number(p.qty||0)-Number(r.qty||0));else Object.assign(p,r.changes||{});
    p.updatedAt=now().toISOString();
    const remote=await syncProductToSupabase(p);
    if(!remote.ok){Object.assign(p,before);toast("Haijathibitishwa; Supabase haikupokea.");render();return remote}
@@ -1819,17 +1827,17 @@ async function applyStockChange(){
   if(!p||!q||q<1)return {ok:false};
   if(stockMode==="remove"&&q>p.qty){toast("Stock haitoshi.");return {ok:false}}
   // V93: user hutuma OMBI (Admin huthibitisha), hivyo kupunguza hutumia ruhusa ileile ya kuongeza.
-  if(!isRealAdmin()&&(can("add_stock")||can("remove_stock"))){const r=await submitStockRequest({type:stockMode,product:p,qty:q,note});if(r.ok){document.getElementById("stockQty").value=1;document.getElementById("stockNote").value="";}return r;}
+  if(!isRealAdmin()&&(can("add_stock")||can("remove_stock"))){const r=await submitStockRequest({type:stockMode,product:p,qty:q,note});if(r.ok){document.getElementById("stockQty").value="";document.getElementById("stockNote").value="";}return r;}
   if(stockMode==="remove"&&!can("remove_stock")){toast("Huna ruhusa ya kupunguza stock.");return {ok:false}}
   if(stockMode==="add"&&!can("add_stock")){toast("Huna ruhusa ya kuongeza stock.");return {ok:false}}
   if(stockMode==="remove"&&q>p.qty){toast("Stock haitoshi.");return {ok:false}}
-  if(!isRealAdmin()){const r=await submitStockRequest({type:stockMode,product:p,qty:q,note});if(r.ok){document.getElementById("stockQty").value=1;document.getElementById("stockNote").value="";}return r;}
-  const oldQty=p.qty;p.qty += stockMode==="add"?q:-q;
+  if(!isRealAdmin()){const r=await submitStockRequest({type:stockMode,product:p,qty:q,note});if(r.ok){document.getElementById("stockQty").value="";document.getElementById("stockNote").value="";}return r;}
+  const oldQty=p.qty;p.qty=Math.max(0,Number(p.qty||0)+(stockMode==="add"?q:-q));
   const remote=await syncProductToSupabase(p);
   if(!remote.ok){p.qty=oldQty;toast("Stock haijahifadhiwa; Supabase haikupokea.");return remote}
   movements.unshift({id:crypto.randomUUID(),productId:p.id,type:stockMode,qty:q,user:currentUser(),note,date:now().toISOString()});
   // Onyesha stock mpya mara moja baada ya products table kukubali mabadiliko.
-  const afterStock=()=>{const pq=document.getElementById("pQty");if(pq)pq.value=p.qty;document.getElementById("stockQty").value=1;document.getElementById("stockNote").value="";renderProductHistory(p.id);};
+  const afterStock=()=>{const pq=document.getElementById("pQty");if(pq)pq.value=p.qty;document.getElementById("stockQty").value="";document.getElementById("stockNote").value="";renderProductHistory(p.id);};
   afterStock();render();toast("Stock imesasishwa Supabase ✓");
   const state=await saveAll({renderNow:false});
   if(!state.ok){return {ok:true,stateOk:false};}
@@ -1944,8 +1952,8 @@ async function makeSale(){
   if(!items.length){toast("Chagua angalau bidhaa moja.");return {ok:false}}
   const profit=saleProfit({items,total,subtotal,discount});const recordedAt=now().toISOString();
   const oldQty=new Map();
-  items.forEach(x=>{const p=products.find(y=>y.id===x.productId);oldQty.set(p.id,p.qty);p.qty-=x.qty;movements.unshift({id:crypto.randomUUID(),productId:p.id,type:"sale",qty:x.qty,user:currentUser(),note:"Mauzo",date:new Date(saleDate+"T12:00:00").toISOString()})});
-  const order={id:crypto.randomUUID(),items,productId:items[0].productId,product:items[0].product,qty:items[0].qty,price:items[0].price,discount,total,subtotal,profit,customer,recordedAt,date:saleDate===dateKey(now())?recordedAt:new Date(saleDate+"T12:00:00+03:00").toISOString(),user:currentUser(),paid:salePaid,note,customerPhone,amountPaid:salePaid?total:0,initialAmountPaid:salePaid?total:0,creditSale:!salePaid,debt:salePaid?0:total,payments:[]};order.branchId=activeBranch||"";
+  items.forEach(x=>{const p=products.find(y=>y.id===x.productId);oldQty.set(p.id,p.qty);p.qty=Math.max(0,Number(p.qty||0)-Number(x.qty||0));movements.unshift({id:crypto.randomUUID(),productId:p.id,type:"sale",qty:x.qty,user:currentUser(),note:"Mauzo",date:new Date(saleDate+"T12:00:00").toISOString()})});
+  const order={id:crypto.randomUUID(),items,productId:items[0].productId,product:items[0].product,qty:items[0].qty,price:items[0].price,discount,total,subtotal,profit,customer,recordedAt,date:saleDate===dateKey(now())?recordedAt:new Date(saleDate+"T12:00:00+03:00").toISOString(),user:currentUser(),paid:salePaid,note,customerPhone,amountPaid:salePaid?total:0,initialAmountPaid:salePaid?total:0,creditSale:!salePaid,debt:salePaid?0:total,payments:[],paymentMethod:salePaid?(window.v104PayMethod||"cash"):""};order.branchId=activeBranch||"";
   const saleSync=await syncSaleToSupabase(order);
   if(!saleSync.ok){
    // Dedicated sales table ikigoma, usifute mauzo yaliyofanyika. Yahifadhi kwenye Supabase app-state
@@ -2019,8 +2027,8 @@ function clearSalesFilter(){salesDayUserSelected=false;document.getElementById("
 function normalizePhone(v){let d=String(v||"").replace(/[^\d+]/g,"");if(d.startsWith("+"))d=d.slice(1);return d.replace(/\D/g,"")}
 function validDebtCustomer(name,phone){if(!String(name||"").trim())return {ok:false,field:"name",error:"Weka jina la mteja kwa mauzo ambayo hayajalipwa."};const d=normalizePhone(phone);if(d.length<7||d.length>15)return {ok:false,field:"phone",error:"Weka namba sahihi ya simu ya mteja."};return {ok:true,phone:d}}
 function saleDebtBalance(s){if(!s)return 0;if(s.debt!==undefined&&s.debt!==null&&Number.isFinite(Number(s.debt)))return Math.max(0,Number(s.debt));return s.paid===false?Math.max(0,Number(s.total||0)-Number(s.amountPaid||0)):0}
-function saleRecordNotes(s){const meta={customer:s.customer||"",customerPhone:s.customerPhone||"",payments:Array.isArray(s.payments)?s.payments:[],recordedAt:s.recordedAt||"",initialAmountPaid:s.initialAmountPaid,creditSale:isCreditSale(s),note:s.note||""};if(!meta.recordedAt&&!meta.customerPhone&&!meta.payments.length&&(!meta.customer||meta.customer==="Mteja"))return String(s.note||"");return "MPA77:"+JSON.stringify(meta)}
-function saleReadNotes(n){const t=String(n||"");if(!t.startsWith("MPA77:"))return {note:t};try{const m=JSON.parse(t.slice(6));return {customer:m.customer||"",customerPhone:m.customerPhone||"",payments:Array.isArray(m.payments)?m.payments:[],recordedAt:m.recordedAt||"",initialAmountPaid:m.initialAmountPaid,creditSale:m.creditSale===true,note:m.note||""}}catch(e){return {note:t}}}
+function saleRecordNotes(s){const meta={customer:s.customer||"",customerPhone:s.customerPhone||"",payments:Array.isArray(s.payments)?s.payments:[],recordedAt:s.recordedAt||"",initialAmountPaid:s.initialAmountPaid,creditSale:isCreditSale(s),note:s.note||"",paymentMethod:s.paymentMethod||""};if(!meta.recordedAt&&!meta.customerPhone&&!meta.payments.length&&(!meta.customer||meta.customer==="Mteja"))return String(s.note||"");return "MPA77:"+JSON.stringify(meta)}
+function saleReadNotes(n){const t=String(n||"");if(!t.startsWith("MPA77:"))return {note:t};try{const m=JSON.parse(t.slice(6));return {customer:m.customer||"",customerPhone:m.customerPhone||"",payments:Array.isArray(m.payments)?m.payments:[],recordedAt:m.recordedAt||"",initialAmountPaid:m.initialAmountPaid,creditSale:m.creditSale===true,note:m.note||"",paymentMethod:m.paymentMethod||""}}catch(e){return {note:t}}}
 function mpaDeviceKind(){const ua=navigator.userAgent||"";if(/iPhone|iPad|iPod/i.test(ua)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1))return "ios";if(/Android/i.test(ua))return "android";return "desktop"}
 function fillSaleContact(name,phone){focusSaleCustomer();const n=document.getElementById("saleCustomer"),t=document.getElementById("saleCustomerPhone");if(name&&n)n.value=String(name).trim();if(phone&&t)t.value=String(phone).trim();document.getElementById("saleContactHelp")?.classList.add("hidden");toast("Mteja amewekwa ✓")}
 function parseVCard(text){const raw=String(text||"").replace(/\r\n[ \t]/g,"").split(/\r?\n/);let name="",phone="";for(const line of raw){const i=line.indexOf(":");if(i<0)continue;const key=line.slice(0,i).toUpperCase(),val=line.slice(i+1).trim();if(!name&&key.split(";")[0]==="FN")name=val;if(!name&&key.split(";")[0]==="N"){const parts=val.split(";");name=[parts[1],parts[0]].filter(Boolean).join(" ")}if(!phone&&key.split(";")[0].replace(/^ITEM\d+\./,"")==="TEL")phone=val.replace(/^tel:/i,"")}return {name:name.replace(/\\,/g,",").replace(/\\;/g,";"),phone}}
@@ -2063,6 +2071,7 @@ async function paySaleDebt(){
   Object.assign(s,next);
   saveCloudState().catch(()=>{});
   notify("Deni limelipwa",s.customer+" • "+money(amt),"sales",s.id);
+  if(next.paid)v104debtClearedSms(s);
   closeModal("debtPaymentModal");toast(next.paid?"Deni limelipwa lote ✓":"Malipo yamehifadhiwa ✓ Baki "+money(next.debt));
   render();openSaleDetails(s.id);return {ok:true,balance:next.debt};
  });
@@ -2491,7 +2500,7 @@ async function changePin(){return runOnce('admin-credentials',async()=>{
  });}
 async function enableBiometric(){toast('Face ID/fingerprint bado haiwezi kuwezeshwa salama kwenye akaunti hii; endelea kutumia password/PIN.');}
 function setFontSize(v){const n=Math.max(85,Math.min(120,Number(v)||100));fontSize=n;document.documentElement.style.setProperty("--fontScale",n/100);const r=document.getElementById("fontSizeRange");if(r)r.value=n;const l=document.getElementById("fontSizeLabel");if(l)l.textContent=n+"%"}
-function changeFontSize(step){const n=Number(fontSize||100)+step*5;setFontSize(n);saveCloudState()}
+function changeFontSize(step){const n=Number(fontSize||100)+step*5;setFontSize(n);v104setPref("fontSize",fontSize)}
 function applyFontSize(){setFontSize(Number(fontSize||100))}
 function setLanguage(lang,{persist=true}={}){
  const next=lang==='en'?'en':'sw',changed=language!==next;language=next;
@@ -2804,7 +2813,7 @@ async function v94doMove(){const st=v94store();const it=(st.items||[]).find(i=>S
  const r=await syncProductToSupabase(p);
  if(!r.ok){btn.disabled=false;btn.textContent=translateText("Hamisha sasa");toast("Haijahamishwa. Jaribu tena.");return}
  if(ex)Object.assign(ex,p);else products.unshift(p);
- it.qty=Number(it.qty)-n;movements.unshift({id:crypto.randomUUID(),productId:p.id,type:"add",qty:n,user:currentUser(),note:"Kutoka store: "+st.name,date:new Date().toISOString()});
+ it.qty=Math.max(0,Number(it.qty)-n);movements.unshift({id:crypto.randomUUID(),productId:p.id,type:"add",qty:n,user:currentUser(),note:"Kutoka store: "+st.name,date:new Date().toISOString()});
  v94closeModal();v94renderStore();try{render()}catch(e){}notify("Bidhaa imehamishiwa dukani",`${it.name} × ${n} (${st.name})`,"products",p.id);toast(`${it.name} × ${n} imehamishiwa dukani ✓`);v94save()}
 
 /* ---- Kumkumbusha deni ---- */
@@ -2824,7 +2833,7 @@ function openDebtReminder(id){const s=sales.find(x=>String(x.id)===String(id));i
  v94modal(`<div class="modalhead"><h2>${translateText("Mkumbushe Deni")}</h2><button class="close" onclick="v94closeModal()">×</button></div>
  <div class="field"><label>${translateText("Namba ya simu ya mteja")}</label><input id="v94RemPhone" inputmode="tel" value="${esc(ph)}" placeholder="07xx xxx xxx"></div>
  <div class="field"><label>${translateText("Ujumbe")}</label><textarea id="v94RemText" rows="10" style="font-size:13px">${esc(v94reminderText(s))}</textarea></div>
- <div class="two"><button class="btn" style="background:#25D366;color:#fff;padding:14px" onclick="v94sendRem('wa')">🟢 WhatsApp</button><button class="btn blue" style="padding:14px" onclick="v94sendRem('sms')">✉️ SMS ${translateText("kawaida")}</button></div><button id="v96RemBtn" class="btn" style="width:100%;background:#111;color:#f5c400;padding:14px;margin-top:8px" onclick="v96remDarsms()">📨 ${translateText("Tuma kwa jina la duka")} (DarSMS)</button>`)}
+ <div class="two"><button class="btn" style="background:#25D366;color:#fff;padding:14px" onclick="v94sendRem('wa')">🟢 WhatsApp</button><button class="btn blue" style="padding:14px" onclick="v94sendRem('sms')">✉️ SMS ${translateText("kawaida")}</button></div><div class="two" style="margin-top:8px"><button id="v96RemBtn" class="btn" style="background:#111;color:#f5c400;padding:14px" onclick="v96remDarsms('darsms')">📨 DarSMS</button><button id="v104RemSwala" class="btn" style="background:#0b6b3a;color:#fff;padding:14px" onclick="v96remDarsms('swala')">📨 SwalaSMS</button></div>`)}
 function v94sendRem(kind){const ph=document.getElementById("v94RemPhone").value.trim(),txt=document.getElementById("v94RemText").value;if(!ph){toast("Weka namba ya simu ya mteja.");return}
  const url=kind==="wa"?`https://wa.me/${v94intl(ph)}?text=${encodeURIComponent(txt)}`:`sms:${ph.replace(/\s/g,"")}${/iPhone|iPad|iPod|Mac/.test(navigator.userAgent)?"&":"?"}body=${encodeURIComponent(txt)}`;
  if(kind==="wa")window.open(url,"_blank");else location.href=url;v94closeModal()}
@@ -2863,7 +2872,7 @@ function openBulkSms(){if(!isRealAdmin()){toast("Admin pekee anatuma SMS kwa wat
  <label class="v94-r" style="display:flex;align-items:center;gap:10px"><input id="v99SelectAll" type="checkbox" onchange="v99selectAll(this.checked)"><b>${translateText("Chagua wote")}</b><span id="v99SelectedCount" class="muted" style="margin-left:auto"></span></label>
  <div id="v99Recipients" style="max-height:30vh;overflow:auto;margin:8px 0 12px">${list.map((c,i)=>`<div class="v94-r" style="display:flex;align-items:center;gap:10px;padding:8px 0"><label style="display:flex;align-items:center;gap:10px;flex:1;min-width:0"><input type="checkbox" aria-label="${esc(c.name||c.phone)}" onchange="v99toggleRecipient(${i},this.checked)"><span style="overflow-wrap:anywhere">${esc(c.name||"")}<br><small class="muted">${esc(c.phone)}</small></span></label><button class="btn" style="background:#25D366;color:#fff;padding:8px 12px" onclick="v95waOne(${i})">WhatsApp</button></div>`).join("")||`<div class="muted">${translateText("Hakuna mteja mwenye namba.")}</div>`}</div>
  <div class="field"><label>${translateText("Ujumbe")}</label><textarea id="v95BulkText" rows="5">${esc(MPA_SHOP_TITLE+":\n")}</textarea></div>
- <button id="v96BulkBtn" class="btn" style="width:100%;background:#111;color:#f5c400;padding:14px;margin-bottom:8px" onclick="v96bulkDarsms()">📨 ${translateText("Tuma kwa jina la duka")} (DarSMS)</button><div class="two"><button class="btn blue" style="padding:14px" onclick="v95sendBulk()">✉️ ${translateText("Tuma SMS")}</button><button class="btn" style="padding:14px" onclick="v95copyBulk()">📋 ${translateText("Nakili ujumbe")}</button></div>`);v99updateSelection()}
+ <div class="muted" style="margin-bottom:6px">${translateText("Tuma kwa jina la duka kupitia")}:</div><div class="two" style="margin-bottom:8px"><button id="v96BulkBtn" class="btn" style="background:#111;color:#f5c400;padding:14px" onclick="v96bulkDarsms('darsms')">📨 DarSMS</button><button id="v104BulkSwala" class="btn" style="background:#0b6b3a;color:#fff;padding:14px" onclick="v96bulkDarsms('swala')">📨 SwalaSMS</button></div><div class="two"><button class="btn blue" style="padding:14px" onclick="v95sendBulk()">✉️ ${translateText("Tuma SMS")}</button><button class="btn" style="padding:14px" onclick="v95copyBulk()">📋 ${translateText("Nakili ujumbe")}</button></div>`);v99updateSelection()}
 function v95sendBulk(){const list=v99selectedPhones(),t=document.getElementById("v95BulkText").value.trim();if(!t){toast("Andika ujumbe.");return}if(!list.length){toast("Chagua angalau mteja mmoja.");return}
  const nums=list.map(c=>c.phone).join(","),ios=/iPhone|iPad|iPod|Mac/.test(navigator.userAgent);
  location.href=ios?`sms:/open?addresses=${nums}&body=${encodeURIComponent(t)}`:`sms:${nums}?body=${encodeURIComponent(t)}`}
@@ -2979,18 +2988,90 @@ function v98addExisting(){const st=v94store();if(!st)return;const p=products.fin
  v94closeModal();v94renderStore();toast(`${p.name} × ${n} ${translateText("imeongezwa stoo ✓")}`);v94save()}
 
 /* ===== V96: DarSMS (Sender ID) ===== */
-async function v96sendDarsms(to,message,btn){if(!sbClient){toast("Hakuna mtandao.");return false}if(navigator.onLine===false){toast("Hauko mtandaoni.");return false}
+async function v96sendDarsms(to,message,btn,provider,quiet){provider=provider==="swala"?"swala":"darsms";if(!sbClient){toast("Hakuna mtandao.");return false}if(navigator.onLine===false){toast("Hauko mtandaoni.");return false}
  const old=btn?.textContent;if(btn){btn.disabled=true;btn.textContent=translateText("Inatuma…")}
- try{const {data,error}=await sbClient.functions.invoke("mpa-send-sms",{body:{to,message}});
+ try{const {data,error}=await sbClient.functions.invoke("mpa-send-sms",{body:{to,message,provider,auto:!!quiet}});
   if(error){let m=error.message;try{const b=await error.context.clone().json();m=b.error||m}catch(e){}throw new Error(m)}
-  if(data?.error)throw new Error(data.error);toast(translateText("SMS imetumwa kwa")+" "+(data?.count||to.length)+" ✓");return true}
- catch(e){alert(translateText("SMS haijatumwa: ")+(e.message||e));return false}
+  if(data?.error)throw new Error(data.error);toast(translateText("SMS imetumwa kwa")+" "+(data?.count||to.length)+" ✓");v104setPref("smsProvider",provider);return true}
+ catch(e){if(quiet)toast(translateText("SMS haijatumwa: ")+(e.message||e));else alert(translateText("SMS haijatumwa: ")+(e.message||e));return false}
  finally{if(btn){btn.disabled=false;btn.textContent=old}}}
-async function v96bulkDarsms(){const list=v99selectedPhones(),t=document.getElementById("v95BulkText").value.trim();if(!t){toast("Andika ujumbe.");return}if(!list.length){toast("Chagua angalau mteja mmoja.");return}
- if(!confirm(translateText("Tuma SMS kwa wateja")+" "+list.length+"? "+translateText("Itatumia credits za DarSMS.")))return;
- if(await v96sendDarsms(list.map(c=>c.phone),t,document.getElementById("v96BulkBtn")))v94closeModal()}
-async function v96remDarsms(){const ph=document.getElementById("v94RemPhone").value.trim(),t=document.getElementById("v94RemText").value.trim();if(!ph){toast("Weka namba ya simu ya mteja.");return}
- if(await v96sendDarsms([ph],t,document.getElementById("v96RemBtn")))v94closeModal()}
+async function v96bulkDarsms(provider){const list=v99selectedPhones(),t=document.getElementById("v95BulkText").value.trim();if(!t){toast("Andika ujumbe.");return}if(!list.length){toast("Chagua angalau mteja mmoja.");return}
+ if(!confirm(translateText("Tuma SMS kwa wateja")+" "+list.length+"? "+translateText("Itatumia credits za")+" "+(provider==="swala"?"SwalaSMS":"DarSMS")+"."))return;
+ if(await v96sendDarsms(list.map(c=>c.phone),t,document.getElementById(provider==="swala"?"v104BulkSwala":"v96BulkBtn"),provider))v94closeModal()}
+async function v96remDarsms(provider){const ph=document.getElementById("v94RemPhone").value.trim(),t=document.getElementById("v94RemText").value.trim();if(!ph){toast("Weka namba ya simu ya mteja.");return}
+ if(await v96sendDarsms([ph],t,document.getElementById(provider==="swala"?"v104RemSwala":"v96RemBtn"),provider))v94closeModal()}
 </script>
-<div id="saleImageViewer" class="sale-image-viewer hidden" onclick="if(event.target===this)closeSaleImage()"><button type="button" class="sale-image-close" aria-label="Funga" onclick="closeSaleImage()">×</button><img id="saleImageViewerImg" src="icon.svg" alt="Bidhaa" onclick="saleImageTap()" ondblclick="toggleSaleImageZoom()"></div></body>
+<div id="saleImageViewer" class="sale-image-viewer hidden" onclick="if(event.target===this)closeSaleImage()"><button type="button" class="sale-image-close" aria-label="Funga" onclick="closeSaleImage()">×</button><img id="saleImageViewerImg" src="icon.svg" alt="Bidhaa" onclick="saleImageTap()" ondblclick="toggleSaleImageZoom()"></div><script>
+/* ===== V104: mapendeleo ya kila akaunti, malipo cash/simu, SMS mbili, Bin Card ===== */
+function v104prefKey(){try{return "mpaPrefs:"+(authProfile?.id||"guest")}catch(e){return "mpaPrefs:guest"}}
+function v104prefs(){try{return JSON.parse(localStorage.getItem(v104prefKey())||"{}")||{}}catch(e){return {}}}
+function v104pref(k){return v104prefs()[k]}
+function v104setPref(k,v){try{const o=v104prefs();o[k]=v;localStorage.setItem(v104prefKey(),JSON.stringify(o))}catch(e){}}
+function v104notifOn(){return v104pref("notifOn")!==false}
+function v104soundType(){return v104pref("soundType")||"classic"}
+const V104_SOUNDS={classic:{name:"Kawaida (MPA)",tones:[[880,0,.25],[1174.66,.28,.32]]},bell:{name:"Kengele",tones:[[1318.5,0,.5],[987.8,.18,.6]]},chime:{name:"Chime",tones:[[784,0,.18],[988,.18,.18],[1175,.36,.35]]},alarm:{name:"Kengele kali",tones:[[1000,0,.15],[750,.17,.15],[1000,.34,.15],[750,.51,.15],[1000,.68,.25]],type:"square"},soft:{name:"Laini",tones:[[523.25,0,.35],[659.25,.3,.45]]},pop:{name:"Pop fupi",tones:[[1400,0,.09],[1800,.1,.09]]}};
+function v104playTone(type){try{unlockNotificationAudio();const ctx=mpaAudioCtx;if(!ctx)return;if(ctx.state!=="running")ctx.resume().catch(()=>{});const def=V104_SOUNDS[type]||V104_SOUNDS.classic;
+ def.tones.forEach(([f,st,d])=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type=def.type||"sine";o.frequency.value=f;const t=ctx.currentTime+st+.02;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(def.type?.08:.2,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+d+.03)})}catch(e){}}
+function v104syncSettingsUI(){const sw=document.getElementById("v104NotifSwitch");if(sw){sw.classList.toggle("on",v104notifOn());sw.setAttribute("aria-label",v104notifOn()?"ON":"OFF")}const sn=document.getElementById("v104SoundName");if(sn)sn.textContent=translateText((V104_SOUNDS[v104soundType()]||V104_SOUNDS.classic).name)+" ›";try{setFontSize(Number(v104pref("fontSize")||fontSize||100))}catch(e){}}
+function v104toggleNotif(){const on=!v104notifOn();v104setPref("notifOn",on);v104syncSettingsUI();
+ if(on){if(("Notification" in window)&&Notification.permission!=="granted")requestBrowserNotifications();else{toast(translateText("Arifa zimewashwa")+" ✓");try{registerPushSubscription()}catch(e){}}}
+ else toast(translateText("Arifa zimezimwa kwenye kifaa hiki"))}
+function v104openSounds(){const cur=v104soundType();v94modal(`<h3 style="margin:0 0 10px">${translateText("Chagua aina ya sauti")}</h3>${Object.entries(V104_SOUNDS).map(([k,v])=>`<div style="display:flex;gap:8px;align-items:center;margin:6px 0"><button class="btn${k===cur?" blue":""}" style="flex:1;text-align:left;padding:12px" onclick="v104pickSound('${k}')">${k===cur?"✓ ":""}${translateText(v.name)}</button><button class="btn" style="padding:12px" onclick="v104playTone('${k}')">▶</button></div>`).join("")}<button class="btn" style="width:100%;margin-top:8px;padding:12px" onclick="testNotificationSignal()">📳 ${translateText("Jaribu sauti na mtetemo")}</button><button class="btn" style="width:100%;margin-top:8px" onclick="v94closeModal()">${translateText("Funga")}</button>`)}
+function v104pickSound(k){v104setPref("soundType",k);v104playTone(k);v104openSounds();v104syncSettingsUI()}
+/* Malipo: Cash au Simu */
+function v104saveSaleClick(){if(actionLocks.has("sale-save")){toast("Tafadhali subiri, mauzo bado yanahifadhiwa.");return}
+ if(!salePaid){makeSale();return}
+ if(!saleCart.length){toast("Chagua angalau bidhaa moja.");return}
+ v94modal(`<h3 style="margin:0 0 4px">${translateText("Mauzo yamelipwa kwa njia gani?")}</h3><p class="muted" style="margin:0 0 12px">${translateText("Chagua kisha mauzo yatahifadhiwa")}</p><div class="two"><button class="btn green" style="padding:18px;font-size:17px" onclick="v104pay('cash')">💵 ${translateText("Taslimu")}</button><button class="btn blue" style="padding:18px;font-size:17px" onclick="v104pay('mobile')">📱 ${translateText("Simu")}</button></div><button class="btn" style="width:100%;margin-top:10px" onclick="v94closeModal()">${translateText("Ghairi")}</button>`)}
+function v104pay(m){window.v104PayMethod=m==="mobile"?"mobile":"cash";v94closeModal();makeSale()}
+function v104payLabel(m){return m==="mobile"?translateText("Simu"):m==="cash"?translateText("Taslimu"):""}
+/* SMS ya shukrani deni likiisha */
+function v104thanksMessage(s){return `Habari ${s.customer||"mteja wetu"}, umemaliza kulipa deni lako la ${money(s.total||0)} kwa ${MPA_SHOP_TITLE}. Asante sana kwa uaminifu wako! Karibu tena siku nyingine kwa huduma bora. Karibu sana Micky Phone Accessories and Home Decoration. ${MPA_SHOP_PHONE}`}
+function v104debtClearedSms(s){const ph=String(s?.customerPhone||"").trim();if(!ph||typeof v96sendDarsms!=="function")return;
+ v96sendDarsms([ph],v104thanksMessage(s),null,v104pref("smsProvider")||"darsms",true).then(ok=>{if(ok)toast(translateText("SMS ya shukrani imetumwa kwa")+" "+(s.customer||ph)+" ✓")})}
+/* ===== Bin Card ===== */
+function v104dk(d){try{return dateKey(d)}catch(e){return String(d||"").slice(0,10)}}
+function v104isIn(t){return t==="add"}
+function v104isOut(t){return t==="sale"||t==="remove"}
+function v104binRows(prods,moves,sls,day){
+ const rows=new Map();
+ const row=p=>{if(!rows.has(String(p.id)))rows.set(String(p.id),{id:p.id,name:p.name,category:p.category||"",buy:Number(p.buy||0),price:Number(p.price||0),now:Math.max(0,Number(p.qty||0)),inQ:0,outQ:0,after:0,sold:0,salesValue:0,profit:0});return rows.get(String(p.id))};
+ const pmap=new Map(prods.map(p=>[String(p.id),p]));
+ for(const m of moves||[]){const p=pmap.get(String(m.productId));if(!p)continue;const k=v104dk(m.date),q=Number(m.qty||0),r=row(p);
+  if(k===day){if(v104isIn(m.type))r.inQ+=q;else if(v104isOut(m.type))r.outQ+=q}
+  else if(k>day){if(v104isIn(m.type))r.after-=q;else if(v104isOut(m.type))r.after+=q}}
+ for(const s of sls||[]){if(v104dk(s.date)!==day)continue;for(const it of (s.items||[])){const p=pmap.get(String(it.productId));if(!p)continue;const r=row(p),q=Number(it.qty||0);r.sold+=q;r.salesValue+=Number(it.lineTotal??Number(it.price||0)*q);r.profit+=(Number(it.price||0)-Number(it.buy||0))*q}}
+ return [...rows.values()].filter(r=>r.inQ||r.outQ||r.sold).map(r=>{const bal=Math.max(0,r.now+r.after);return {...r,balance:bal,opening:Math.max(0,bal-r.inQ+r.outQ),inValue:r.inQ*r.buy,outValue:r.outQ*r.buy,balanceValue:bal*r.buy}}).sort((a,b)=>String(a.name).localeCompare(String(b.name)))}
+function v104ledger(p,moves){const list=(moves||[]).filter(m=>String(m.productId)===String(p.id)&&(v104isIn(m.type)||v104isOut(m.type))).sort((a,b)=>new Date(b.date)-new Date(a.date));let bal=Math.max(0,Number(p.qty||0));return list.map(m=>{const q=Number(m.qty||0),r={date:m.date,type:m.type,inQ:v104isIn(m.type)?q:0,outQ:v104isOut(m.type)?q:0,balance:Math.max(0,bal),user:m.user||"",note:m.note||""};bal=bal-r.inQ+r.outQ;return r})}
+let v104BinDay="",v104BinStore="shop",v104BinQ="";
+function v104money(n){return can("view_product_prices")?money(n):"****"}
+function v104binEl(){let o=document.getElementById("v104Bin");if(!o){o=document.createElement("div");o.id="v104Bin";o.className="v104-bin";document.body.appendChild(o)}return o}
+function v104openBinCard(){if(!can("view_products")){toast("Huna ruhusa ya kufungua sehemu hii. Admin anaweza kukupa ruhusa.");return}v104BinDay=v104BinDay||v104dk(now());v104renderBin()}
+function v104closeBin(){document.getElementById("v104Bin")?.remove()}
+function v104renderBin(){const o=v104binEl(),day=v104BinDay,sts=(typeof stores!=="undefined"&&Array.isArray(stores))?stores:[];
+ const head=`<div class="v104-bin-top"><button class="v94-back" onclick="v104closeBin()">←</button><h2>📇 Bin Card</h2></div>
+ <div class="v104-bin-filters"><input type="date" value="${esc(day)}" onchange="v104BinDay=this.value;v104renderBin()"><select onchange="v104BinStore=this.value;v104renderBin()"><option value="shop"${v104BinStore==="shop"?" selected":""}>🏪 ${translateText("Duka")}</option>${sts.map(st=>`<option value="${esc(st.id)}"${String(v104BinStore)===String(st.id)?" selected":""}>🏬 ${esc(st.name)}</option>`).join("")}</select></div>
+ <input class="v104-bin-search" placeholder="${translateText("Tafuta bidhaa")}" value="${esc(v104BinQ)}" oninput="v104BinQ=this.value;clearTimeout(window._v104bq);window._v104bq=setTimeout(v104renderBin,250)">`;
+ let body="";const q=v104BinQ.trim().toLowerCase();
+ if(v104BinStore==="shop"){
+  let rows=v104binRows(products,movements,sales,day);if(q)rows=rows.filter(r=>String(r.name).toLowerCase().includes(q));
+  const t=rows.reduce((a,r)=>({inQ:a.inQ+r.inQ,outQ:a.outQ+r.outQ,inV:a.inV+r.inValue,sv:a.sv+r.salesValue,pr:a.pr+r.profit,bv:a.bv+r.balanceValue}),{inQ:0,outQ:0,inV:0,sv:0,pr:0,bv:0});
+  const stockValue=products.reduce((a,p)=>a+Math.max(0,Number(p.qty||0))*Number(p.buy||0),0),left=products.reduce((a,p)=>a+Math.max(0,Number(p.qty||0)),0);
+  body=`<div class="v104-bin-sum"><div><small>${translateText("Zilizoingia")}</small><b class="green">${t.inQ}</b><small>${v104money(t.inV)}</small></div><div><small>${translateText("Zilizotoka")}</small><b class="red">${t.outQ}</b><small>${translateText("Mauzo")}: ${v104money(t.sv)}</small></div><div><small>${translateText("Faida")}</small><b>${v104money(t.pr)}</b><small>${translateText("ya bidhaa zilizouzwa")}</small></div><div><small>${translateText("Zilizobaki dukani sasa")}</small><b>${left}</b><small>${v104money(stockValue)}</small></div></div>
+  ${rows.length?rows.map(r=>`<button class="v104-bin-row" onclick="v104openLedger('${esc(String(r.id))}')"><div class="v104-bin-name"><b>${esc(r.name)}</b><small>${esc(r.category)}</small></div><div class="v104-bin-grid"><span>${translateText("Mwanzo")}<b>${r.opening}</b></span><span>${translateText("Ingia")}<b class="green">+${r.inQ}</b></span><span>${translateText("Toka")}<b class="red">−${r.outQ}</b></span><span>${translateText("Baki")}<b>${r.balance}</b></span></div><div class="v104-bin-money"><span>${translateText("Thamani ya baki")}: ${v104money(r.balanceValue)}</span><span>${translateText("Mauzo")}: ${v104money(r.salesValue)}</span><span>${translateText("Faida")}: ${v104money(r.profit)}</span></div></button>`).join(""):`<div class="empty">${translateText("Hakuna bidhaa zilizoingia au kutoka siku hii.")}</div>`}`;
+ }else{
+  const st=sts.find(x=>String(x.id)===String(v104BinStore));let items=(st?.items||[]);if(q)items=items.filter(i=>String(i.name).toLowerCase().includes(q));
+  const outs=(movements||[]).filter(m=>v104dk(m.date)===day&&String(m.note||"").includes("Kutoka store: "+(st?.name||"")));
+  const val=items.reduce((a,i)=>a+Number(i.buy||0)*Number(i.qty||0),0);
+  body=`<div class="v104-bin-sum"><div><small>${translateText("Bidhaa stoo")}</small><b>${items.length}</b></div><div><small>${translateText("Idadi iliyobaki")}</small><b>${items.reduce((a,i)=>a+Number(i.qty||0),0)}</b></div><div><small>${translateText("Thamani")}</small><b>${v104money(val)}</b></div><div><small>${translateText("Zilizohamishiwa dukani leo")}</small><b class="red">${outs.reduce((a,m)=>a+Number(m.qty||0),0)}</b></div></div>
+  ${items.length?items.map(i=>`<div class="v104-bin-row"><div class="v104-bin-name"><b>${esc(i.name)}</b></div><div class="v104-bin-grid"><span>${translateText("Baki")}<b>${Number(i.qty||0)}</b></span><span>${translateText("Bei ya kununua")}<b>${v104money(i.buy)}</b></span><span>${translateText("Thamani")}<b>${v104money(Number(i.buy||0)*Number(i.qty||0))}</b></span></div></div>`).join(""):`<div class="empty">${translateText("Stoo hii haina bidhaa.")}</div>`}`;
+ }
+ o.innerHTML=`<div class="v104-bin-wrap">${head}${body}</div>`}
+function v104openLedger(id){const p=products.find(x=>String(x.id)===String(id));if(!p)return;const rows=v104ledger(p,movements).slice(0,200);
+ v94modal(`<h3 style="margin:0">${esc(p.name)}</h3><p class="muted" style="margin:4px 0 10px">${translateText("Baki sasa")}: <b>${Math.max(0,Number(p.qty||0))}</b> • ${translateText("Thamani")}: ${v104money(Math.max(0,Number(p.qty||0))*Number(p.buy||0))}</p><div style="max-height:60vh;overflow:auto"><table class="v104-ledger"><tr><th>${translateText("Tarehe")}</th><th>${translateText("Ingia")}</th><th>${translateText("Toka")}</th><th>${translateText("Baki")}</th></tr>${rows.map(r=>`<tr><td>${esc(new Date(r.date).toLocaleString("en-GB",{timeZone:"Africa/Dar_es_Salaam",day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}))}<small>${esc(translateText(r.note))}${r.user?" • "+esc(r.user):""}</small></td><td class="green">${r.inQ||""}</td><td class="red">${r.outQ||""}</td><td><b>${r.balance}</b></td></tr>`).join("")||`<tr><td colspan="4">${translateText("Hakuna kumbukumbu.")}</td></tr>`}</table></div><button class="btn" style="width:100%;margin-top:10px" onclick="v94closeModal()">${translateText("Funga")}</button>`)}
+(function(){const st=document.createElement("style");st.textContent=`.v104-switch{margin-left:auto;width:46px;height:28px;border-radius:20px;background:#cbd5e1;position:relative;flex:0 0 auto;transition:background .15s}.v104-switch:after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0003;transition:left .15s}.v104-switch.on{background:#11be27}.v104-switch.on:after{left:21px}
+.v104-bin{position:fixed;inset:0;z-index:240;background:var(--bg,#f4f6fb);overflow:auto;-webkit-overflow-scrolling:touch}.v104-bin-wrap{max-width:720px;margin:0 auto;padding:14px 12px 90px}.v104-bin-top{display:flex;align-items:center;gap:10px}.v104-bin-top h2{margin:0}.v104-bin-filters{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0 8px}.v104-bin-filters input,.v104-bin-filters select,.v104-bin-search{width:100%;padding:12px;border:1px solid #d6dbe6;border-radius:12px;font-size:15px;background:#fff;box-sizing:border-box}.v104-bin-sum{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.v104-bin-sum>div{background:#fff;border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;box-shadow:0 1px 4px #0001}.v104-bin-sum b{font-size:20px}.v104-bin-sum small{color:#64748b;font-size:12px}.v104-bin-row{display:block;width:100%;text-align:left;background:#fff;border:0;border-radius:14px;padding:12px;margin:0 0 8px;box-shadow:0 1px 4px #0001;color:inherit;font:inherit}.v104-bin-name{display:flex;justify-content:space-between;gap:8px}.v104-bin-name small{color:#64748b}.v104-bin-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}.v104-bin-grid span{display:flex;flex-direction:column;font-size:11px;color:#64748b;background:#f1f5f9;border-radius:10px;padding:6px;text-align:center}.v104-bin-grid b{font-size:16px;color:#0f172a}.v104-bin-money{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:#334155}.v104-bin .green,.v104-ledger .green{color:#0a9b3c!important}.v104-bin .red,.v104-ledger .red{color:#e11d48!important}.v104-ledger{width:100%;border-collapse:collapse;font-size:13px}.v104-ledger th,.v104-ledger td{padding:7px 4px;border-bottom:1px solid #eef1f6;text-align:right;vertical-align:top}.v104-ledger th:first-child,.v104-ledger td:first-child{text-align:left}.v104-ledger small{display:block;color:#64748b;font-size:11px}`;document.head.appendChild(st)})();
+(function(){const _sp=showPage;window.showPage=showPage=function(id){const r=_sp.apply(this,arguments);if(id==="settings")v104syncSettingsUI();return r};if(document.readyState!=="loading")v104syncSettingsUI();else document.addEventListener("DOMContentLoaded",v104syncSettingsUI)})();
+
+</script></body>
 </html>
