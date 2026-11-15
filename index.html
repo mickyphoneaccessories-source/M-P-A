@@ -551,7 +551,7 @@ html,body,button,a,input,select,label,.tableitem,.productrow{touch-action:manipu
 <script src="translations.js"></script>
 <script>
 // M-P-A v41: do not reload the entire app state on realtime app-state events; only merge notifications.
-const MPA_APP_VERSION = "V106";
+const MPA_APP_VERSION = "V107";
 function renderAppVersion(){const el=document.getElementById("appVersionLabel");if(el)el.textContent="Toleo: "+MPA_APP_VERSION;}
 let mpaWaitingWorker=null;
 function setUpdateUI(state,msg){
@@ -2659,7 +2659,7 @@ async function scheduleRemoteNotificationRefresh(eventPayload){
 // V87: Realtime + focus/visibility refresh are primary. Keep only a low-frequency
 // 5-minute fallback for missed events; the old 15-second polling caused repeated
 // PostgREST reads and unnecessary Egress while the app was idle.
-function startLivePolling(){registerPushSubscription();if(mpaLiveTimer)clearInterval(mpaLiveTimer);mpaLiveTimer=setInterval(()=>{if(authProfile&&navigator.onLine!==false&&!document.hidden)scheduleRemoteNotificationRefresh()},30000)}
+function startLivePolling(){registerPushSubscription();if(mpaLiveTimer)clearInterval(mpaLiveTimer);mpaLiveTimer=setInterval(()=>{if(authProfile&&navigator.onLine!==false&&!document.hidden)scheduleRemoteNotificationRefresh()},300000)}
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&authProfile)scheduleRemoteNotificationRefresh()});
 window.addEventListener("focus",()=>{if(authProfile)scheduleRemoteNotificationRefresh()});
 function startSupabaseRealtime(){
